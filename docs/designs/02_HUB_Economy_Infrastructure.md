@@ -44,6 +44,11 @@ Mọi công trình có 4 trạng thái: Đổ nát -> Lvl 1 -> Lvl 2 -> **Lvl 3 
     *   *Vay Từ Trainer (Reverse Loan):* Giám đốc vay Gold từ Trainer Rank V (xem [03](03_Trainer_AI_System.md)) khi kho bạc cạn. Nếu không trả nổi, AI xiết nợ bằng cách xài dịch vụ HUB miễn phí.
     *   *Cho Trainer Vay (Vay Nặng Lãi):* Trainer hết tiền (hoặc muốn mua cổ phiếu, mua đồ) vay Gold từ HUB. Giám đốc đặt lãi suất. Số dư Gold của Trainer có thể xuống ÂM (nợ xấu); khi đó lương và tiền bán nguyên liệu được trừ nợ trước. Lãi suất, hạn mức và hậu quả quá hạn: xem [13_Balance_Parameters](13_Balance_Parameters.md).
 
+### 2.0. Rủi ro Payday (quy tắc thiết kế, từ mô phỏng)
+*   Khủng hoảng Payday **không** do kinh tế tự nhiên tạo ra (tiền Trainer quay lại HUB). Nó đến từ quyết định tái đầu tư của Giám đốc và các cú sốc (Siege, Thanh Tra phạt, Boss hỏng công trình, chi phí Black Friday).
+*   Giám đốc cần giữ dự trữ khoảng **1 lần quỹ lương** trở lên. UI phải luôn hiển thị *"Payday sau X ngày, cần Y Gold, hiện có Z Gold"* để người chơi quyết định có chủ ý (rủi ro công bằng, không bất ngờ).
+*   Chi phí một cú sốc cỡ **10 ngày lợi nhuận** là đủ gây Đình công nếu dự trữ mỏng, nhưng không phá sản người chơi giữ dự trữ đủ. Số liệu: [13_Balance_Parameters](13_Balance_Parameters.md) §10.
+
 ### 2.1. Các loại thuế
 | Loại thuế | Áp dụng cho | Giá trị mặc định |
 |---|---|---|

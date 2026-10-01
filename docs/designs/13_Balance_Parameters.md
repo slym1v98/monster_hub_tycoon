@@ -84,4 +84,26 @@ Chạy bằng `tools/Game.Sim` (xem [README](../../README.md)); kết quả đ�
 *   **Cường hóa:** Chi phí kỳ vọng để lên +15 khoảng 1,030 x CostBase nếu không có Bùa, 440 x CostBase nếu có Bùa giá 6 x CostBase. Lên +20: khoảng 34,600 x CostBase (không Bùa) so với 2,600 x CostBase (có Bùa). Bùa hòa vốn ở giá khoảng 56 x CostBase cho +15 và 1,000 x CostBase cho +20. Nghĩa là Giám đốc có biên rất rộng để định giá Bùa mà AI vẫn có lợi khi mua, nhất là ở +20.
 *   **Gacha:** Pity 60 cho Ultimate (xác suất 3%) cho kỳ vọng 28 lượt; Pity 40 giảm còn 23.5; Pity 80 tăng lên 30.4. Phần lớn người chơi sẽ chạm Pity nếu để xuống 40-60.
 *   **Thuế:** Mỗi +10 điểm thuế giao dịch làm lợi nhuận HUB tăng khoảng 5% nhưng vàng trung bình của Trainer giảm khoảng 15%. Thuế là đòn bẩy yếu với HUB, mạnh với Trainer. Tức là rủi ro Thanh Tra (thuế > 30%) là cái giá chính của việc tăng thuế.
-*   **Phát hiện chính, chưa giải quyết:** Trong mô hình này HUB **gần như không thể phá sản**. Vì tiền lương Trainer quay lại HUB qua dịch vụ, Payday chỉ gây Đình công khi lương vượt khoảng 100% thu nhập ròng của Trainer. Chu kỳ khủng hoảng (Đình công, Bar, Vay nặng lãi) hiện không xảy ra tự nhiên. Xem mục O7 trong [99_Open_Issues](../99_Open_Issues.md).
+*   **Phát hiện chính:** Nếu Giám đốc không tiêu tiền (chỉ tích trữ), HUB gần như **không thể phá sản**: tiền lương Trainer quay lại HUB qua dịch vụ nên Đình công chỉ xảy ra khi lương vượt khoảng 100% thu nhập ròng của Trainer. Khủng hoảng Payday vì vậy phải đến từ **chính quyết định tái đầu tư của người chơi** và các **cú sốc** (xem §10), không phải từ mô hình thu chi tự nhiên.
+
+## 10. Rủi ro Payday: chi phí và cú sốc phía Giám đốc (khởi điểm, mô phỏng)
+Mô hình thêm hai thứ: (1) chính sách tái đầu tư (Giám đốc giữ lại `Dự trữ x quỹ lương dự kiến`, tiêu một nửa phần vượt mỗi ngày vào nâng cấp, mở rộng); (2) cú sốc ngẫu nhiên (Siege, Thanh Tra phạt, Boss làm hỏng công trình) có chi phí bằng **10 ngày lợi nhuận trung bình**.
+
+| Tham số | Giá trị | Trạng thái |
+|---|---|---|
+| Tỉ lệ tái đầu tư phần vượt dự trữ | 50%/ngày | Khởi điểm |
+| Chi phí cú sốc | 10 ngày lợi nhuận | Khởi điểm |
+| Xác suất cú sốc | 20%/tháng (nhẹ), 50%/tháng (nặng) | Khởi điểm |
+
+Tỉ lệ Payday dẫn đến Đình công (30 Trainer, 24 tháng, 100 lần chạy):
+
+| Dự trữ (x quỹ lương) | Không sốc | Sốc 20%/tháng | Sốc 50%/tháng |
+|---|---|---|---|
+| 0.50x | 100% | 100% | 100% |
+| 0.75x | 51% | 67% | 84% |
+| 0.90x | 2% | 31% | 44% |
+| 1.00x | 0% | 6% | 17% |
+| 1.25x | 0% | 4% | 12% |
+| 2.00x | 0% | 0% | 2% |
+
+Diễn giải: có một **ngưỡng rõ rệt quanh 0.75-1.0x quỹ lương**. Dưới ngưỡng, Đình công gần như chắc chắn. Trên ngưỡng, rủi ro chủ yếu đến từ cú sốc và giảm dần khi dự trữ tăng. Đây là hình dạng rủi ro mong muốn cho game: người chơi tham lam tái đầu tư quá tay sẽ bị phạt, người cẩn thận ít bị. Ngưỡng sắc là hệ quả của mô hình lợi nhuận ổn định; trong game thật, lợi nhuận biến động sẽ làm đường cong dốc ít hơn.
