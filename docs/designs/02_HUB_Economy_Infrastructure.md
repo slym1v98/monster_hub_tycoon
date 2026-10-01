@@ -35,7 +35,7 @@ Mọi công trình có 4 trạng thái: Đổ nát -> Lvl 1 -> Lvl 2 -> **Lvl 3 
 
 ### 1.2. Ngân Hàng Gene
 *   Thu phí lưu trữ theo ngày cho mỗi Monster dư mà Trainer gửi. Đây là nguồn Sink, không phải Faucet.
-*   Nếu Trainer không trả phí quá số ngày quy định (xem [13_Balance_Parameters](13_Balance_Parameters.md)), Giám đốc được quyền **tịch thu** Monster đó.
+*   Phí thu **mỗi Payday, sau khi trả lương** (mặc định 20 Gold/Monster/ngày, tính cho 30 ngày). Thu hằng ngày không hoạt động vì Trainer hết tiền mặt mỗi ngày. Nếu Trainer không đủ phí ở Payday, Giám đốc được quyền **tịch thu** 1 Monster. Xem [13_Balance_Parameters](13_Balance_Parameters.md) §13.
 
 ### 1.3. Nâng cấp công trình (đề xuất từ mô phỏng)
 Công thức chi phí: **Chi phí nâng cấp = Lợi ích mỗi tháng x Số tháng hoàn vốn mục tiêu** (xem [13_Balance_Parameters](13_Balance_Parameters.md) §11). Mục tiêu hoàn vốn: 2 tháng cho Lvl 1 -> 2, 4 tháng cho Lvl 2 -> 3. Mỗi Payday là 1 "tháng" in-game.

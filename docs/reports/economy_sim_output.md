@@ -133,9 +133,9 @@ lai/Payday  Trainer con no  no TB/luong thang  dinh cong do no (lan/Trainer/nam)
 
 # Han muc vay x lai suat: dinh cong do no (lan/Trainer/nam) | lai tich luy / loi nhuan thang
 han muc \ lai   10%             20%             40%
-  1.0x         0.00 |  1.9%    0.00 |  3.9%    0.00 |  8.1%
-  2.0x         0.00 |  5.9%    0.00 | 12.4%    5.43 | 30.0%
-  3.0x         0.00 |  9.8%    0.98 | 21.5%    4.92 | 53.1%
+  1.0x         0.00 |  1.9% | ron<-2luong   0%    0.00 |  3.9% | ron<-2luong   0%    0.00 |  8.1% | ron<-2luong   0%
+  2.0x         0.00 |  5.9% | ron<-2luong   0%    0.00 | 12.4% | ron<-2luong   0%    5.43 | 30.0% | ron<-2luong  12%
+  3.0x         0.00 |  9.8% | ron<-2luong 100%    0.98 | 21.5% | ron<-2luong 100%    4.92 | 53.1% | ron<-2luong 100%
 
 # stock
 # Co phieu: tan suat su kien trong 360 ngay (200 lan chay)
@@ -144,4 +144,33 @@ Hoang dong/ngay  hoang loan (giam >=10% trong 3 ngay)/nam  sap (giam >=20% trong
            2%                                       0.5                                   0.5                                 1.0
            3%                                       6.0                                   3.6                                 5.1
            5%                                      23.2                                  11.8                                11.8
+
+# personality
+# Hanh vi theo tinh cach (40 Trainer Common, 12 thang, 60 lan chay, bat tinh cach)
+tinh cach     vang TB   thu nhap/thang
+Warlike         3601           12004
+Timid           2446            8161
+Glutton         2885            9600
+Capitalist      3746            9598
+
+# Chi tieu dich vu va loi nhuan HUB theo tinh cach (HUB chi co 1 tinh cach, 20 Trainer, 6 thang)
+tinh cach     loi nhuan HUB/thang   doanh thu Nha Hang/Trainer   Benh Vien/Trainer   Bar/Trainer
+Warlike                198698                     1800                 3785          1252
+Timid                  134911                     1800                 1262           930
+Glutton                158431                     2880                 2524           743
+Capitalist             154838                     1620                 2271          1347
+
+# genebank
+# Ngan Hang Gene (20 Trainer Common, 0-3 Monster gui/Trainer, 12 thang, 40 lan chay)
+cach thu phi  phi/Monster/ngay  Monster bi tich thu / Trainer / nam  doanh thu Gene / Trainer / thang
+theo ngay                 5                                   1.00                             31
+theo ngay                10                                   1.33                             21
+theo ngay                20                                   1.50                              2
+theo ngay                40                                   1.51                              0
+theo ngay                80                                   1.51                              0
+theo thang                5                                   0.00                            169
+theo thang               10                                   0.00                            339
+theo thang               20                                   0.00                            678
+theo thang               40                                   0.26                           1120
+theo thang               80                                   0.78                           1314
 ```

@@ -34,7 +34,7 @@ Tôn vinh quá trình cày cuốc và các lối chơi phát sinh (Emergent Game
 
 ### B. Thành Tựu Góc Khuất (Dark / Hidden Achievements)
 Không hiển thị điều kiện trước. Chỉ mở khóa khi người chơi thực hiện các hành động thao túng "độc ác" hoặc gặp rủi ro bi hài:
-*   *Chủ Nợ Máu Lạnh:* Ép 1 Trainer vay nặng lãi đến mức số dư Gold của chúng bị ÂM (-).
+*   *Chủ Nợ Máu Lạnh:* Ép 1 Trainer vay nặng lãi đến mức **số dư ròng (Gold trừ nợ) thấp hơn -2 lần lương tháng** của chính Trainer đó. Với mặc định (hạn mức 2 lần lương, lãi 10%) gần như không đạt được; cần nới hạn mức lên 3 lần lương hoặc tăng lãi mạnh, đúng tinh thần "độc ác".
 *   *Phá Sản Toàn Tập:* Đứng nhìn 1 Trainer đập vỡ trang bị +15.
 *   *Cuộc Bạo Động:* Có 15 Trainer (một nửa HUB) bước vào trạng thái "Đình Công" cùng lúc.
 *   *Sói Già Phố HUB:* "Đu đỉnh" chốt lời chứng khoán, ăn chênh lệch 500,000 Gold trong 1 thao tác.

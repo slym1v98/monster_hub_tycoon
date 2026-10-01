@@ -31,6 +31,6 @@
 ## 3. ĐỘT BIẾN & SỰ PHẢN KHÁNG
 *   **Phòng Thí Nghiệm Tiến Hóa (Bòn rút):** Max level -> Đốt Gold, Đá Tiến Hóa, Lõi Đột Biến để đổi ngoại hình & tăng Rarity. Tỉ lệ thất bại cao (Ép mua Bùa Bảo Hộ bằng Gold).
 *   **Rarity Monster:** dùng cùng 5 bậc với Trainer (Common < Rare < Epic < Legendary < Ultimate). Tiến hóa tăng Rarity. IVs (D -> SSS) là tiềm năng tăng trưởng, độc lập với Rarity.
-*   **Rebellion (Bất tuân):** Khi **Điểm Quản Lý** của Monster > "Điểm Lãnh đạo" của Trainer. *Điểm Quản Lý = Cấp độ Monster + (chỉ số bậc Rarity x K)*, với chỉ số bậc Common = 0 ... Ultimate = 4; K là tham số cân bằng.
+*   **Rebellion (Bất tuân):** Khi **Điểm Quản Lý** của Monster > "Điểm Lãnh đạo" của Trainer. *Điểm Quản Lý = Cấp độ Monster + 20 x chỉ số bậc Rarity* (Common = 0 ... Ultimate = 4), và *Điểm Lãnh đạo = 20 + 20 x bậc Rarity của Trainer + Cấp độ Trainer + thưởng* (Khóa Giao Tiếp, Học Viện). Một bậc Rarity tương đương 20 cấp độ. Xem [13_Balance_Parameters](13_Balance_Parameters.md) §13.
     *   *Hậu quả:* Bỏ đánh, ngủ gật, cắn diện rộng kéo aggro quái rừng.
     *   *Giải pháp:* AI phải chạy về HUB mua "Bánh thưởng" cao cấp hoặc học Khóa Giao Tiếp Thú Cưng với giá đắt đỏ.
