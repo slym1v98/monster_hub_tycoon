@@ -32,6 +32,10 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 | Ngân Hàng Gene | Chuyển sang nhóm Sink, thêm luật phí và tịch thu. | 02 |
 | Phạm vi EA | Chia Early Access / sau Early Access. | 10 |
 | Roadmap | Thêm prototype hiệu năng, sửa phần mô phỏng cân bằng dùng Domain C#, thêm rủi ro. | 10 |
+| Khắc chế nguyên tố | 9 hệ (thêm Đất), bảng 2 / 0.5 / 1 theo logic Pokémon, không có miễn nhiễm. | 04, 13 |
+| Công cụ trả phí | Roi Kỷ Luật có cooldown, không xóa nợ lương; Đồng Hồ Cát 1 lần/ngày, dừng trước Payday. | 07, 13 |
+| Chính sách Google Play | Công bố tỉ lệ Gacha và phần thưởng ngẫu nhiên, yêu cầu hủy đăng ký; ghi vào mục tuân thủ. | 07 §6 |
+| Sản xuất art | Dùng công cụ AI (Gemini image, Meowa, ...) kèm chỉnh tay; kế hoạch, khối lượng, art spike, pháp lý. | 14, 10 |
 | Kỹ thuật khác | Sửa câu O(1)/SQLite; Mac thành khuyến nghị; thêm cấu trúc Assembly Definition. | 00_Tech_Stack |
 
 **Các giá trị tôi tự đặt, cần bạn xác nhận hoặc chỉnh:**
@@ -40,6 +44,8 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 - Khi offline: người chơi thường không tự thu mua, Payday/Đình công/Thanh Tra chờ đến lúc mở lại app.
 - Ngưỡng phạt Thanh Tra 30%.
 - Vị trí chức năng trong bảng công trình (ví dụ Giám định IVs ở Phòng Thí Nghiệm Tiến Hóa, Bẫy/Bóng ở Xưởng Công Cụ, Thuốc ở Bệnh Viện).
+- Thêm hệ Đất (9 hệ) và hệ số khắc chế khởi điểm 2 / 0.5 / 1.
+- Cooldown Roi Kỷ Luật 3 ngày in-game và quy tắc "tua dừng trước Payday".
 - Bảng "Thanh trạng thái" và vật phẩm trong `12_Item_Catalog` là mô tả khởi điểm.
 
 ---
@@ -48,9 +54,7 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 
 | # | Mức | Vấn đề | Đề xuất |
 |---|---|---|---|
-| O1 | P1 | **Quan hệ khắc chế của Sét, Băng, Độc** chưa có (04 mới có Lửa > Cỏ > Nước > Lửa, Ánh sáng ↔ Bóng tối). | Thiết kế bảng khắc chế 8 hệ, ghi vào 13_Balance_Parameters §4. |
-| O2 | P1 | **Toàn bộ con số kinh tế** còn TBD: lương theo Rarity, lãi suất hai loại vay, phí Ngân Hàng Gene, tỉ lệ Cường hóa/Nâng Sao/Tinh Luyện/Tiến hóa, hệ số K, tỉ lệ Gacha và Pity, mốc Quest/Thành tựu. | Dựng console runner mô phỏng bằng Domain C# (Roadmap Bước 2 và 5), điền vào `13_Balance_Parameters`. |
-| O3 | P1 | **Khối lượng art Early Access chưa được lập kế hoạch:** 16 công trình x 4 model 3D, sprite Trainer/Monster/Trang bị (30 slot, mỗi loại tối thiểu 3 Tier), VFX, âm thanh, 30 avatar. Roadmap 14 tuần chỉ tính code. | Quyết định ai làm art (nhóm riêng/thuê ngoài), khóa danh mục asset trước Bước 3, đánh giá lại số tuần. |
+| O2 | P1 | **Toàn bộ con số kinh tế** còn TBD: lương theo Rarity, lãi suất hai loại vay, phí Ngân Hàng Gene, tỉ lệ Cường hóa/Nâng Sao/Tinh Luyện/Tiến hóa, hệ số K, tỉ lệ Gacha và Pity, mốc Quest/Thành tựu. Cần mô phỏng, mà chưa có code. | Dựng console runner mô phỏng bằng Domain C# (Roadmap Bước 2 và 5), điền vào `13_Balance_Parameters`. |
+| O3 | P1 | **Art spike chưa chạy:** chưa biết công cụ AI nào đạt cho paper-doll 30 slot, 4-8 hướng và model 3D. Kế hoạch ở `14_AI_Art_Pipeline`. | Chạy art spike 1 tuần (14 §4), chọn công cụ và mức chỉnh tay, rồi chốt tiến độ art. |
 | O4 | P1 | **Rủi ro hiệu năng 2.5D** (60 FPS, 120 thực thể, sprite đổ bóng, NavMesh, đèn động). Mới có tiêu chí chấp nhận ở Roadmap Bước 2, chưa kiểm chứng. | Chạy prototype hiệu năng trên thiết bị thật trước khi sản xuất art hàng loạt. |
-| O5 | P2 | **Yêu cầu công bố tỉ lệ Gacha và chính sách cửa hàng ứng dụng** chưa được kiểm tra với điều khoản Google Play hiện hành. | Đọc chính sách Google Play Billing/Loot box trước Bước 5. |
-| O6 | P2 | **Tương tác Tycoon Club / Bailout / Gem với cân bằng:** Roi Kỷ Luật xóa 100% Stress/Đình công toàn HUB và Đồng Hồ Cát tua 24h là công cụ trả tiền mạnh, chưa có giới hạn. | Đánh giá khi có số liệu cân bằng; cân nhắc cooldown. |
+| O5 | P2 | **Kiểm tra pháp lý chính thức:** mục tuân thủ ở 07 §6 và 14 §5 dựa trên tra cứu web, chưa phải tư vấn pháp lý; điều khoản từng công cụ AI chưa đọc. | Đọc điều khoản thương mại của công cụ được chọn và chính sách Google Play ngay trước khi submit. |

@@ -39,4 +39,5 @@ Chi tiết xem [docs/00_Tech_Stack.md](docs/00_Tech_Stack.md).
 | [11_Game_Assets.md](docs/designs/11_Game_Assets.md) | Tài nguyên và định hướng nghệ thuật |
 | [12_Item_Catalog.md](docs/designs/12_Item_Catalog.md) | Danh mục vật phẩm |
 | [13_Balance_Parameters.md](docs/designs/13_Balance_Parameters.md) | Bảng tham số cân bằng |
+| [14_AI_Art_Pipeline.md](docs/designs/14_AI_Art_Pipeline.md) | Quy trình sản xuất art bằng AI |
 | [99_Open_Issues.md](docs/99_Open_Issues.md) | Các vấn đề còn mở cần quyết định |
