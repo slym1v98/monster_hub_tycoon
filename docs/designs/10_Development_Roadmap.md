@@ -19,6 +19,7 @@ Tài liệu này vạch ra lộ trình 6 bước (ước tính 14 tuần) để 
 *   **Hệ thống Thời gian:** Lập trình Global Tick Manager và đồng hồ đếm ngược chu kỳ 30 ngày (Payday).
 *   **Giao dịch:** Code logic Trạm Giao Thương (thu mua nguyên liệu thô) và logic Kho bạc HUB (cộng/trừ Gold, trả lương).
 *   **Prototype hiệu năng 2.5D:** Dựng sớm 30 Trainer + 90 Monster (sprite Billboard, bóng đổ, NavMesh) trên thiết bị Android tầm trung thật. Tiêu chí chấp nhận: tối thiểu 30 FPS ổn định, mục tiêu 60 FPS ở Bước 6. Nếu không đạt, giảm bóng thời gian thực/đèn động trước khi đi tiếp.
+*   **Art spike (1 tuần, cuối Bước 2):** Thử quy trình art bằng AI để chọn công cụ (xem [14_AI_Art_Pipeline](14_AI_Art_Pipeline.md) §4).
 *   **Kiểm chứng:** Chạy mô phỏng không có đồ họa để xem Kho bạc của Giám đốc tăng lên hay phá sản sau chu kỳ 30 ngày đầu tiên.
 
 ## BƯỚC 3: ĐỒ HỌA & BẢN CẮT DỌC - VERTICAL SLICE (TUẦN 5 - 7)
@@ -55,5 +56,5 @@ Tài liệu này vạch ra lộ trình 6 bước (ước tính 14 tuần) để 
 
 ## RỦI RO & GIẢ ĐỊNH
 
-*   Lộ trình 14 tuần chỉ tính công việc code. Sản xuất art (khoảng 16 công trình × 4 model 3D, sprite Trainer/Monster/Trang bị, VFX, âm thanh) chạy song song bởi nhóm art riêng hoặc thuê ngoài, và phải khóa danh mục asset trước Bước 3.
+*   Lộ trình 14 tuần chỉ tính công việc code. Sản xuất art (khoảng 16 công trình × 4 model 3D, sprite Trainer/Monster/Trang bị, VFX, âm thanh) chạy song song, ưu tiên công cụ AI kèm chỉnh tay (xem [14_AI_Art_Pipeline](14_AI_Art_Pipeline.md)), và phải khóa danh mục asset trước Bước 3. Một **art spike 1 tuần** (14 §4) chạy cuối Bước 2 để quyết định công cụ.
 *   Bước 3 (Vertical Slice, 3 tuần) là bước nặng nhất: art, Swap, Inventory, Cường hóa, UI. Nếu art chưa sẵn sàng, dùng placeholder và dời tích hợp art sang Bước 4.
