@@ -39,6 +39,9 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 | Mô phỏng kinh tế sơ bộ | Dựng `src/Game.Domain` + `tools/Game.Sim`; giá trị khởi điểm cho lương, giá dịch vụ, Cường hóa, Gacha, Pity. | 13, README |
 | Rủi ro Payday | Khủng hoảng đến từ tái đầu tư quá tay và cú sốc (ngưỡng dự trữ khoảng 1x quỹ lương); UI hiển thị dự báo Payday; mô phỏng thêm chính sách dự trữ và cú sốc, 15 unit test. | 02 §2.0, 13 §10, tests |
 | Nâng cấp công trình & thang nâng cấp | Công thức chi phí = lợi ích/tháng x tháng hoàn vốn (2 và 4 tháng); Tòa Thị Chính 10/20/30 Trainer; vận hành 50 Gold/công trình/ngày; giá trị khởi điểm cho Nâng Sao, Tinh Luyện, Tiến hóa; `UpgradeLadder` + test. | 02 §1.3, 13 §4 và §11 |
+| Hiệu ứng nâng cấp công trình dịch vụ | Công trình dịch vụ: sức chứa 10/20/30 Trainer/ngày; công trình mở khóa: tính năng theo cấp; chi phí mở khóa 1 và 2 tháng doanh thu dịch vụ; doanh thu dịch vụ đo được theo loại. | 02 §1.3, 13 §11 |
+| Quán Bar | Bar chiếm khoảng 10% doanh thu dịch vụ: Stress +25/ngày, giá Bar 800/lần, Trainer vào Bar trước khi mua trang bị. Bar bị giới hạn bởi tiền mặt của Trainer, không phải giá. | 13 §8, 02 §1.3 |
+| Giá trị khởi điểm còn lại | Thuế tài chính, cổ tức, biến động giá, hai loại vay, phí và tịch thu Ngân Hàng Gene, K của Rebellion, hao mòn độ bền. | 13 §3-4 |
 | Kỹ thuật khác | Sửa câu O(1)/SQLite; Mac thành khuyến nghị; thêm cấu trúc Assembly Definition. | 00_Tech_Stack |
 
 **Các giá trị tôi tự đặt, cần bạn xác nhận hoặc chỉnh:**
@@ -53,12 +56,16 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 
 ---
 
-## Còn mở
+## Còn mở (làm được trong repo, chưa làm)
 
 | # | Mức | Vấn đề | Đề xuất |
 |---|---|---|---|
-| O2 | P1 | **Mô phỏng mới ở mức đồ chơi:** đã có giá trị khởi điểm cho lương, giá dịch vụ, Cường hóa, Nâng Sao, Tinh Luyện, Tiến hóa, Gacha, Pity, nâng cấp công trình (13 §8-11) và 20 unit test. Chưa mô phỏng: Chứng khoán, lãi suất hai loại vay, phí Ngân Hàng Gene, hệ số K, hao mòn độ bền, sự kiện/thời tiết/Boss. Chưa kiểm tra thang nâng cấp với Trainer Rarity cao. | Mở rộng Domain và runner theo từng hệ thống, điền nốt các TBD trong 13. |
-| O3 | P1 | **Art spike chưa chạy:** chưa biết công cụ AI nào đạt cho paper-doll 30 slot, 4-8 hướng và model 3D. Kế hoạch ở `14_AI_Art_Pipeline`. | Chạy art spike 1 tuần (14 §4), chọn công cụ và mức chỉnh tay, rồi chốt tiến độ art. |
-| O4 | P1 | **Rủi ro hiệu năng 2.5D** (60 FPS, 120 thực thể, sprite đổ bóng, NavMesh, đèn động). Mới có tiêu chí chấp nhận ở Roadmap Bước 2, chưa kiểm chứng. | Chạy prototype hiệu năng trên thiết bị thật trước khi sản xuất art hàng loạt. |
-| O5 | P2 | **Pháp lý chưa được xác nhận chính thức:** đã tra điều khoản Gemini API (không độc quyền, bản miễn phí dùng dữ liệu để cải tiến) và giá Meowa (ghi "commercial ownership" nhưng không tìm được trang điều khoản). Mục tuân thủ Google Play ở 07 §6 dựa trên tra cứu web, chưa phải tư vấn pháp lý. | Xin điều khoản bằng văn bản từ công cụ được chọn; đọc lại chính sách Google Play ngay trước khi submit; dùng tài khoản có billing nếu dùng Gemini cho asset dự án. |
-| O7 | P2 | **Hiệu ứng nâng cấp của các công trình dịch vụ chưa chốt:** đã có bảng cho Tòa Thị Chính và nhóm gia công (02 §1.3). Chưa có hiệu ứng cho Nhà Trọ, Nhà Hàng, Bệnh Viện, Quán Bar (ví dụ sức chứa phục vụ), Lò Rèn, Tiệm Kim Hoàn, Xưởng Công Cụ, Học Viện, Phòng Thí Nghiệm. Mô phỏng chưa mô hình hóa nâng cấp như một lựa chọn của người chơi (chỉ tính hoàn vốn). | Chốt hiệu ứng từng công trình theo công thức "chi phí = lợi ích/tháng x tháng hoàn vốn", rồi thêm kế hoạch nâng cấp vào Domain và chạy lại `crisis`. |
+| O2 | P1 | **Một số giá trị khởi điểm chưa được mô phỏng:** Chứng khoán (giá, cổ tức, Thuế Tự Do Tài Chính), hai loại vay (lãi suất, quá hạn), phí và tịch thu Ngân Hàng Gene, hệ số K (Rebellion). Chưa kiểm tra thang nâng cấp với Trainer Rarity cao. Mô hình hiện chưa có hành vi theo tính cách. | Thêm vào Domain và runner khi có Trainer AI đầy đủ (Roadmap Bước 4-5); mỗi hệ thống thêm test và chạy lại báo cáo. |
+
+## Hoãn (cần việc ngoài repo; đã chuẩn bị sẵn tài liệu)
+
+| # | Mức | Vì sao chưa làm được | Đã chuẩn bị | Việc tiếp theo |
+|---|---|---|---|---|
+| O3 | P1 | Cần chạy thử công cụ AI tạo ảnh (Gemini, Meowa, ...), tôi không chạy được. | [art_spike_brief](reports/art_spike_brief.md): style bible nháp, danh mục asset, mẫu prompt, phiếu chấm điểm. | Chạy art spike 1 tuần, điền phiếu chấm điểm, quyết định công cụ và mức chỉnh tay, rồi chốt tiến độ art. Làm cuối Bước 2 Roadmap. |
+| O4 | P1 | Cần Unity 6.3 LTS và thiết bị Android thật; repo chưa có project Unity. | [perf_prototype_plan](reports/perf_prototype_plan.md): cảnh thử 30 Trainer + 90 Monster, 5 biến thể, số cần đo, tiêu chí đạt. | Dựng project Unity (Roadmap Bước 1), chạy theo kế hoạch trên 2 thiết bị. Làm ở Bước 2. |
+| O5 | P2 | Cần xác nhận điều khoản bằng văn bản từ công cụ và đọc chính sách Google Play vào thời điểm submit. | [legal_checklist](reports/legal_checklist.md), kèm mẫu email gửi Meowa. | Gửi email, lưu điều khoản; kiểm tra lại danh sách trước khi submit (Roadmap Bước 6). |
