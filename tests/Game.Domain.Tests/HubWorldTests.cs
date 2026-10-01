@@ -149,6 +149,43 @@ public class HubWorldTests
         Assert.All(w.Trainers, t => Assert.True(t.StrikeDaysLeft > 0));
     }
 
+    [Fact]
+    public void StrikeSendsOutsideTrainersHomeEvenAtNight()
+    {
+        // Có kính nhìn đêm nên Trainer vẫn ở ngoài lúc 23:59 khi đến kỳ lương.
+        var w = new HubWorld(new SimConfig { BaseWage = 1_000_000, StartWithNightVision = true, TrainerCount = 10 }, 9);
+        w.RunUntilPayday();
+        var outsideIds = w.Trainers
+            .Where(t => t.State == TrainerState.Farming || t.State == TrainerState.Traveling)
+            .Select(t => t.Id).ToList();
+        Assert.NotEmpty(outsideIds);   // tránh test rỗng
+
+        var outcome = w.ResolvePayday();
+        Assert.True(outcome.StrikeStarted);
+
+        Assert.All(w.Trainers, t => Assert.DoesNotContain(t.State,
+            new[] { TrainerState.Farming, TrainerState.Traveling }));
+        foreach (int id in outsideIds)
+        {
+            var t = w.Trainers.First(x => x.Id == id);
+            Assert.Equal(TrainerState.Returning, t.State);
+            Assert.Equal("Strike", t.StateReason);
+        }
+    }
+
+    [Fact]
+    public void StrikeKeepsTrainersOffTheFieldInDaylight()
+    {
+        var w = new HubWorld(new SimConfig { BaseWage = 1_000_000 }, 9);
+        w.RunUntilPayday();
+        w.ResolvePayday();
+        w.RunFor(10 * 60);   // tới 09:59 sáng hôm sau, vẫn trong 5 ngày đình công
+        Assert.False(w.Now.IsNight);   // đảm bảo đây là ban ngày, không phải NightRest
+        Assert.All(w.Trainers, t => Assert.True(t.StrikeDaysLeft > 0));
+        Assert.All(w.Trainers, t => Assert.DoesNotContain(t.State,
+            new[] { TrainerState.Farming, TrainerState.Traveling, TrainerState.Returning }));
+    }
+
     // ---- Kho bạc ----
     [Fact]
     public void TreasuryNeverGoesNegative()

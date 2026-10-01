@@ -55,6 +55,7 @@ namespace Game.Domain
                     BackpackCapacity = cfg.BackpackCapacity,
                     ContractWage = cfg.ContractWageFor(Rarity.Common, personality),
                     LastSettleMinute = now,
+                    HasNightVision = cfg.StartWithNightVision,
                 });
             }
 

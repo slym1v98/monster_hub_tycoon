@@ -29,6 +29,8 @@ namespace Game.Domain
         public int TrainerCount = 10;
         /// <summary>Nếu có giá trị thì mọi Trainer dùng tính cách này (tiện cho test).</summary>
         public Personality? ForcedPersonality = null;
+        /// <summary>Nếu true thì mọi Trainer bắt đầu với kính nhìn đêm (tiện cho test farm ban đêm).</summary>
+        public bool StartWithNightVision = false;
         public long StartTreasury = 20000;
         public long StartTrainerGold = 200;
         public int StartBuildingLevel = 5;
