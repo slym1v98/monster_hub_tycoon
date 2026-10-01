@@ -48,7 +48,7 @@ Chia theo Assembly Definition để trình biên dịch chặn phụ thuộc sai
 * `Game.Application`: giao diện (interface/port) giữa Domain và bên ngoài, Tick Manager (logic).
 * `Game.Infrastructure`: MessagePack/Save, SQLite, ScriptableObjects loader, Remote Config.
 * `Game.Presentation`: MonoBehaviour, UGUI, Presenters, R3, Billboard/Shader, NavMesh.
-* `Game.Tests.Domain`: Unit Test cho Domain và console runner mô phỏng cân bằng (xem Roadmap Bước 5).
+* `tests/Game.Domain.Tests`: Unit Test (xUnit) cho Domain. `tools/Game.Sim`: console runner mô phỏng cân bằng (xem Roadmap Bước 5). Cả hai hiện chạy bằng .NET SDK, chưa nằm trong project Unity.
 
 ## 5. Môi trường Build & CI/CD (Pipeline)
 

@@ -28,6 +28,11 @@ dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll stress      # kịch bản c
 dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll calibrate   # dò tham số
 ```
 
+```
+dotnet test tests/Game.Domain.Tests                       # unit test Domain
+dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll crisis      # rủi ro Payday theo dự trữ và cú sốc
+```
+
 Logic nằm ở `src/Game.Domain` (C# thuần, không phụ thuộc Unity). Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).
 
 ## Tài liệu
