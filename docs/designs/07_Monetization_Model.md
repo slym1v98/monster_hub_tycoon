@@ -7,14 +7,14 @@
 ## 2. IN-APP PURCHASES & GACHA
 Tích hợp Gacha tự nhiên vào bối cảnh Tuyển dụng nhân sự:
 *   **Thư Mời Hoàng Gia (Premium Recruitment):** Dùng Gem mở Gacha để chiêu mộ Trainer hạng Epic -> Ultimate, kèm các Tính cách hiếm có lợi cho doanh nghiệp. *Có cơ chế Bảo hiểm (Pity).* Tỉ lệ rơi từng bậc Rarity và ngưỡng Pity phải được công bố trong game (xem [13_Balance_Parameters](13_Balance_Parameters.md)). Trainer nhận được sinh ngẫu nhiên từ các thành phần (giới tính, avatar, tính cách, chỉ số theo Rarity), không phải danh sách cố định.
-*   **Bùa Bảo Hộ Cường Hóa (Protection Scrolls):** Vật phẩm bắt buộc phải có để đập đồ từ +11 -> +20 mà không bị vỡ. *Luồng:* Giám đốc mua Bùa bằng Gem (IAP) từ nhà cung cấp, rồi tự đặt giá bán lại cho AI bằng Gold. AI chỉ trả Gold, không bao giờ trả Gem. Nguồn thu IAP ổn định nhất giai đoạn late-game.
+*   **Bùa Bảo Hộ Cường Hóa (Protection Scrolls):** Vật phẩm bắt buộc phải có để đập đồ từ +11 -> +20 mà không bị vỡ. *Luồng:* Giám đốc mua Bùa bằng Gem (IAP) từ nhà cung cấp, rồi tự đặt giá bán lại cho AI bằng Gold. AI chỉ trả Gold, không bao giờ trả Gem; AI mua Bùa khi giá thấp hơn lợi ích kỳ vọng, hết Bùa thì liều đập. Ngoài Gem, Giám đốc nhận một ít Bùa miễn phí từ Quest chính, KPI tuần, Battle Pass miễn phí và Gem nhỏ giọt từ thành tựu, để người không nạp vẫn trải nghiệm được. Nguồn thu IAP ổn định nhất giai đoạn late-game.
 *   **Công Cụ Can Thiệp (God-Tools):** 
     *   *Roi Kỷ Luật:* Xóa 100% thanh Stress và kết thúc Đình công của toàn bộ HUB ngay lập tức. **Giới hạn:** có cooldown (khởi điểm 3 ngày in-game) và không xóa nợ lương: tiền lương còn thiếu vẫn phải trả ở Payday kế tiếp.
-    *   *Đồng Hồ Cát:* Tua nhanh 8h/24h (giờ thực, tính theo công thức offline) để thu hoạch lợi nhuận tức thì. Xem [00_Master_GDD](00_Master_GDD.md) §5. **Giới hạn:** tối đa 1 lần dùng 24h mỗi ngày thực; phần tua tự dừng ngay trước Payday kế tiếp, để người chơi tự xử lý khi kho bạc không đủ trả lương.
+    *   *Đồng Hồ Cát:* Tua nhanh 8h/24h (giờ thực, bằng chính mô phỏng như offline) để thu hoạch lợi nhuận tức thì. Xem [00_Master_GDD](00_Master_GDD.md) §5. **Giới hạn:** tối đa 1 lần dùng 24h mỗi ngày thực; phần tua tự dừng ngay trước Payday kế tiếp, để người chơi tự xử lý khi kho bạc không đủ trả lương; phần chưa tua được giữ lại và chạy tiếp sau Payday.
 
 ## 3. THẺ ĐĂNG KÝ & BATTLE PASS (RETENTION REVENUE)
 *   **Thẻ Cổ Đông (Tycoon Club - Monthly Sub):** Giá $4.99/tháng.
-    *   Đặc quyền: Giám đốc AI tự động thu mua tài nguyên khi người chơi Offline (người chơi thường thì không, xem [00_Master_GDD](00_Master_GDD.md) §5), miễn phí 1 Gói cứu trợ vỡ nợ mỗi tháng, tắt quảng cáo, khung Avatar VIP.
+    *   Đặc quyền: **Thư ký** tự chào hàng trang bị cho Trainer theo quy tắc Giám đốc đặt (người chơi thường phải tự chào hàng từng Trainer, xem [03](03_Trainer_AI_System.md) §1.1) và tự xử lý các việc lặp lại, kể cả trong mô phỏng offline; miễn phí 1 Gói cứu trợ vỡ nợ mỗi tháng, tắt quảng cáo, khung Avatar VIP. Pay-for-convenience, không tạo sức mạnh trực tiếp.
 *   **Sổ Tay Thị Trưởng (Mayor's Ledger - Battle Pass):** Mùa giải 30 ngày.
     *   *Nhiệm vụ:* Hướng đến tương tác kinh tế (VD: Ép AI tiêu 1 triệu Gold, Thu 500k tiền thuế).
     *   *Phần thưởng Premium ($9.99):* Cung cấp các Bộ Trang Bị Hào Quang (Aura) độc quyền với ngoại hình đặc biệt và chỉ số thấp. Giám đốc không tự dùng được, chỉ bán cho AI bằng Gold qua cửa hàng HUB, và AI mua thì nhận buff thật. Nhờ vậy Aura không tạo sức mạnh trực tiếp cho người chơi.

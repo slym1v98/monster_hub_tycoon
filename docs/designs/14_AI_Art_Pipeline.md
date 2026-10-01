@@ -6,11 +6,11 @@ Phương án sản xuất art cho Early Access bằng công cụ AI (ví dụ Go
 
 | Hạng mục | Số lượng | Loại |
 |---|---|---|
-| Công trình HUB | 16 công trình x 4 trạng thái = 64 model | 3D low-poly/voxel |
+| Công trình HUB | 20 công trình x (5 tier + 1 Tàn phá) + 4 Đổ nát = 124 model | 3D low-poly/voxel |
 | Tile/Block 3D cho 5 biome (Zone 2-5 và HUB/Đồng Cỏ) | khoảng 5 bộ | 3D + texture pixel |
 | Trainer | 2 base model x 8 animation x 4-8 hướng | Sprite 2D (paper-doll) |
 | Trang bị | 18 loại slot (12 Trainer + 6 Monster) x 3 Tier = 54 bộ phận | Sprite 2D rời để Sprite Swap |
-| Monster/Enemy | 10-15 khung x 2 form (Chibi, Tiến hóa), tô màu theo hệ | Sprite 2D grayscale + shader tint |
+| Monster/Enemy | 10-15 khung x tối đa 3 form (gốc + 2 lần Tiến hóa, thêm form cho nhánh), tô màu theo hệ | Sprite 2D grayscale + shader tint |
 | Avatar Trainer | 30 | Portrait 2D |
 | Icon hệ thống | 100+ (16x16) | Pixel 2D |
 | UI | Panel, khung, đồng hồ Payday, cửa sổ Chứng khoán | Pixel 2D |
@@ -29,7 +29,7 @@ Phương án sản xuất art cho Early Access bằng công cụ AI (ví dụ Go
 
 ## 3. Quy trình đề xuất
 1. **Style bible (người làm):** Chốt bảng màu, tỉ lệ Chibi, độ phân giải sprite, quy tắc viền và bóng. Mọi prompt dùng cùng bảng này.
-2. **Tạo bản gốc nhất quán:** 1 Trainer base trần, 1 Monster grayscale, 1 công trình Lvl 1-3. Dùng làm ảnh tham chiếu cho cả dự án.
+2. **Tạo bản gốc nhất quán:** 1 Trainer base trần, 1 Monster grayscale, 1 công trình đủ 5 tier. Dùng làm ảnh tham chiếu cho cả dự án.
 3. **Paper-doll:** Tạo từng bộ phận trang bị (Nón, Áo, Balo...) trên cùng khung xương để khớp Unity 2D Animation. Đây là điểm AI yếu nhất (bộ phận rời, nhất quán nhiều hướng), nên cần họa sĩ/pixel artist chỉnh tay.
 4. **Hậu kỳ:** Chuẩn hóa bảng màu, cắt sprite, dọn nền, canh pivot, xuất atlas (xem [11](11_Game_Assets.md) §4 về Texture Atlas).
 5. **3D:** Tạo model thô bằng AI rồi dựng lại lưới low-poly, bake texture pixel art. Giữ 4 trạng thái cùng silhouette cơ sở để khác biệt rõ khi lên cấp.

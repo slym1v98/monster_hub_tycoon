@@ -5,12 +5,12 @@
 ## 1. Thời gian
 | Tham số | Giá trị | Trạng thái |
 |---|---|---|
-| 1 ngày in-game | 10 phút thực | Khởi điểm |
+| 1 ngày in-game | 15 phút thực (Payday mỗi 7.5 giờ thực) | Chốt |
 | Ban ngày / Ban đêm | 06:00-18:00 / 18:00-06:00 | Chốt |
 | 1 tháng (Payday) | 30 ngày | Chốt |
 | Chu kỳ cổ tức | 15 ngày | Chốt |
 | Tick | 0.2 giây | Chốt |
-| Giới hạn offline | 8 giờ thực | Chốt |
+| Giới hạn offline | Mô phỏng tới Payday gần nhất (tối đa 30 ngày in-game, khoảng 7.5 giờ thực) | Chốt |
 
 ## 2. Dân số và quy mô
 | Tham số | Giá trị | Trạng thái |
@@ -31,9 +31,10 @@
 | Thuế Tự Do Tài Chính | 30% lợi nhuận chứng khoán đã chốt; lỗ không bị thuế | Khởi điểm (mô hình + test) |
 | Cổ tức (mỗi 15 ngày) | 10% doanh thu 15 ngày của công trình đã IPO, chia theo tỉ lệ cổ phần; số cổ phiếu IPO chọn để ra tỉ suất mục tiêu (mặc định 8%/năm) | Khởi điểm (mô hình + test) |
 | Biến động giá cổ phiếu | ±3%/ngày ngẫu nhiên + 0.5 x thay đổi Traffic; khoảng 6 cơn hoảng loạn (giảm ≥10% trong 3 ngày), 3.6 cú sập (giảm ≥20% trong 15 ngày) và 5 đợt tăng mạnh mỗi năm | Khởi điểm (mô phỏng) |
-| Lương theo Rarity (5 bậc) | 30% thu nhập ròng tháng trước của chính Trainer đó; thu nhập và chi tiêu nhân 1.7 mỗi bậc Rarity | Khởi điểm (mô phỏng) |
+| Lương theo Rarity (5 bậc) | Hợp đồng cố định; đề nghị ban đầu neo quanh 30% thu nhập kỳ vọng theo chỉ số, Rarity, tính cách (mô phỏng cũ dùng 30% thu nhập ròng tháng trước); thu nhập và chi tiêu nhân 1.7 mỗi bậc Rarity | Khởi điểm (mô phỏng) |
+| Payday trả thiếu | Chia đều theo tỉ lệ; thiếu là toàn bộ đình công; thang vỡ nợ Payday 1 / 2 / 3+ ([02](02_HUB_Economy_Infrastructure.md) §2) | Chốt |
 | Cho Trainer Vay: lãi suất, hạn mức, quá hạn | Lãi mặc định 10%/Payday (Giám đốc chỉnh 5-40%); hạn mức mặc định **2 lần lương tháng**; trừ 50% thu nhập và lương để trả nợ; quá hạn = dư nợ vượt hạn mức 2 Payday liên tiếp thì Trainer đình công | Khởi điểm (mô phỏng) |
-| Vay Từ Trainer Rank V: lãi suất | 5%/Payday; không trả được thì Trainer dùng dịch vụ HUB miễn phí tới khi hết nợ | Khởi điểm (chưa mô phỏng) |
+| Vay Từ Trainer Rank V | Tối đa khoảng 50% tiền mặt mỗi Trainer; lãi 5%/Payday; hạn 1-2 Payday; quá hạn thì cấn nợ bằng dịch vụ miễn phí | Khởi điểm (chưa mô phỏng) |
 | Cách thu phí Ngân Hàng Gene | **Mỗi Payday, sau khi trả lương** (không thu hằng ngày); thiếu phí thì bị tịch thu 1 Monster | Khởi điểm (mô phỏng) |
 | Phí lưu trữ Ngân Hàng Gene / Monster / ngày | 20 Gold (tính cho 30 ngày, thu ở Payday) | Khởi điểm (mô phỏng) |
 
@@ -47,16 +48,19 @@
 | Chi phí mỗi lần Cường hóa | CostBase x 1.30^(cấp-1) | Khởi điểm |
 | Nâng Sao (5 bước) | Thành công 90 / 75 / 55 / 35 / 20%; thất bại từ bước 3 rớt 1 sao; chi phí 300 x 1.8^bước + 100 phôi Hiến Tế | Khởi điểm (mô phỏng) |
 | Tinh Luyện (Normal -> Mythic, 4 bước) | Thành công 70 / 50 / 30 / 15%; thất bại chỉ mất chi phí; chi phí 1,000 x 2.5^bước | Khởi điểm (mô phỏng) |
-| Tiến hóa (Common -> Ultimate, 4 bước) | Thành công 60 / 40 / 25 / 10%; thất bại mất chi phí (Bùa Bảo Hộ bảo vệ vật phẩm); chi phí 2,000 x 3^bước | Khởi điểm (mô phỏng) |
-| Hệ số K của Điểm Quản Lý (Rebellion) | K = 20: một bậc Rarity tương đương 20 cấp độ. Điểm Quản Lý = Cấp độ + 20 x bậc; Điểm Lãnh đạo = 20 + 20 x bậc + Cấp độ Trainer + thưởng | Khởi điểm (mô hình + test) |
+| Tăng tư chất (Rarity Common -> Ultimate, 4 bước; Monster Lv ≥ 40) | Thành công 60 / 40 / 25 / 10%; thất bại mất chi phí (Bùa Bảo Hộ bảo vệ vật phẩm); chi phí 2,000 x 3^bước | Khởi điểm (mô phỏng, trước đây gọi là Tiến hóa) |
+| Tiến hóa (đổi hình thái) | Tối đa 2 lần; tỉ lệ và chi phí TBD | TBD |
+| Cấp Monster | 20 x (Rank Trainer - 1) + ⌈Lv Trainer / 5⌉ | Chốt |
+| Hệ số IV | D 0.8, C 0.9, B 1.0, A 1.1, S 1.2, SS 1.3, SSS 1.5 | Khởi điểm |
+| Hệ số K của Điểm Quản Lý (Rebellion) | K = 20: một bậc Rarity tương đương 20 cấp độ. Điểm Quản Lý = Cấp Monster + 20 x bậc; Điểm Lãnh đạo = 20 + 20 x bậc + Cấp quy đổi Trainer (20 x (Rank - 1) + Lv/5) + thưởng | Khởi điểm (mô hình + test; `RebellionModel` cần cập nhật cấp quy đổi) |
 | Bảng khắc chế 9 hệ (hệ số 2 / 0.5 / 1, không có miễn nhiễm) | Xem [04](04_Monster_System.md) §2 | Khởi điểm |
-| Tốc độ hao mòn độ bền | 2% độ bền tối đa mỗi chuyến (hỏng sau khoảng 50 chuyến); sửa chữa 25 Gold/chuyến cho Common, đã nằm trong giá sửa đồ | Khởi điểm (mô phỏng) |
+| Tốc độ hao mòn độ bền | Đồ Monster và đồ Tiện ích; Hào quang không hao. 2% độ bền tối đa mỗi chuyến (hỏng sau khoảng 50 chuyến); sửa chữa 25 Gold/chuyến cho Common, đã nằm trong giá sửa đồ | Khởi điểm (mô phỏng) |
 
 ## 5. Công cụ trả phí
 | Tham số | Giá trị | Trạng thái |
 |---|---|---|
 | Cooldown Roi Kỷ Luật | 3 ngày in-game | Khởi điểm |
-| Giới hạn Đồng Hồ Cát | 1 lần/ngày thực, dừng trước Payday | Khởi điểm |
+| Giới hạn Đồng Hồ Cát | 1 lần/ngày thực, dừng trước Payday, phần chưa tua được giữ lại | Khởi điểm |
 
 ## 6. Gacha
 | Tham số | Giá trị | Trạng thái |
@@ -115,17 +119,19 @@ Diễn giải: có một **ngưỡng rõ rệt quanh 0.75-1.0x quỹ lương**. 
 ## 11. Nâng cấp công trình và chi phí vận hành (khởi điểm, mô phỏng)
 | Tham số | Giá trị | Trạng thái |
 |---|---|---|
-| Hoàn vốn mục tiêu Lvl 1 -> 2 | 2 tháng (Payday) | Khởi điểm |
-| Hoàn vốn mục tiêu Lvl 2 -> 3 | 4 tháng | Khởi điểm |
+| Hoàn vốn mục tiêu (mô hình cũ 3 cấp) | 2 tháng cho bước đầu, 4 tháng cho bước sau; cần làm lại cho 5 / 25 cấp | Khởi điểm (cần mô phỏng lại) |
 | Chi phí vận hành mỗi công trình | 50 Gold/ngày (khoảng 10% lợi nhuận tháng của HUB 30 Trainer, 16 công trình) | Khởi điểm |
 | Lợi nhuận ròng mỗi Trainer Common (sau lương) | khoảng 7,900 Gold/tháng; lương khoảng 2,900 Gold/tháng | Kết quả mô phỏng |
-| Dân số theo Tòa Thị Chính | 10 / 20 / 30 Trainer (Lvl 1 / 2 / 3) | Khởi điểm |
-| Hiệu suất gia công theo cấp | 0.85 / 0.92 / 0.99 | Khởi điểm |
-| Sức chứa công trình dịch vụ | 10 / 20 / 30 Trainer/ngày | Khởi điểm |
-| Chi phí mở khóa (Lò Rèn, Tiệm Kim Hoàn, PTN, Học Viện, Xưởng, Cổng) | 1 tháng (Lvl 2) và 2 tháng (Lvl 3) doanh thu dịch vụ toàn HUB | Khởi điểm |
+| Dân số theo Ký túc xá và mốc Zone | 10 / 15 / 20 / 25 / 30 Trainer (Ký túc xá Lv1-5, Zone 1-5) | Chốt |
+| Cấp tối đa công trình | Tòa Thị Chính và công trình dịch vụ 25; Ký túc xá, Trạm, Nhà máy, Lò Phản Ứng, Lò Rèn, Xưởng Dệt, Kim Hoàn 5 | Chốt |
+| Hiệu suất gia công theo cấp | 0.85 / 0.92 / 0.99 (mô hình cũ 3 cấp) | Khởi điểm (cần làm lại cho 5 cấp) |
+| Chênh giá Thương nhân | Mua của Trainer rẻ hơn giá Trạm 5-10%; bán cho HUB đắt hơn giá Trạm 5-10% | Khởi điểm |
+| Sức chứa công trình dịch vụ | Số chỗ cùng lúc = 5 + 0.8 x cấp (Lv5: 9, Lv25: 25), luôn thiếu nhẹ so với dân số | Khởi điểm |
+| Bệnh Viện: khu hồi phục | 100 giường cho Monster mới bắt | Khởi điểm |
+| Chi phí mở khóa (Lò Rèn, Tiệm Kim Hoàn, PTN, Học Viện, Xưởng, Cổng) | 1 tháng (Lvl 2) và 2 tháng (Lvl 3) doanh thu dịch vụ toàn HUB (mô hình cũ 3 cấp) | Khởi điểm (cần mô phỏng lại) |
 | Doanh thu dịch vụ ròng/Trainer Common/tháng | Bệnh Viện 2,524; Nhà Hàng 1,800; Nhà Trọ 1,012; Lò Rèn 1,852; Trang bị 1,259; Bar 928 (tổng khoảng 9,375) | Kết quả mô phỏng |
 
-**Chi phí kỳ vọng của các thang nâng cấp** (Trainer Common, đơn vị tham chiếu 400 Gold/ngày): Nâng Sao 0 -> 5 khoảng 71,000 Gold (178 ngày thu nhập; 25,000 nếu không rớt sao), Tinh Luyện khoảng 131,000 (329 ngày), Tiến hóa Common -> Ultimate khoảng 630,000 (1,576 ngày). Bước cuối luôn chiếm phần lớn: bước 5 của Nâng Sao 16,000 trong 25,000 (khi không rớt sao; rớt sao đẩy tổng lên 71,000); bước 4 của Tinh Luyện 104,000 trong 131,000; bước 4 của Tiến hóa 540,000 trong 630,000. Chi phí tính trên thu nhập Trainer Common; Trainer Rarity cao kiếm nhiều hơn 1.7 lần mỗi bậc nên gánh nhẹ hơn.
+**Chi phí kỳ vọng của các thang nâng cấp** (Trainer Common, đơn vị tham chiếu 400 Gold/ngày): Nâng Sao 0 -> 5 khoảng 71,000 Gold (178 ngày thu nhập; 25,000 nếu không rớt sao), Tinh Luyện khoảng 131,000 (329 ngày), Tăng tư chất Common -> Ultimate khoảng 630,000 (1,576 ngày). Bước cuối luôn chiếm phần lớn: bước 5 của Nâng Sao 16,000 trong 25,000 (khi không rớt sao; rớt sao đẩy tổng lên 71,000); bước 4 của Tinh Luyện 104,000 trong 131,000; bước 4 của Tăng tư chất 540,000 trong 630,000. Chi phí tính trên thu nhập Trainer Common; Trainer Rarity cao kiếm nhiều hơn 1.7 lần mỗi bậc nên gánh nhẹ hơn.
 
 ## 12. Vay nợ và cổ phiếu (kết quả mô phỏng)
 **Cho Trainer Vay** (30 Trainer, 12 tháng, `Game.Sim loans`): Trainer Common có nhu cầu chi tiêu gần bằng thu nhập nên **gần như mọi Trainer đều vay**, dư nợ ổn định khoảng 0.5-0.7 lần lương tháng. Lãi suất một mình là đòn bẩy yếu khi hạn mức thấp. Tỉ lệ lãi tích lũy trên lợi nhuận tháng của HUB (lãi suất mỗi Payday) và số lần đình công do quá hạn (mỗi Trainer mỗi năm):

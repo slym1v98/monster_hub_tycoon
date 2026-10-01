@@ -2,7 +2,7 @@
 
 Game **Management Simulation / Idle RPG / Dark-Capitalist Tycoon** với phong cách Chibi Pixel Art 2.5D (môi trường 3D low-poly, nhân vật là sprite 2D pixel art, camera isometric). Người chơi vào vai Giám đốc HUB giữa vùng hoang dã. Game chạy tự động: bạn không điều khiển nhân vật đánh quái mà điều khiển **dòng tiền**. Bạn chiêu mộ Trainer, cung cấp dịch vụ độc quyền và thu lại tài sản của họ qua chuỗi cung ứng, chứng khoán và các dịch vụ rủi ro cao.
 
-> Trạng thái: giai đoạn thiết kế. Repo hiện chỉ có tài liệu, chưa có code.
+> Trạng thái: giai đoạn thiết kế. Repo có tài liệu thiết kế và mô hình kinh tế sơ bộ bằng C# (`src/Game.Domain`, `tools/Game.Sim`), chưa có project Unity.
 
 ## Vòng lặp cốt lõi
 

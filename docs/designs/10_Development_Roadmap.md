@@ -4,7 +4,7 @@ Tài liệu này vạch ra lộ trình 6 bước (ước tính 14 tuần) để 
 
 ## PHẠM VI RELEASE
 
-*   **Early Access (14 tuần):** Vòng lặp lõi; Trainer/Monster/Gear; kinh tế HUB (công trình, Payday, khủng hoảng, Đình công, vay nợ); Sàn Chứng Khoán; Quest chính + KPI Daily/Weekly; sự kiện Định kỳ (Black Friday, Breeding Season); tiến trình offline; monetization cơ bản (Ads tự nguyện, Gacha, Bùa Bảo Hộ, Tycoon Club, Battle Pass); Intro cutscene và FTUE; Remote Config + Analytics.
+*   **Early Access (14 tuần):** Vòng lặp lõi; Trainer/Monster/Gear; kinh tế HUB (công trình, Payday, khủng hoảng, Đình công, vay nợ); Sàn Chứng Khoán; Quest chính + KPI Daily/Weekly; sự kiện Định kỳ (Black Friday, Breeding Season); tiến trình offline (mô phỏng tới Payday gần nhất); World Boss; monetization cơ bản (Ads tự nguyện, Gacha, Bùa Bảo Hộ, Tycoon Club, Battle Pass); Intro cutscene và FTUE; Remote Config + Analytics.
 *   **Sau Early Access:** PvE (Monster Siege, Tháp Vô Tận); sự kiện Đột xuất (Monster Flu, Thanh Tra); Thành tựu ẩn; Sách Đỏ Quái Vật và Bảo Tàng Khảo Cổ; toàn bộ PvP (cần backend riêng, xem [06](06_Events_PVE_PVP.md) §3); PC/iOS.
 
 ## BƯỚC 1: KHỞI TẠO KIẾN TRÚC & DỮ LIỆU CỐT LÕI (TUẦN 1 - 2)
@@ -15,7 +15,7 @@ Tài liệu này vạch ra lộ trình 6 bước (ước tính 14 tuần) để 
 
 ## BƯỚC 2: PROTOTYPE VÒNG LẶP KINH TẾ LÕI (TUẦN 3 - 4)
 **Mục tiêu:** Làm cho game "chạy được" trên giao diện hình khối (Whiteboxing) để kiểm chứng luồng luân chuyển của dòng tiền (Gold).
-*   **AI State Machine (FSM):** Lập trình FSM thuần C# (tầng Domain) cho 1 Trainer: `Đi farm` -> `Tụt HP` -> `Về HUB bán đồ` -> `Trả tiền Bệnh viện` -> `Lặp lại`.
+*   **AI State Machine (FSM):** Lập trình FSM thuần C# (tầng Domain, sự kiện rời rạc theo phút in-game) cho 1 Trainer: `Đi farm` -> `Monster mất HP` -> `Về HUB bán đồ` -> `Trả tiền Bệnh viện` -> `Lặp lại`.
 *   **Hệ thống Thời gian:** Lập trình Global Tick Manager và đồng hồ đếm ngược chu kỳ 30 ngày (Payday).
 *   **Giao dịch:** Code logic Trạm Giao Thương (thu mua nguyên liệu thô) và logic Kho bạc HUB (cộng/trừ Gold, trả lương).
 *   **Prototype hiệu năng 2.5D:** Dựng sớm 30 Trainer + 90 Monster (sprite Billboard, bóng đổ, NavMesh) trên thiết bị Android tầm trung thật. Tiêu chí chấp nhận: tối thiểu 30 FPS ổn định, mục tiêu 60 FPS ở Bước 6. Nếu không đạt, giảm bóng thời gian thực/đèn động trước khi đi tiếp.
@@ -56,5 +56,5 @@ Tài liệu này vạch ra lộ trình 6 bước (ước tính 14 tuần) để 
 
 ## RỦI RO & GIẢ ĐỊNH
 
-*   Lộ trình 14 tuần chỉ tính công việc code. Sản xuất art (khoảng 16 công trình × 4 model 3D, sprite Trainer/Monster/Trang bị, VFX, âm thanh) chạy song song, ưu tiên công cụ AI kèm chỉnh tay (xem [14_AI_Art_Pipeline](14_AI_Art_Pipeline.md)), và phải khóa danh mục asset trước Bước 3. Một **art spike 1 tuần** (14 §4) chạy cuối Bước 2 để quyết định công cụ.
+*   Lộ trình 14 tuần chỉ tính công việc code. Sản xuất art (khoảng 124 model công trình: 20 công trình × (5 tier + Tàn phá) + 4 Đổ nát, sprite Trainer/Monster/Trang bị, VFX, âm thanh) chạy song song, ưu tiên công cụ AI kèm chỉnh tay (xem [14_AI_Art_Pipeline](14_AI_Art_Pipeline.md)), và phải khóa danh mục asset trước Bước 3. Một **art spike 1 tuần** (14 §4) chạy cuối Bước 2 để quyết định công cụ.
 *   Bước 3 (Vertical Slice, 3 tuần) là bước nặng nhất: art, Swap, Inventory, Cường hóa, UI. Nếu art chưa sẵn sàng, dùng placeholder và dời tích hợp art sang Bước 4.

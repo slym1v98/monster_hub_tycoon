@@ -22,7 +22,7 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 | Lore/FTUE | HUB giữa vùng hoang dã; Intro 15 giây chạy trước FTUE. | 09, 00_GDD |
 | Aura | Chỉ số thấp, chỉ Giám đốc bán cho AI, không tự dùng. | 07 |
 | Animation | Unity 2D Animation, không dùng Spine. | 11 |
-| Thời gian | 1 ngày = 10 phút thực (khởi điểm). Offline: công thức xấp xỉ, tối đa 8 giờ. Đồng Hồ Cát tính giờ thực. | 00_GDD §5, 13 |
+| Thời gian | 1 ngày = 15 phút thực (Payday mỗi 7.5 giờ thực). Offline: mô phỏng đầy đủ tới Payday gần nhất rồi dừng. Đồng Hồ Cát tính giờ thực, dừng trước Payday. | 00_GDD §5, 13 |
 | Giám đốc | Bảng đòn bẩy của Giám đốc. | 00_GDD §6 |
 | Thanh trạng thái | 5 thanh (HP, Thể lực, No nê, Nước, Stress); chỉ số "Thể lực" đổi thành "Sức bền". | 03 |
 | Hệ nguyên tố | 8 hệ; "hệ Tank/DPS/Support" đổi thành "vai trò". | 04 |
@@ -44,22 +44,30 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 | Vay nợ và cổ phiếu | Mô hình vay (hạn mức, lãi, quá hạn) và `StockMarket`; mặc định hạn mức 2 lần lương, lãi 10%/Payday; biến động 3%/ngày; 27 test. | 13 §12 |
 | Tính cách, Ngân Hàng Gene, Rebellion, tài chính | Hệ số tính cách khởi điểm và kết quả; Ngân Hàng Gene thu phí mỗi Payday (20 Gold/Monster/ngày); một bậc Rarity = 20 cấp độ (K=20); cổ tức 10% và thuế tài chính 30%; điều kiện "Chủ Nợ Máu Lạnh" theo số dư ròng -2 lương; 39 test. | 03, 04, 02 §1.2, 08, 13 §13 |
 | Kỹ thuật khác | Sửa câu O(1)/SQLite; Mac thành khuyến nghị; thêm cấu trúc Assembly Definition. | 00_Tech_Stack |
+| Brainstorm mô phỏng Domain | Sự kiện rời rạc theo phút in-game, một mô hình cho online/offline/Sim; faucet = Gold quái rơi + Thương nhân + Tổng tài, HUB không bán ra ngoài; Thương nhân trung gian; lương hợp đồng; không game over, thang vỡ nợ và cấn nợ; dây chuyền Nhà máy -> 3 xưởng theo nhóm slot + Lò Phản Ứng; quầy tự chế tiêu hao; Tòa Thị Chính 25 cấp, Ký túc xá quyết định dân số theo Zone; công trình 5/25 cấp, model tier + Tàn phá; sức chứa = chỗ cùng lúc; ở lỳ khi thiếu dịch vụ; giá hợp lý + Stress; Danh tiếng; Bệnh Viện 2 khu; Trainer 4 thanh, chỉ Monster có HP; cấp Monster theo Rank/cấp Trainer; tăng tư chất tách khỏi Tiến hóa; Rebellion dùng cấp quy đổi; chỉ Giám đốc chào hàng trang bị (Tycoon Club có Thư ký); 30 loại nguyên liệu; World Boss vào EA. | 00, 01, 02, 03, 04, 05, 07, 08, 10, 11, 12, 13, 14 |
 
 **Các giá trị tôi tự đặt, cần bạn xác nhận hoặc chỉnh:**
 - Tên 5 bậc Rarity; Rank = 1 + số Rebirth; tên Mythic.
-- 1 ngày = 10 phút thực (hệ quả: Payday mỗi 5 giờ thực, offline 8 giờ tương đương khoảng 1.6 Payday).
-- Khi offline: người chơi thường không tự thu mua, Payday/Đình công/Thanh Tra chờ đến lúc mở lại app.
 - Ngưỡng phạt Thanh Tra 30%.
 - Vị trí chức năng trong bảng công trình (ví dụ Giám định IVs ở Phòng Thí Nghiệm Tiến Hóa, Bẫy/Bóng ở Xưởng Công Cụ, Thuốc ở Bệnh Viện).
 - Thêm hệ Đất (9 hệ) và hệ số khắc chế khởi điểm 2 / 0.5 / 1.
 - Cooldown Roi Kỷ Luật 3 ngày in-game và quy tắc "tua dừng trước Payday".
 - Bảng "Thanh trạng thái" và vật phẩm trong `12_Item_Catalog` là mô tả khởi điểm.
+- (Brainstorm) Trainer không bỏ đi vì nợ lương; Tổng tài donate là lối thoát hay gặp nhất khi Trainer hết tiền; chỉ số kiếm Gold là May mắn; Balo tính theo tổng số đơn vị.
+- (Brainstorm) Công trình 5 cấp: cấp N cần Tòa Thị Chính tier N; bảng mở khóa theo cấp Tòa Thị Chính ở 02 §1.1; mỗi Zone mở 5 cấp Tòa Thị Chính.
+- (Brainstorm) Sức chứa = 5 + 0.8 x cấp; ngưỡng về HUB theo tính cách (15/50/30/25%); hệ số IV; bảng Tính cách x Class (90/65/30%).
 
 ---
 
 ## Còn mở (làm được trong repo, chưa làm)
 
-Không còn mục nào. Các mục chưa làm được nằm ở phần "Hoãn" bên dưới.
+| # | Mức | Vấn đề | Việc tiếp theo |
+|---|---|---|---|
+| O6 | P1 | Số liệu nâng cấp, hiệu suất gia công, chi phí mở khóa (02 §1.7, 13 §11) tính trên mô hình cũ 3 cấp, Tòa Thị Chính quyết định dân số. | Mô phỏng lại khi Domain mới có công trình 5/25 cấp. |
+| O7 | P1 | Code lệch tài liệu: `LoanLimitWages = 1.0` (doc 2 lương), `GeneBankMonthlyBilling = false` (doc theo Payday), `Buildings = 12`, vận hành 40 (13 §8) vs 50, +8 Stress cố định khi thuế > 30%, `RebellionModel` chưa dùng cấp quy đổi, lương theo % thu nhập thay vì hợp đồng. | Sửa trong sub-project Domain tương ứng. |
+| O8 | P2 | Thanh Tra thuộc sau Early Access (10) nhưng Stress đỏ, thuế > 30% và Danh tiếng đều tham chiếu tới nó. | Quyết định: đưa Thanh Tra rút gọn vào EA, hoặc thay hậu quả trong EA bằng Danh tiếng. |
+| O9 | P2 | Tiệm Tạp hóa và Xưởng Công Cụ cùng là cửa hàng tiêu hao; có thể gộp để bớt model. | Quyết định khi khóa danh mục asset (trước Roadmap Bước 3). |
+| O10 | P2 | Tiến hóa (đổi hình thái): tỉ lệ, chi phí, mốc cấp chưa có số. | Đặt khi làm sub-project Monster. |
 
 ## Hoãn (cần việc ngoài repo; đã chuẩn bị sẵn tài liệu)
 

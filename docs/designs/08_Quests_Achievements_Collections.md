@@ -30,7 +30,7 @@ Tôn vinh quá trình cày cuốc và các lối chơi phát sinh (Emergent Game
 ### A. Thành Tựu Tăng Trưởng (Bình thường)
 *   *Triệu Phú Khu Ổ Chuột:* Tích lũy 1,000,000 Gold. (Buff: Giảm 5% phí xây nhà).
 *   *Lò Mổ Thú Y:* Bệnh Viện chữa trị tổng cộng 100,000 HP. (Buff: Tăng 2% giá Viện phí).
-*   *Khu Công Nghiệp:* Đốt 10,000 cục quặng trong Lò Phản Ứng. (Buff: Tốc độ tinh chế +10%).
+*   *Khu Công Nghiệp:* Tinh chế 10,000 cục quặng trong Nhà máy Tinh chế. (Buff: Tốc độ tinh chế +10%).
 
 ### B. Thành Tựu Góc Khuất (Dark / Hidden Achievements)
 Không hiển thị điều kiện trước. Chỉ mở khóa khi người chơi thực hiện các hành động thao túng "độc ác" hoặc gặp rủi ro bi hài:
