@@ -43,7 +43,9 @@
 | Tỉ lệ thành công Cường hóa | +1: 100%, giảm 5%/cấp tới +10 (55%); +11: 50%, giảm 3.5%/cấp tới +20 (18.5%) | Khởi điểm (mô phỏng) |
 | Vỡ đồ khi thất bại từ +11 (không có Bùa) | 30% | Khởi điểm |
 | Chi phí mỗi lần Cường hóa | CostBase x 1.30^(cấp-1) | Khởi điểm |
-| Tỉ lệ thành công Nâng Sao, Tinh Luyện, Tiến hóa | Chưa có | TBD |
+| Nâng Sao (5 bước) | Thành công 90 / 75 / 55 / 35 / 20%; thất bại từ bước 3 rớt 1 sao; chi phí 300 x 1.8^bước + 100 phôi Hiến Tế | Khởi điểm (mô phỏng) |
+| Tinh Luyện (Normal -> Mythic, 4 bước) | Thành công 70 / 50 / 30 / 15%; thất bại chỉ mất chi phí; chi phí 1,000 x 2.5^bước | Khởi điểm (mô phỏng) |
+| Tiến hóa (Common -> Ultimate, 4 bước) | Thành công 60 / 40 / 25 / 10%; thất bại mất chi phí (Bùa Bảo Hộ bảo vệ vật phẩm); chi phí 2,000 x 3^bước | Khởi điểm (mô phỏng) |
 | Hệ số K của Điểm Quản Lý (Rebellion) | Chưa có | TBD |
 | Bảng khắc chế 9 hệ (hệ số 2 / 0.5 / 1, không có miễn nhiễm) | Xem [04](04_Monster_System.md) §2 | Khởi điểm |
 | Tốc độ hao mòn độ bền | Chưa có | TBD |
@@ -100,10 +102,22 @@ Tỉ lệ Payday dẫn đến Đình công (30 Trainer, 24 tháng, 100 lần ch�
 | Dự trữ (x quỹ lương) | Không sốc | Sốc 20%/tháng | Sốc 50%/tháng |
 |---|---|---|---|
 | 0.50x | 100% | 100% | 100% |
-| 0.75x | 51% | 67% | 84% |
-| 0.90x | 2% | 31% | 44% |
+| 0.75x | 51% | 68% | 84% |
+| 0.90x | 3% | 33% | 46% |
 | 1.00x | 0% | 6% | 17% |
 | 1.25x | 0% | 4% | 12% |
 | 2.00x | 0% | 0% | 2% |
 
 Diễn giải: có một **ngưỡng rõ rệt quanh 0.75-1.0x quỹ lương**. Dưới ngưỡng, Đình công gần như chắc chắn. Trên ngưỡng, rủi ro chủ yếu đến từ cú sốc và giảm dần khi dự trữ tăng. Đây là hình dạng rủi ro mong muốn cho game: người chơi tham lam tái đầu tư quá tay sẽ bị phạt, người cẩn thận ít bị. Ngưỡng sắc là hệ quả của mô hình lợi nhuận ổn định; trong game thật, lợi nhuận biến động sẽ làm đường cong dốc ít hơn.
+
+## 11. Nâng cấp công trình và chi phí vận hành (khởi điểm, mô phỏng)
+| Tham số | Giá trị | Trạng thái |
+|---|---|---|
+| Hoàn vốn mục tiêu Lvl 1 -> 2 | 2 tháng (Payday) | Khởi điểm |
+| Hoàn vốn mục tiêu Lvl 2 -> 3 | 4 tháng | Khởi điểm |
+| Chi phí vận hành mỗi công trình | 50 Gold/ngày (khoảng 10% lợi nhuận tháng của HUB 30 Trainer, 16 công trình) | Khởi điểm |
+| Lợi nhuận ròng mỗi Trainer Common (sau lương) | khoảng 7,900 Gold/tháng; lương khoảng 2,900 Gold/tháng | Kết quả mô phỏng |
+| Dân số theo Tòa Thị Chính | 10 / 20 / 30 Trainer (Lvl 1 / 2 / 3) | Khởi điểm |
+| Hiệu suất gia công theo cấp | 0.85 / 0.92 / 0.99 | Khởi điểm |
+
+**Chi phí kỳ vọng của các thang nâng cấp** (Trainer Common, đơn vị tham chiếu 400 Gold/ngày): Nâng Sao 0 -> 5 khoảng 71,000 Gold (178 ngày thu nhập; 25,000 nếu không rớt sao), Tinh Luyện khoảng 131,000 (329 ngày), Tiến hóa Common -> Ultimate khoảng 630,000 (1,576 ngày). Bước cuối luôn chiếm phần lớn: bước 5 của Nâng Sao 16,000 trong 25,000 (khi không rớt sao; rớt sao đẩy tổng lên 71,000); bước 4 của Tinh Luyện 104,000 trong 131,000; bước 4 của Tiến hóa 540,000 trong 630,000. Chi phí tính trên thu nhập Trainer Common; Trainer Rarity cao kiếm nhiều hơn 1.7 lần mỗi bậc nên gánh nhẹ hơn.

@@ -37,6 +37,18 @@ Mọi công trình có 4 trạng thái: Đổ nát -> Lvl 1 -> Lvl 2 -> **Lvl 3 
 *   Thu phí lưu trữ theo ngày cho mỗi Monster dư mà Trainer gửi. Đây là nguồn Sink, không phải Faucet.
 *   Nếu Trainer không trả phí quá số ngày quy định (xem [13_Balance_Parameters](13_Balance_Parameters.md)), Giám đốc được quyền **tịch thu** Monster đó.
 
+### 1.3. Nâng cấp công trình (đề xuất từ mô phỏng)
+Công thức chi phí: **Chi phí nâng cấp = Lợi ích mỗi tháng x Số tháng hoàn vốn mục tiêu** (xem [13_Balance_Parameters](13_Balance_Parameters.md) §11). Mục tiêu hoàn vốn: 2 tháng cho Lvl 1 -> 2, 4 tháng cho Lvl 2 -> 3. Mỗi Payday là 1 "tháng" in-game.
+
+| Công trình | Lvl 1 | Lvl 2 | Lvl 3 (Max) | Lợi ích | Ghi chú |
+|---|---|---|---|---|---|
+| Tòa Thị Chính | 10 Trainer | 20 Trainer | 30 Trainer | Giới hạn dân số | Nâng cấp lớn nhất, đắt nhất |
+| Trạm Giao Thương, Nhà máy Tinh chế, Lò Phản Ứng | hiệu suất 0.85 | 0.92 | 0.99 | Giá trị thu về từ nguyên liệu | Lợi ích tăng theo số Trainer |
+
+Mẫu chi phí (Trainer Common, 10 Trainer, đơn vị Gold khởi điểm): Tòa Thị Chính Lvl 1 -> 2 khoảng 158,000 (5.5 lần quỹ lương hiện có); Trạm/Nhà máy +0.07 hiệu suất khoảng 17,000 (0.6 lần quỹ lương) với 10 Trainer, 100,000 (1.2 lần) với 30 Trainer. Vì chi phí lớn hơn nhiều so với quỹ lương, **mỗi lần nâng cấp là một quyết định có rủi ro Payday** (xem §2.0).
+
+Chi phí vận hành: khoảng **50 Gold/công trình/ngày** (tương đương 10% lợi nhuận tháng của HUB 30 Trainer với 16 công trình); chi phí tăng theo cấp. Hiệu ứng nâng cấp của Nhà Trọ, Nhà Hàng, Bệnh Viện, Quán Bar, Lò Rèn, Tiệm Kim Hoàn, Xưởng Công Cụ, Học Viện, Phòng Thí Nghiệm *chưa chốt* (xem Open Issues O7).
+
 ## 2. QUẢN TRỊ KHỦNG HOẢNG TÀI CHÍNH
 *   **Chu kỳ Lương (Payday):** Mỗi 30 ngày in-game, HUB trả lương cho tối đa 30 Trainer.
 *   **Đình Công (Strike):** Nếu HUB vỡ nợ không trả nổi lương, AI đình công và chui vào Quán Bar xài tiền túi. HUB thu lại tiền từ Quán Bar để... trả lương cho chúng.
