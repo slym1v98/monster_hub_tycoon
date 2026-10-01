@@ -30,9 +30,9 @@
 | Markup Nước Cất | x10 | Chốt |
 | Thuế Tự Do Tài Chính | 30% lợi nhuận chứng khoán đã chốt | Khởi điểm (chưa mô phỏng) |
 | Cổ tức (mỗi 15 ngày) | 10% doanh thu 15 ngày của công trình đã IPO, chia theo tỉ lệ cổ phần | Khởi điểm (chưa mô phỏng) |
-| Biến động giá cổ phiếu | ±3%/ngày ngẫu nhiên + 0.5 x thay đổi Traffic | Khởi điểm (chưa mô phỏng) |
+| Biến động giá cổ phiếu | ±3%/ngày ngẫu nhiên + 0.5 x thay đổi Traffic; khoảng 6 cơn hoảng loạn (giảm ≥10% trong 3 ngày), 3.6 cú sập (giảm ≥20% trong 15 ngày) và 5 đợt tăng mạnh mỗi năm | Khởi điểm (mô phỏng) |
 | Lương theo Rarity (5 bậc) | 30% thu nhập ròng tháng trước của chính Trainer đó; thu nhập và chi tiêu nhân 1.7 mỗi bậc Rarity | Khởi điểm (mô phỏng) |
-| Cho Trainer Vay: lãi suất, hạn mức, quá hạn | Lãi 10%/Payday (Giám đốc chỉnh 5-20%); hạn mức 1 lương tháng; trừ 50% thu nhập để trả nợ; quá hạn 2 Payday thì Trainer đình công hoặc bỏ việc | Khởi điểm (chưa mô phỏng) |
+| Cho Trainer Vay: lãi suất, hạn mức, quá hạn | Lãi mặc định 10%/Payday (Giám đốc chỉnh 5-40%); hạn mức mặc định **2 lần lương tháng**; trừ 50% thu nhập và lương để trả nợ; quá hạn = dư nợ vượt hạn mức 2 Payday liên tiếp thì Trainer đình công | Khởi điểm (mô phỏng) |
 | Vay Từ Trainer Rank V: lãi suất | 5%/Payday; không trả được thì Trainer dùng dịch vụ HUB miễn phí tới khi hết nợ | Khởi điểm (chưa mô phỏng) |
 | Số ngày không trả phí Ngân Hàng Gene trước khi bị tịch thu | 10 ngày in-game | Khởi điểm (chưa mô phỏng) |
 | Phí lưu trữ Ngân Hàng Gene / Monster / ngày | 20 Gold (khoảng 5% thu nhập ngày của Trainer Common) | Khởi điểm (chưa mô phỏng) |
@@ -126,3 +126,16 @@ Diễn giải: có một **ngưỡng rõ rệt quanh 0.75-1.0x quỹ lương**. 
 | Doanh thu dịch vụ ròng/Trainer Common/tháng | Bệnh Viện 2,524; Nhà Hàng 1,800; Nhà Trọ 1,012; Lò Rèn 1,852; Trang bị 1,259; Bar 928 (tổng khoảng 9,375) | Kết quả mô phỏng |
 
 **Chi phí kỳ vọng của các thang nâng cấp** (Trainer Common, đơn vị tham chiếu 400 Gold/ngày): Nâng Sao 0 -> 5 khoảng 71,000 Gold (178 ngày thu nhập; 25,000 nếu không rớt sao), Tinh Luyện khoảng 131,000 (329 ngày), Tiến hóa Common -> Ultimate khoảng 630,000 (1,576 ngày). Bước cuối luôn chiếm phần lớn: bước 5 của Nâng Sao 16,000 trong 25,000 (khi không rớt sao; rớt sao đẩy tổng lên 71,000); bước 4 của Tinh Luyện 104,000 trong 131,000; bước 4 của Tiến hóa 540,000 trong 630,000. Chi phí tính trên thu nhập Trainer Common; Trainer Rarity cao kiếm nhiều hơn 1.7 lần mỗi bậc nên gánh nhẹ hơn.
+
+## 12. Vay nợ và cổ phiếu (kết quả mô phỏng)
+**Cho Trainer Vay** (30 Trainer, 12 tháng, `Game.Sim loans`): Trainer Common có nhu cầu chi tiêu gần bằng thu nhập nên **gần như mọi Trainer đều vay**, dư nợ ổn định khoảng 0.5-0.7 lần lương tháng. Lãi suất một mình là đòn bẩy yếu khi hạn mức thấp. Tỉ lệ lãi tích lũy trên lợi nhuận tháng của HUB (lãi suất mỗi Payday) và số lần đình công do quá hạn (mỗi Trainer mỗi năm):
+
+| Hạn mức | Lãi 10% | Lãi 20% | Lãi 40% |
+|---|---|---|---|
+| 1 lương | 1.9% lợi nhuận, 0 đình công | 3.9%, 0 | 8.1%, 0 |
+| 2 lương | 5.9%, 0 | 12.4%, 0 | 30.0%, 5.4 đình công |
+| 3 lương | 9.8%, 0 | 21.5%, 1.0 đình công | 53.1%, 4.9 đình công |
+
+Diễn giải: hạn mức 2 lương với lãi 10-20% cho thu nhập lãi đáng kể (6-12% lợi nhuận) mà không gây đình công; hạn mức 3 lương hoặc lãi 40% chuyển sang bóc lột quá mức, Trainer đình công hàng loạt. Đây là vùng "Chủ Nợ Máu Lạnh" có chủ đích. Mô hình chưa có số dư ÂM (thành tựu ẩn), vì hạn mức chặn dư nợ.
+
+**Cổ phiếu** (`Game.Sim stock`, 360 ngày): biến động ±3%/ngày cho khoảng 6 cơn hoảng loạn, 3.6 cú sập và 5 đợt tăng mạnh mỗi năm (khoảng 1 sự kiện mỗi 1-2 tháng): đủ để Trainer *Nhát gan* panic sell và Pump & Dump có cơ hội, mà không loạn. Biến động 1-2% gần như không có sự kiện; 5% có khoảng 23 cơn hoảng loạn mỗi năm, quá dày. Mô hình chưa mô phỏng cổ tức, Thuế Tự Do Tài Chính và hành vi mua bán theo tính cách.

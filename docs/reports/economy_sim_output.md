@@ -121,4 +121,27 @@ stress/ngay  gia Bar/lan   Bar/Trainer/thang   ty trong Bar   so lan vao Bar/tha
        40         400               991         10.6%                   3.3
        40         800              1368         14.6%                   2.3
        40        1500              1729         18.5%                   1.5
+
+# loans
+# Cho Trainer Vay (30 Trainer, 12 thang, 60 lan chay): lai suat moi Payday
+lai/Payday  Trainer con no  no TB/luong thang  dinh cong do no (lan/Trainer/nam)  lai tich luy / loi nhuan thang
+       0%           100%              0.51                                0.00                          0.0%
+       5%           100%              0.54                                0.00                          1.0%
+      10%           100%              0.56                                0.00                          1.9%
+      20%           100%              0.61                                0.00                          3.9%
+      40%           100%              0.72                                0.00                          8.1%
+
+# Han muc vay x lai suat: dinh cong do no (lan/Trainer/nam) | lai tich luy / loi nhuan thang
+han muc \ lai   10%             20%             40%
+  1.0x         0.00 |  1.9%    0.00 |  3.9%    0.00 |  8.1%
+  2.0x         0.00 |  5.9%    0.00 | 12.4%    5.43 | 30.0%
+  3.0x         0.00 |  9.8%    0.98 | 21.5%    4.92 | 53.1%
+
+# stock
+# Co phieu: tan suat su kien trong 360 ngay (200 lan chay)
+Hoang dong/ngay  hoang loan (giam >=10% trong 3 ngay)/nam  sap (giam >=20% trong 15 ngay)/nam  pump (tang >=20% trong 15 ngay)/nam
+           1%                                       0.0                                   0.0                                 0.0
+           2%                                       0.5                                   0.5                                 1.0
+           3%                                       6.0                                   3.6                                 5.1
+           5%                                      23.2                                  11.8                                11.8
 ```

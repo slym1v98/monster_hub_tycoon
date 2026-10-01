@@ -75,7 +75,7 @@ Chi phí các công trình mở khóa: Lvl 1 -> 2 bằng **1 tháng doanh thu d�
 *   **Đình Công (Strike):** Nếu HUB vỡ nợ không trả nổi lương, AI đình công và chui vào Quán Bar xài tiền túi. HUB thu lại tiền từ Quán Bar để... trả lương cho chúng.
 *   **Hai cơ chế vay nợ (tách biệt):**
     *   *Vay Từ Trainer (Reverse Loan):* Giám đốc vay Gold từ Trainer Rank V (xem [03](03_Trainer_AI_System.md)) khi kho bạc cạn. Nếu không trả nổi, AI xiết nợ bằng cách xài dịch vụ HUB miễn phí.
-    *   *Cho Trainer Vay (Vay Nặng Lãi):* Trainer hết tiền (hoặc muốn mua cổ phiếu, mua đồ) vay Gold từ HUB. Giám đốc đặt lãi suất. Số dư Gold của Trainer có thể xuống ÂM (nợ xấu); khi đó lương và tiền bán nguyên liệu được trừ nợ trước. Lãi suất, hạn mức và hậu quả quá hạn: xem [13_Balance_Parameters](13_Balance_Parameters.md).
+    *   *Cho Trainer Vay (Vay Nặng Lãi):* Trainer hết tiền (hoặc muốn mua cổ phiếu, mua đồ) vay Gold từ HUB. Giám đốc đặt lãi suất. Số dư Gold của Trainer có thể xuống ÂM (nợ xấu); khi đó lương và tiền bán nguyên liệu được trừ nợ trước. Lãi suất, hạn mức và hậu quả quá hạn: xem [13_Balance_Parameters](13_Balance_Parameters.md) §12 (mặc định hạn mức 2 lần lương tháng, lãi 10%/Payday).
 
 ### 2.0. Rủi ro Payday (quy tắc thiết kế, từ mô phỏng)
 *   Khủng hoảng Payday **không** do kinh tế tự nhiên tạo ra (tiền Trainer quay lại HUB). Nó đến từ quyết định tái đầu tư của Giám đốc và các cú sốc (Siege, Thanh Tra phạt, Boss hỏng công trình, chi phí Black Friday).
