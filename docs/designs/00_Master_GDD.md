@@ -3,8 +3,9 @@
 ## 1. TỔNG QUAN DỰ ÁN (EXECUTIVE SUMMARY)
 *   **Tên dự án:** Monster HUB Tycoon
 *   **Thể loại:** Management Simulation / Idle RPG / Dark-Capitalist Tycoon
-*   **Phong cách Đồ họa:** Chibi Pixel Art (Tươi sáng, dễ thương nhưng tương phản với nội tại kinh tế khốc liệt).
-*   **Nền tảng:** Mobile / PC
+*   **Phong cách Đồ họa:** Chibi Pixel Art 2.5D: môi trường 3D low-poly/voxel, nhân vật 2D sprite pixel art, camera isometric (chi tiết tại [11_Game_Assets](11_Game_Assets.md)). Tươi sáng, dễ thương nhưng tương phản với nội tại kinh tế khốc liệt.
+*   **Nền tảng:** Android (Early Access). PC/iOS là hướng mở rộng sau Early Access.
+*   **Chế độ mạng:** Offline. PvP (xem [06](06_Events_PVE_PVP.md) §3) nằm ngoài Early Access.
 *   **Tóm tắt cốt lõi:** Người chơi vào vai Giám đốc HUB nằm giữa vùng hoang dã. Game tự trị (autonomous). Người chơi không điều khiển nhân vật đánh quái mà điều khiển "Dòng tiền". Chiêu mộ Trainer, cung cấp dịch vụ độc quyền, bòn rút tài sản của họ thông qua chuỗi cung ứng, chứng khoán và các dịch vụ rủi ro cao.
 
 ## 2. VÒNG LẶP CỐT LÕI (CORE LOOP)
@@ -14,12 +15,33 @@
 4. **Chu kỳ bóc lột:** HUB trả lương mỗi 30 ngày in-game -> Thu lại qua Sàn Chứng Khoán, Lãi vay, Phí sửa chữa đồ và Quán Bar.
 
 ## 3. FTUE - 15 PHÚT ĐẦU TIÊN (TRẢI NGHIỆM NGƯỜI CHƠI MỚI)
-*   **Bối cảnh:** Ruin-to-Riches. Người chơi tiếp quản một HUB đổ nát với số vốn ít ỏi.
+*   **Bối cảnh:** Ruin-to-Riches. FTUE bắt đầu ngay sau Intro Cutscene 15 giây (xem [09](09_Story_Lore.md) §2): cảnh cuối của Intro là HUB hoang tàn, bước đầu tiên của FTUE là dựng lại Tòa Thị Chính. Người chơi tiếp quản một HUB đổ nát với số vốn ít ỏi.
 *   **Hành động:** 
-    * Dựng lại Tòa Thị Chính Lvl 1. Chiêu mộ 5 Trainee ngẫu nhiên. Phân phát Monster Mặc định (Slime/Sâu) và đuổi ra Zone 1.
+    * Dựng lại Tòa Thị Chính Lvl 1. Chiêu mộ 5 Trainer hạng Common ngẫu nhiên. Phân phát Monster Mặc định (Slime/Sâu) và đuổi ra Zone 1.
     * Dọn dẹp phế tích lấy vật liệu, xây Trạm Giao Thương và Bệnh Viện.
 *   **A-ha Moment:** Thiết lập Thuế 20%. Chứng kiến AI đi farm về bị thương, bán nguyên liệu lấy tiền rồi lập tức khóc lóc nộp lại tiền đó cho Bệnh Viện của bạn. Đồng hồ 30 Ngày Trả Lương bắt đầu đếm ngược.
 
 ## 4. ĐỊNH HƯỚNG KIẾN TRÚC KỸ THUẬT (TECHNICAL GUIDELINES)
 *   **Kiến trúc:** Domain-Driven Design (DDD) & Clean Architecture. Tách biệt hoàn toàn Core Logic của nền kinh tế khỏi Presentation/UI Layer.
 *   **Dữ liệu:** Cấu trúc dữ liệu của các thực thể (Gene quái vật, Inventory) phải được **phẳng hóa (flattened arrays/objects)**. Loại bỏ cấu trúc cây đệ quy sâu để tối ưu hóa hiệu năng (O(1) hoặc O(N) tuyến tính) cho hàng trăm AI State Machine hoạt động cùng lúc.
+
+## 5. THỜI GIAN & TIẾN TRÌNH OFFLINE
+*   **Thang thời gian (giá trị khởi điểm, chỉnh khi cân bằng):** 1 ngày in-game = 10 phút thực (12 giờ ban ngày 06:00-18:00 = 5 phút). 1 "tháng" = 30 ngày = Payday = 5 giờ thực. Cổ tức chứng khoán mỗi 15 ngày. Logic chạy theo Global Tick 0.2 giây (xem [00_Tech_Stack](../00_Tech_Stack.md)).
+*   **Tiến trình offline:** Khi mở lại app, Domain tính kết quả bằng **công thức xấp xỉ** (không mô phỏng từng tick), tối đa **8 giờ thực**. Vượt 8 giờ thì phần dư bị bỏ.
+    *   Người chơi thường: Trainer vẫn farm, tiêu dùng dịch vụ và hao mòn trang bị theo công thức, nhưng Trạm Giao Thương không tự thu mua. Nguyên liệu dồn đọng trong Balo AI đến khi người chơi online.
+    *   Tycoon Club: Giám đốc AI tự động thu mua nguyên liệu trong lúc offline (xem [07](07_Monetization_Model.md)).
+    *   Sự kiện Payday, Đình công và Thanh Tra không kích hoạt khi offline. Chúng được đặt chờ và xử lý khi người chơi mở lại app.
+*   **Đồng Hồ Cát:** Mua "giờ offline ảo" 8 giờ hoặc 24 giờ **thực**, tính bằng cùng công thức offline và không bị giới hạn 8 giờ.
+
+## 6. ĐIỀU KHIỂN CỦA GIÁM ĐỐC (DIRECTOR ACTIONS)
+Người chơi không điều khiển hành động của AI. Các đòn bẩy sau là toàn bộ cách tác động lên nền kinh tế (làm nguồn cho thiết kế UI/UX):
+
+| Nhóm | Đòn bẩy | Tài liệu |
+|---|---|---|
+| Giá & thuế | Thuế giao dịch, giá dịch vụ, giá Bùa Bảo Hộ, giá phòng, Cà phê ép xung, lãi suất cho vay | [02](02_HUB_Economy_Infrastructure.md), [05](05_Itemization_Gear_System.md) |
+| Nhân sự | Tuyển dụng, đàm phán/ép lương, đào tạo Học Viện, trục xuất | [03](03_Trainer_AI_System.md) |
+| Công trình | Xây, nâng cấp, tắt điện/ngưng bảo trì, IPO | [02](02_HUB_Economy_Infrastructure.md) |
+| Hướng dẫn farm | Bảng Truy Nã (giá mua x3), Cổng Dịch Chuyển | [01](01_World_Map_Environment.md) |
+| Sự kiện | Còi World Boss, sự kiện giảm giá lấy Traffic | [01](01_World_Map_Environment.md), [02](02_HUB_Economy_Infrastructure.md) |
+| Tài chính | Vay từ Trainer, cho Trainer vay, thao túng chứng khoán, tịch thu Monster tại Ngân Hàng Gene | [02](02_HUB_Economy_Infrastructure.md) |
+| Công cụ trả phí | Roi Kỷ Luật, Đồng Hồ Cát, Gacha | [07](07_Monetization_Model.md) |

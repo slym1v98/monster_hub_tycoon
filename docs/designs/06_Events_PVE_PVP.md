@@ -9,7 +9,7 @@ Sự kiện là các "cú sốc kinh tế" làm thay đổi hành vi AI, tạo c
 
 ### B. Sự Kiện Đột Xuất (Random/Crisis Events)
 *   **Dịch Cúm Quái Vật (Monster Flu):** Virus lây lan làm quái giảm 50% HP và tụt máu liên tục. Cổ phiếu Bệnh viện tăng vọt. Giám đốc xả kho bán *Vắc-xin* độc quyền để cắt dịch, tránh đứt gãy chuỗi cung ứng.
-*   **Thanh Tra Lao Động (Labor Inspection):** NPC Thanh Tra xuất hiện kiểm tra thời gian làm việc, thuế và stress của Trainer. Nếu phát hiện bóc lột (Thuế > 20%, Stress đỏ), HUB bị phạt nặng. Khắc phục bằng cách hối lộ hoặc "diễn kịch" giảm thuế tạm thời.
+*   **Thanh Tra Lao Động (Labor Inspection):** NPC Thanh Tra xuất hiện kiểm tra thời gian làm việc, thuế và stress của Trainer. Nếu phát hiện bóc lột (Thuế giao dịch > 30%, Stress đỏ, xem [02](02_HUB_Economy_Infrastructure.md) §2.1), HUB bị phạt nặng. Khắc phục bằng cách hối lộ hoặc "diễn kịch" giảm thuế tạm thời.
 
 ## 2. CHẾ ĐỘ CHƠI PVE (PLAYER VS ENVIRONMENT)
 *   **Cuộc Xâm Lăng (The Monster Siege - Base Defense):** 
@@ -20,6 +20,8 @@ Sự kiện là các "cú sốc kinh tế" làm thay đổi hành vi AI, tạo c
     *   *Tương tác:* Quan sát AI đánh và quyết định thả *Thùng Cứu Trợ (Supply Drop)* (tốn tiền túi) để buff Máu/Độ bền vũ khí, giúp AI ráng lết qua các tầng sâu hơn để lấy tài nguyên hiếm, hoặc rút lui để bảo toàn vốn.
 
 ## 3. CHẾ ĐỘ CHƠI PVP (PLAYER VS PLAYER)
+> **Phạm vi:** Toàn bộ PvP nằm ngoài Early Access. Game phát hành ở dạng Offline; PvP cần backend riêng (tài khoản, đồng bộ, chống gian lận) và sẽ được lên kế hoạch ở giai đoạn sau.
+
 PVP mang đậm tính thao túng tư bản và cạnh tranh kinh tế bất đồng bộ (Asynchronous).
 
 *   **Đấu Trường Nội Bộ (Underground Arena):** 
@@ -30,4 +32,4 @@ PVP mang đậm tính thao túng tư bản và cạnh tranh kinh tế bất đ�
     *   Chúng sẽ sang đó ăn bám, chiếm giường bệnh, vay nợ không trả, lan truyền tin đồn làm sập sàn chứng khoán của HUB địch. (Đối phương phải tinh mắt trục xuất chúng).
 *   **Giải Đấu Liên Minh (Global Tournament):** 
     *   Chọn 1 Trainer mạnh nhất đem đi thi đấu xếp hạng (Leaderboard) liên server. Auto-battle thuần túy. 
-    *   Phần thưởng là *Điểm Uy Tín (Prestige)*, giúp HUB tự động thu hút các Trainer có Rarity cao (Ultimate) đến xin việc ở các lần tuyển dụng sau.
+    *   Phần thưởng là *Điểm Uy Tín (Prestige)*, giúp HUB tự động thu hút các Trainer có Rarity cao (Legendary, Ultimate) đến xin việc ở các lần tuyển dụng sau.

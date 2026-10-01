@@ -2,12 +2,12 @@
 
 ## 1. CẤU TRÚC ĐỊA HÌNH & PHÂN LỚP (RADIAL BIOMES & ZONING)
 HUB nằm ở trung tâm, tỏa ra các khu vực xung quanh.
-*   **Zone 1 -> Zone 5 (Milestone Gates):** Đồng Cỏ -> Núi Lửa -> Hầm Băng -> Đầm Lầy -> Vực Thẳm.
-    *   *Điều kiện mở:* Mở khóa dựa trên số lượng Trainer đạt Rank yêu cầu.
-    *   *Luật tiếp cận:* Trainer chỉ được vào Zone có cấp bậc thấp hơn hoặc bằng Rank của bản thân.
+*   **Zone 1 -> Zone 5 (Milestone Gates):** Zone 1 Đồng Cỏ -> Zone 2 Núi Lửa -> Zone 3 Hầm Băng -> Zone 4 Đầm Lầy -> Zone 5 Vực Thẳm.
+    *   *Điều kiện mở:* Mở khóa dựa trên số lượng Trainer đạt Rank yêu cầu (Rank I -> V, xem [03](03_Trainer_AI_System.md)).
+    *   *Luật tiếp cận:* Trainer chỉ được vào Zone có cấp bậc thấp hơn hoặc bằng Rank của bản thân (Zone N cần Rank >= N).
 *   **Khu Vực Ẩn (End-game):**
     *   *Nightmare (Ác mộng):* Đánh thẳng vào thanh Tinh Thần (Stress) của AI. Cần mua Thuốc An Thần.
-    *   *The Void (Hư vô):* Yêu cầu trang bị +15. Bào mòn độ bền trang bị siêu tốc, rớt vật liệu Tinh Luyện tối thượng.
+    *   *The Void (Hư vô):* (khu ẩn riêng, không phải Zone 5) Yêu cầu trang bị +15. Bào mòn độ bền trang bị siêu tốc, rớt vật liệu Tinh Luyện tối thượng.
 
 ## 2. THỜI GIAN & THỜI TIẾT ĐỘNG (DAY/NIGHT & WEATHER)
 *   **Chu kỳ Ngày Đêm:**
@@ -20,5 +20,5 @@ HUB nằm ở trung tâm, tỏa ra các khu vực xung quanh.
 
 ## 3. CƠ CHẾ ĐIỀU HƯỚNG & HẠ TẦNG
 *   **Độc quyền Giao thông:** HUB xây Cổng Dịch Chuyển (Warp Gates). AI tự động mua vé Fast-travel nếu tính toán chi phí đi bộ (mất thời gian, tốn đồ ăn) đắt hơn tiền vé.
-*   **Bảng Truy Nã (Bounty Board):** Giám đốc dán lệnh truy nã nguyên liệu (giá mua x3) để lùa AI bầy đàn (đặc biệt tụi Tham lam) đi farm đúng khu vực mình cần.
+*   **Bảng Truy Nã (Bounty Board):** Giám đốc dán lệnh truy nã nguyên liệu (giá mua x3) để lùa AI bầy đàn (đặc biệt tụi Tư bản) đi farm đúng khu vực mình cần.
 *   **World Boss Raid:** Giám đốc bấm còi báo động gọi Boss. Sự kiện này là Lò sát sinh nhằm phá hỏng trang bị, tiêu hao Potion và ép AI vào Bệnh viện (Kích cầu kinh tế).
