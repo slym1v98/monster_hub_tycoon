@@ -177,16 +177,16 @@ Quy đổi từ [13](../../designs/13_Balance_Parameters.md) §8 (theo ngày) sa
 
 | Tham số | Giá trị |
 |---|---|
-| Tụt thanh khi farm/đi lại (mỗi giờ) | Stamina -6, Satiety -5, Hydration -6, Stress +2 |
+| Tụt thanh khi farm/đi lại (mỗi giờ) | Stamina -6, Satiety -5, Hydration -6, Stress +0.5 |
 | Tụt thanh khi ở HUB / chờ (mỗi giờ) | Stamina -2, Satiety -2, Hydration -2 |
 | Mức "đủ" của thanh | 60 |
 | Ngưỡng về HUB theo tính cách | Háo chiến 15, Nhát gan 50, Tham ăn 30 (Satiety 50), Tư bản 25 |
 | Hệ số tính cách | Háo chiến: loot x1.25, HP mất x1.5. Nhát gan: loot x0.85, HP mất x0.5. Tham ăn: Satiety tụt x1.6. Tư bản: giảm giá dịch vụ 10%, độ nhạy giá x1.5, tỉ lệ nhặt nguyên liệu 1.0 (các tính cách khác 0.85) |
 | Zone 1 | Đi bộ 30 phút |
-| Farm tạm (mỗi khúc 30 phút, Trainer Common) | 2 đơn vị nguyên liệu x tỉ lệ nhặt; 2 Gold; mất 8 HP; nhân `1.7^bậcRarity` |
+| Farm tạm (mỗi khúc 30 phút, Trainer Common) | 3 đơn vị nguyên liệu x tỉ lệ nhặt; 2 Gold; mất 3 HP; nhân `1.7^bậcRarity` |
 | TeamHpMax | 300 |
 | Balo | 30 đơn vị |
-| Bán nguyên liệu (tạm) | `FixedPriceMarket` đóng vai người mua bên ngoài (Thương nhân): trả Trainer 8 Gold/đơn vị (Gold từ ngoài vào); HUB thu thuế giao dịch 20% trên giá đó. HUB không mua, không bán nguyên liệu cho tới sub-project 2 |
+| Bán nguyên liệu (tạm) | `FixedPriceMarket` đóng vai người mua bên ngoài (Thương nhân): trả Trainer 10 Gold/đơn vị (Gold từ ngoài vào); HUB thu thuế giao dịch 20% trên giá đó. HUB không mua, không bán nguyên liệu cho tới sub-project 2 |
 | Ngưỡng Bar | ≥ 70; bắt buộc ở 100 |
 | Stress khi chờ | +2/giờ |
 | Tổng tài | 10%/giờ chờ; chắc chắn sau 24 giờ; donate = giá dịch vụ cần x2 |
