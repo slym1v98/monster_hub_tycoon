@@ -186,6 +186,34 @@ public class HubWorldTests
             new[] { TrainerState.Farming, TrainerState.Traveling, TrainerState.Returning }));
     }
 
+    [Fact]
+    public void StrikeLastsFiveFullDays()
+    {
+        var w = new HubWorld(new SimConfig { BaseWage = 1_000_000 }, 9);
+        w.RunUntilPayday();
+        Assert.True(w.ResolvePayday().StrikeStarted);
+        w.RunFor(1 + 4 * 1440 + 60);   // qua 4 lần nửa đêm đầy đủ, hết ngày đình công thứ 5 chưa tới
+        Assert.All(w.Trainers, t => Assert.True(t.StrikeDaysLeft > 0));
+        w.RunFor(1440);
+        Assert.All(w.Trainers, t => Assert.Equal(0, t.StrikeDaysLeft));
+    }
+
+    [Fact]
+    public void StrikingTrainerNeverUsesTheHospital()
+    {
+        // Mỗi khúc farm mất 100 HP nên Trainer ở ngoài lúc 23:59 gần như chắc chắn đang thiếu HP.
+        var cfg = new SimConfig { BaseWage = 1_000_000, StartWithNightVision = true };
+        var w = new HubWorld(cfg, 9, new FixedFarm(0, 0, 100), null);
+        var events = Capture(w);
+        w.RunUntilPayday();
+        Assert.Contains(w.Trainers, t => t.TeamHp < t.TeamHpMax);   // tiền đề: có người thiếu HP khi đình công bắt đầu
+        Assert.Contains(events, e => e is ServiceUsed u && u.Building == BuildingKind.Hospital);   // và Bệnh Viện vẫn được dùng bình thường trước đó
+        int from = events.Count;
+        w.ResolvePayday();
+        w.RunFor(3 * 1440);
+        Assert.DoesNotContain(events.Skip(from).OfType<ServiceUsed>(), u => u.Building == BuildingKind.Hospital);
+    }
+
     // ---- Kho bạc ----
     [Fact]
     public void TreasuryNeverGoesNegative()
@@ -199,4 +227,12 @@ public class HubWorldTests
             Assert.True(w.Treasury >= 0);
         }
     }
+}
+
+/// <summary>Bộ giải farm cố định: mỗi khúc luôn cho cùng một kết quả (tiện kiểm tra chính xác).</summary>
+sealed class FixedFarm : IFarmResolver
+{
+    readonly FarmResult result;
+    public FixedFarm(int units, long gold, long hpLost) { result = new FarmResult(units, gold, hpLost); }
+    public FarmResult Resolve(Trainer trainer, int minutes) => result;
 }

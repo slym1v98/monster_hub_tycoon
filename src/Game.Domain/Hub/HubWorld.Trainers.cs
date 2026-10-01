@@ -53,7 +53,7 @@ namespace Game.Domain
             Settle(t);
             bool isNight = SimClock.IsNight(now);
 
-            BuildingKind? need = TrainerBrain.PickService(t, cfg, isNight);
+            BuildingKind? need = TrainerBrain.PickService(t, cfg, isNight, !t.IsOnStrike);   // đình công: không vào Bệnh Viện
             if (need.HasValue) { RequestService(t, need.Value); return; }
 
             if (t.IsOnStrike)

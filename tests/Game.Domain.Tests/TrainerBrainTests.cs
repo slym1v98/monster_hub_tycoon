@@ -79,7 +79,7 @@ public class TrainerBrainTests
     {
         var t = TestTrainers.Make();
         t.Needs.Stress = 100; t.TeamHp = 10; t.Needs.Satiety = 5;
-        Assert.Equal(BuildingKind.Bar, TrainerBrain.PickService(t, Cfg, false));
+        Assert.Equal(BuildingKind.Bar, TrainerBrain.PickService(t, Cfg, false, true));
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public class TrainerBrainTests
     {
         var t = TestTrainers.Make();
         t.TeamHp = 299; t.Needs.Satiety = 10;
-        Assert.Equal(BuildingKind.Hospital, TrainerBrain.PickService(t, Cfg, false));
+        Assert.Equal(BuildingKind.Hospital, TrainerBrain.PickService(t, Cfg, false, true));
     }
 
     [Fact]
@@ -95,9 +95,9 @@ public class TrainerBrainTests
     {
         var t = TestTrainers.Make();
         t.Needs.Stamina = 80;
-        Assert.Equal(BuildingKind.Inn, TrainerBrain.PickService(t, Cfg, true));
+        Assert.Equal(BuildingKind.Inn, TrainerBrain.PickService(t, Cfg, true, true));
         t.Needs.Stamina = 95;
-        Assert.Null(TrainerBrain.PickService(t, Cfg, true));
+        Assert.Null(TrainerBrain.PickService(t, Cfg, true, true));
     }
 
     [Fact]
@@ -105,13 +105,13 @@ public class TrainerBrainTests
     {
         var t = TestTrainers.Make();
         t.Needs.Satiety = 50;
-        Assert.Equal(BuildingKind.Restaurant, TrainerBrain.PickService(t, Cfg, false));
+        Assert.Equal(BuildingKind.Restaurant, TrainerBrain.PickService(t, Cfg, false, true));
 
         t = TestTrainers.Make(); t.Needs.Stamina = 40; t.Needs.Satiety = 55;
-        Assert.Equal(BuildingKind.Inn, TrainerBrain.PickService(t, Cfg, false));
+        Assert.Equal(BuildingKind.Inn, TrainerBrain.PickService(t, Cfg, false, true));
 
         t = TestTrainers.Make(); t.Needs.Hydration = 30; t.Needs.Stamina = 50;
-        Assert.Equal(BuildingKind.Restaurant, TrainerBrain.PickService(t, Cfg, false));
+        Assert.Equal(BuildingKind.Restaurant, TrainerBrain.PickService(t, Cfg, false, true));
     }
 
     [Fact]
@@ -119,8 +119,20 @@ public class TrainerBrainTests
     {
         var t = TestTrainers.Make();
         t.Needs.Stress = 75;
-        Assert.Equal(BuildingKind.Bar, TrainerBrain.PickService(t, Cfg, false));
+        Assert.Equal(BuildingKind.Bar, TrainerBrain.PickService(t, Cfg, false, true));
         t.Needs.Stress = 69;
-        Assert.Null(TrainerBrain.PickService(t, Cfg, false));
+        Assert.Null(TrainerBrain.PickService(t, Cfg, false, true));
+    }
+
+    [Fact]
+    public void StrikerWithMissingHpSkipsTheHospital()
+    {
+        var t = TestTrainers.Make();
+        t.TeamHp = 100; t.Needs.Satiety = 40;
+        Assert.Equal(BuildingKind.Hospital, TrainerBrain.PickService(t, Cfg, false, true));
+        Assert.Equal(BuildingKind.Restaurant, TrainerBrain.PickService(t, Cfg, false, false));   // rơi xuống luật kế tiếp
+
+        t = TestTrainers.Make(); t.TeamHp = 100;
+        Assert.Null(TrainerBrain.PickService(t, Cfg, false, false));
     }
 }

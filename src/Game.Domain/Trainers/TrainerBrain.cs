@@ -22,14 +22,14 @@ namespace Game.Domain
 
         /// <summary>
         /// Chọn dịch vụ cần dùng ở HUB, hoặc null nếu không cần gì. Thứ tự ưu tiên:
-        /// 1) Stress đầy: Bar. 2) Thiếu HP: Bệnh Viện. 3) Ban đêm không kính và hơi mệt: Nhà Trọ.
+        /// 1) Stress đầy: Bar. 2) Thiếu HP: Bệnh Viện (bỏ qua khi <paramref name="allowHospital"/> = false, ví dụ đang đình công). 3) Ban đêm không kính và hơi mệt: Nhà Trọ.
         /// 4) Thanh thể chất thấp nhất dưới mức "đủ": công trình của thanh đó. 5) Stress cao: Bar.
         /// </summary>
-        public static BuildingKind? PickService(Trainer t, SimConfig cfg, bool isNight)
+        public static BuildingKind? PickService(Trainer t, SimConfig cfg, bool isNight, bool allowHospital)
         {
             Needs n = t.Needs;
             if (n.Stress >= 100) return BuildingKind.Bar;
-            if (t.TeamHp < t.TeamHpMax) return BuildingKind.Hospital;
+            if (allowHospital && t.TeamHp < t.TeamHpMax) return BuildingKind.Hospital;
             if (isNight && !t.HasNightVision && n.Stamina < cfg.NightSleepBelow) return BuildingKind.Inn;
             if (n.LowestPhysical < cfg.SufficientNeed)
             {

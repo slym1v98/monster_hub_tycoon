@@ -163,8 +163,11 @@ namespace Game.Domain
         /// <summary>00:00: trừ chi phí vận hành từng công trình, giảm số ngày đình công.</summary>
         void OnDayStart()
         {
-            foreach (Trainer t in trainers)
-                if (t.StrikeDaysLeft > 0) t.StrikeDaysLeft--;
+            // Đình công bắt đầu đúng 23:59 ngày Payday nên lần nửa đêm ngay sau đó chưa tính là một ngày đã qua.
+            bool firstStrikeMidnight = paydayIndex > 0 && now == SimClock.PaydayMinute(paydayIndex - 1) + 1;
+            if (!firstStrikeMidnight)
+                foreach (Trainer t in trainers)
+                    if (t.StrikeDaysLeft > 0) t.StrikeDaysLeft--;
 
             foreach (ServiceBuilding b in buildings)
             {
