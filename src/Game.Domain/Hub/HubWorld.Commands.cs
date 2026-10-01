@@ -73,16 +73,24 @@ namespace Game.Domain
         /// <summary>
         /// Kiểm tra các bất biến của mô phỏng, ném InvalidOperationException nếu vi phạm:
         /// Kho bạc không âm; thanh nhu cầu trong 0-100; mỗi Trainer không ở hai chỗ cùng lúc;
-        /// mỗi Trainer có tối đa một sự kiện cá nhân còn hiệu lực trong hàng đợi.
+        /// Trainer đang xếp hàng (<see cref="TrainerState.Queued"/>) không có sự kiện cá nhân nào còn hiệu lực,
+        /// mọi Trainer khác có đúng một; mỗi Trainer xếp hàng nằm trong đúng một hàng đợi dịch vụ.
         /// </summary>
         public void ValidateInvariants()
         {
             if (treasury.Balance < 0) throw new InvalidOperationException("Kho bạc âm.");
 
             var seated = new HashSet<int>();
+            var waitingIds = new HashSet<int>();
             foreach (ServiceBuilding b in buildings)
+            {
                 foreach (int id in b.Occupants)
                     if (!seated.Add(id)) throw new InvalidOperationException($"Trainer {id} đang ở hai chỗ cùng lúc.");
+                foreach (int id in b.Waiting)
+                    if (!waitingIds.Add(id)) throw new InvalidOperationException($"Trainer {id} đang xếp hàng ở nhiều chỗ.");
+            }
+            foreach (int id in waitingIds)
+                if (seated.Contains(id)) throw new InvalidOperationException($"Trainer {id} vừa xếp hàng vừa đang được phục vụ.");
 
             foreach (Trainer t in trainers)
             {
@@ -96,7 +104,14 @@ namespace Game.Domain
             foreach (SimEvent e in queue.Snapshot)
                 if (e.TrainerId >= 0 && trainers[e.TrainerId].Token == e.Token) pending[e.TrainerId]++;
             for (int i = 0; i < pending.Length; i++)
-                if (pending[i] > 1) throw new InvalidOperationException($"Trainer {i} có {pending[i]} sự kiện đang chờ.");
+            {
+                bool queued = trainers[i].State == TrainerState.Queued;
+                int expected = queued ? 0 : 1;   // người xếp hàng chờ SeatWaiting gọi; mọi trạng thái khác luôn có đúng một sự kiện kế tiếp
+                if (pending[i] != expected)
+                    throw new InvalidOperationException($"Trainer {i} ({trainers[i].State}) có {pending[i]} sự kiện đang chờ, cần đúng {expected}.");
+                if (queued != waitingIds.Contains(i))
+                    throw new InvalidOperationException($"Trainer {i} ({trainers[i].State}) không khớp với hàng đợi dịch vụ.");
+            }
         }
     }
 }

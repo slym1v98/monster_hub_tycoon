@@ -39,6 +39,8 @@ namespace Game.Domain
         /// <summary>Độ dài hàng đợi lớn nhất từng gặp (dùng cho báo cáo Game.Sim).</summary>
         public int MaxQueueLength { get; private set; }
         public IReadOnlyList<int> Occupants => occupants;
+        /// <summary>Id các Trainer đang xếp hàng, theo thứ tự vào hàng.</summary>
+        public IReadOnlyCollection<int> Waiting => waiting;
 
         /// <summary>Đưa Trainer vào hàng đợi. Chưa xếp chỗ; gọi <see cref="PromoteWaiting"/> sau đó.</summary>
         public void Enqueue(int trainerId)

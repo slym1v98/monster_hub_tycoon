@@ -108,6 +108,7 @@ public class HubWorldCommandsTests
         Assert.NotNull(stuck);   // bắt buộc có Trainer kẹt, tránh test chạy rỗng (không Tổng tài, không Gold farm, vật liệu rẻ)
         Assert.True(w.Donate(stuck.Id, 5000).Ok);
         Assert.NotEqual(TrainerState.WaitingForMoney, w.Trainers[stuck.Id].State);
+        w.ValidateInvariants();   // sự kiện WaitTick cũ phải bị hủy bằng token, không còn hai sự kiện cho một Trainer
     }
 
     [Fact]
@@ -167,6 +168,21 @@ public class HubWorldCommandsTests
             Assert.InRange(t.Hydration, 0, 100);
             Assert.InRange(t.Stress, 0, 100);
         });
+    }
+
+    [Fact]
+    public void InvariantsHoldMinuteByMinuteIncludingQueuedTrainers()
+    {
+        // Cấp 1 + 30 Trainer: hàng đợi xuất hiện thường xuyên. Kiểm tra dày để bắt cả trạng thái Queued.
+        var w = new HubWorld(new SimConfig { TrainerCount = 30, StartBuildingLevel = 1 }, 17);
+        int queuedSamples = 0;
+        for (int i = 0; i < 4 * 1440 / 7; i++)
+        {
+            w.RunFor(7);
+            w.ValidateInvariants();
+            if (w.Trainers.Any(t => t.State == TrainerState.Queued)) queuedSamples++;
+        }
+        Assert.True(queuedSamples > 0);   // tiền đề: đã kiểm tra khi có người xếp hàng
     }
 
     [Fact]
