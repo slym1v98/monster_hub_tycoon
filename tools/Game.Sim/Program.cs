@@ -194,8 +194,40 @@ static class Program
         Up("Tram/Nha may yield +0.07 (10 TN)", 0.07 * 10 * gross, 2, 10 * wage);
         Up("Tram/Nha may yield +0.07 (20 TN)", 0.07 * 20 * gross, 4, 20 * wage);
         Up("Tram/Nha may yield +0.07 (30 TN)", 0.07 * 30 * gross, 4, 30 * wage);
+        // Doanh thu dich vu theo loai tren moi Trainer Common
+        var rev = new double[6];
+        for (int i = 0; i < runs; i++)
+        {
+            var hub = new HubEconomy(p, 100000, Enumerable.Repeat(Rarity.Common, 10).ToList(), 900 + i);
+            for (int d = 0; d < 6 * p.PaydayEvery; d++) hub.StepDay();
+            for (int k = 0; k < 6; k++) rev[k] += hub.LastMonthServiceRevenue[k] / 10 / runs;
+        }
+        Console.WriteLine("\n# Doanh thu rong dich vu / Trainer Common / thang, va chi phi nang cap suc chua +10 Trainer (hoan von 2 thang)");
+        var names = new[] { "Benh Vien", "Nha Hang", "Nha Tro", "Lo Ren (sua)", "Trang bi (Tiem Kim Hoan/Xuong)", "Quan Bar" };
+        for (int k = 0; k < 6; k++)
+            Console.WriteLine($"{names[k],-32} {rev[k],8:F0}/thang   +10 suc chua: loi ich {10 * rev[k],8:F0}, chi phi {20 * rev[k],9:F0}");
         double upkeepFull = 0.10 * 30 * profit;
         Console.WriteLine($"\n# Chi phi van hanh: 10% loi nhuan thang cua HUB 30 Trainer = {upkeepFull:F0}/thang, tuc {upkeepFull / 30 / 16:F0} Gold/cong trinh/ngay voi 16 cong trinh (hien dat {new EconomyParams().UpkeepPerBuildingDay})");
+    }
+
+    static void Bar()
+    {
+        Console.WriteLine("# Thi phan doanh thu Quan Bar theo StressPerDay va BarSpend (10 Trainer Common, 6 thang)");
+        Console.WriteLine("stress/ngay  gia Bar/lan   Bar/Trainer/thang   ty trong Bar   so lan vao Bar/thang");
+        foreach (var st in new[] { 12.0, 25, 40 })
+            foreach (var bs in new[] { 400.0, 800, 1500 })
+            {
+                var p = new EconomyParams { Buildings = 0, ReinvestRate = 0, StressPerDay = st, BarSpend = bs };
+                double bar = 0, total = 0; int runs = 30;
+                for (int i = 0; i < runs; i++)
+                {
+                    var hub = new HubEconomy(p, 100000, Enumerable.Repeat(Rarity.Common, 10).ToList(), 300 + i);
+                    for (int d = 0; d < 6 * p.PaydayEvery; d++) hub.StepDay();
+                    bar += hub.LastMonthServiceRevenue[(int)ServiceKind.Bar] / 10 / runs;
+                    total += hub.LastMonthServiceRevenue.Sum() / 10 / runs;
+                }
+                Console.WriteLine($"{st,9:F0}  {bs,10:F0}  {bar,16:F0}  {bar / total,12:P1}  {bar / (bs * 0.75),20:F1}");
+            }
     }
 
     static void Main(string[] args)
@@ -205,6 +237,7 @@ static class Program
         if (args.Length > 0 && args[0] == "crisis") { Crisis(); return; }
         if (args.Length > 0 && args[0] == "ladders") { Ladders(); return; }
         if (args.Length > 0 && args[0] == "upgrades") { Upgrades(); return; }
+        if (args.Length > 0 && args[0] == "bar") { Bar(); return; }
         var ftue = new double[] { 1.0 };
         var mixed = new double[] { 0.45, 0.30, 0.15, 0.08, 0.02 };
 

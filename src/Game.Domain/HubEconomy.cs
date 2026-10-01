@@ -17,8 +17,8 @@ namespace Game.Domain
         public double FoodPerDay = 80;          // Gold/ngay (Common)
         public double InnPerDay = 45;
         public double RepairPerTrip = 25;
-        public double BarSpend = 70;            // moi lan vao Bar
-        public double StressPerDay = 12;        // Stress tang/ngay; vao Bar khi >= 100
+        public double BarSpend = 800;           // moi lan vao Bar
+        public double StressPerDay = 25;        // Stress tang/ngay; vao Bar khi >= 100
         public double GearShare = 0.40;         // ty le tien du Trainer chi vao trang bi moi ngay
         public double ServiceCogs = 0.25;       // gia von dich vu/trang bi (ty le doanh thu)
         public double UpkeepPerBuildingDay = 50;
@@ -48,6 +48,8 @@ namespace Game.Domain
         public double MonthIncomeAcc;
     }
 
+    public enum ServiceKind { Hospital = 0, Food = 1, Inn = 2, Repair = 3, Gear = 4, Bar = 5 }
+
     public sealed class DayStats
     {
         public double HubRevenue, HubCost;
@@ -65,6 +67,9 @@ namespace Game.Domain
         public double LastMonthProfit;
         public double ExpansionSpent;
         public double LastMonthWages;
+        /// <summary>Doanh thu rong (sau gia von) theo loai dich vu, thang gan nhat.</summary>
+        public readonly double[] LastMonthServiceRevenue = new double[6];
+        readonly double[] serviceAcc = new double[6];
         public int Shocks;
         double monthProfitAcc;
         double dailyProfitEma;
@@ -101,22 +106,19 @@ namespace Game.Domain
                     t.Gold += pay; t.MonthIncomeAcc += pay;
 
                     double hpLoss = P.DamagePerTripHp * P.TripsPerDay * s * Noise();
-                    Spend(t, hpLoss * P.HospitalPricePerHp, ref profit);
-                    Spend(t, P.FoodPerDay * s, ref profit);
-                    Spend(t, P.InnPerDay * s, ref profit);
-                    Spend(t, P.RepairPerTrip * P.TripsPerDay * s * Noise(), ref profit);
-                    double gear = Math.Max(0, t.Gold - 2 * (P.FoodPerDay + P.InnPerDay) * s) * P.GearShare;
-                    Spend(t, gear, ref profit);
+                    Spend(t, hpLoss * P.HospitalPricePerHp, ref profit, ServiceKind.Hospital);
+                    Spend(t, P.FoodPerDay * s, ref profit, ServiceKind.Food);
+                    Spend(t, P.InnPerDay * s, ref profit, ServiceKind.Inn);
+                    Spend(t, P.RepairPerTrip * P.TripsPerDay * s * Noise(), ref profit, ServiceKind.Repair);
                     t.Stress += P.StressPerDay + (P.TaxRate > 0.30 ? 8 : 0);
+                    VisitBarIfStressed(t, s, ref profit);   // Bar duoc uu tien truoc trang bi
+                    double gear = Math.Max(0, t.Gold - 2 * (P.FoodPerDay + P.InnPerDay) * s) * P.GearShare;
+                    Spend(t, gear, ref profit, ServiceKind.Gear);
                 }
                 else
                 {
                     t.Stress += 3; // dinh cong: chi di Bar
-                }
-                if (t.Stress >= 100)
-                {
-                    Spend(t, P.BarSpend * s, ref profit);
-                    t.Stress = 20;
+                    VisitBarIfStressed(t, s, ref profit);
                 }
             }
             double upkeep = P.UpkeepPerBuildingDay * P.Buildings;
@@ -143,12 +145,20 @@ namespace Game.Domain
             if (Day % P.PaydayEvery == 0) Payday();
         }
 
-        void Spend(Trainer t, double amount, ref double profit)
+        void VisitBarIfStressed(Trainer t, double s, ref double profit)
+        {
+            if (t.Stress < 100) return;
+            Spend(t, P.BarSpend * s, ref profit, ServiceKind.Bar);
+            t.Stress = 20;
+        }
+
+        void Spend(Trainer t, double amount, ref double profit, ServiceKind kind)
         {
             double paid = Math.Min(Math.Max(0, t.Gold), amount);
             t.Gold -= paid;
             double net = paid * (1 - P.ServiceCogs);
             Treasury += net; profit += net;
+            serviceAcc[(int)kind] += net;
         }
 
         void Payday()
@@ -167,6 +177,7 @@ namespace Game.Domain
                 foreach (var t in Trainers) t.StrikeLeft = P.StrikeDays;
             }
             LastMonthWages = total;
+            Array.Copy(serviceAcc, LastMonthServiceRevenue, serviceAcc.Length); Array.Clear(serviceAcc, 0, serviceAcc.Length);
             foreach (var t in Trainers) { t.MonthIncome = t.MonthIncomeAcc; t.MonthIncomeAcc = 0; }
             LastMonthProfit = monthProfitAcc; monthProfitAcc = 0;
         }
