@@ -1433,7 +1433,7 @@ namespace Game.Domain
         public int Slots => Maintained ? FullSlots : FullSlots / 2;
         public int Occupied => occupants.Count;
         public int QueueLength => waiting.Count;
-        /// <summary>Độ dài hàng đợi lớn nhất từng gặp (dùng cho báo cáo Game.Sim).</summary>
+        /// <summary>Độ dài hàng đợi lớn nhất còn lại sau khi xếp chỗ (dùng cho báo cáo Game.Sim).</summary>
         public int MaxQueueLength { get; private set; }
         public IReadOnlyList<int> Occupants => occupants;
 
@@ -1441,7 +1441,6 @@ namespace Game.Domain
         public void Enqueue(int trainerId)
         {
             waiting.Enqueue(trainerId);
-            if (waiting.Count > MaxQueueLength) MaxQueueLength = waiting.Count;
         }
 
         /// <summary>Xếp người đang chờ vào các chỗ trống theo thứ tự vào hàng; trả về các id vừa được xếp chỗ.</summary>
@@ -1454,6 +1453,8 @@ namespace Game.Domain
                 occupants.Add(id);
                 seated.Add(id);
             }
+            // Ghi nhận hàng đợi dài nhất SAU khi xếp chỗ: chỉ tính những người thật sự phải chờ.
+            if (waiting.Count > MaxQueueLength) MaxQueueLength = waiting.Count;
             return seated;
         }
 
