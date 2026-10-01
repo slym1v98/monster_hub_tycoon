@@ -54,10 +54,15 @@ namespace Game.Domain
             return CommandResult.Success();
         }
 
-        /// <summary>Trainer đang kẹt vì hết tiền được xử lý lại ngay sau khi nhận tiền (hủy sự kiện chờ cũ bằng token).</summary>
+        /// <summary>
+        /// Trainer đang kẹt vì hết tiền được xử lý lại ngay sau khi nhận tiền (hủy sự kiện chờ cũ bằng token).
+        /// Nếu số tiền nhận được vẫn chưa đủ thì giữ nguyên lượt chờ (không đặt lại đồng hồ 24 giờ).
+        /// </summary>
         void WakeIfWaitingForMoney(Trainer t)
         {
             if (t.State != TrainerState.WaitingForMoney) return;
+            long needed = buildings[(int)t.PendingService].PriceFor(PersonalityProfile.Of(t.Personality), t.TeamHpMax - t.TeamHp);
+            if (t.Gold < needed) return;
             Settle(t);
             LeaveWait(t);
             t.Token++;

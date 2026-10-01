@@ -110,6 +110,37 @@ public class HubWorldCommandsTests
         Assert.NotEqual(TrainerState.WaitingForMoney, w.Trainers[stuck.Id].State);
     }
 
+    [Fact]
+    public void PartialDonationDoesNotRestartTheTwentyFourHourWait()
+    {
+        var cfg = new SimConfig { StartTrainerGold = 0, TrainerCount = 1, ForcedPersonality = Personality.Timid,
+                                  PatronChancePerHour = 0, MaterialPrice = 1, FarmGoldPerChunk = 0 };
+        var w = new HubWorld(cfg, 2);
+        foreach (BuildingKind kind in new[] { BuildingKind.Inn, BuildingKind.Restaurant, BuildingKind.Bar, BuildingKind.Hospital })
+            w.SetPrice(kind, 1000);   // giá quá cao: quyên góp lẻ không bao giờ đủ
+        var events = Capture(w);
+
+        for (int i = 0; i < 3000 && w.Trainers[0].State != TrainerState.WaitingForMoney; i++) w.RunFor(10);
+        Assert.Equal(TrainerState.WaitingForMoney, w.Trainers[0].State);   // tiền đề: Trainer đã kẹt vì hết tiền
+        int waitStart = w.Now.TotalMinutes;
+
+        int donations = 0;
+        for (int i = 0; i < 40 * 60 / 50 && !events.Any(e => e is DonationReceived d && d.Source == "Patron"); i++)
+        {
+            w.RunFor(50);
+            if (w.Trainers[0].State != TrainerState.WaitingForMoney) break;
+            Assert.True(w.Donate(0, 1).Ok);
+            donations++;
+            Assert.Equal(TrainerState.WaitingForMoney, w.Trainers[0].State);   // vẫn chưa đủ tiền
+        }
+        Assert.True(donations >= 5);   // tiền đề: đã có nhiều lần donate lẻ
+
+        DonationReceived patron = events.OfType<DonationReceived>().FirstOrDefault(d => d.Source == "Patron");
+        Assert.NotNull(patron);
+        Assert.True(patron.Minute - waitStart <= 24 * 60, $"Tổng tài tới sau {patron.Minute - waitStart} phút kể từ lúc bắt đầu chờ");
+        Assert.True(w.MaxMoneyWaitMinutes <= 24 * 60);
+    }
+
     // ---- Bất biến ----
     [Fact]
     public void InvariantsHoldThroughThreeMonthsWithManyTrainers()
