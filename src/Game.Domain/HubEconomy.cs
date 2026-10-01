@@ -26,6 +26,13 @@ namespace Game.Domain
         public int StrikeDays = 5;
         public int PaydayEvery = 30;
 
+        // --- Cho Trainer Vay (Vay Nang Lai) ---
+        public bool LoansEnabled = false;
+        public double LoanInterest = 0.10;      // lai moi Payday tren du no
+        public double LoanLimitWages = 1.0;     // han muc = boi so x luong thang du kien
+        public double RepayShare = 0.5;         // ty le thu nhap/luong dung de tra no
+        public int OverduePaydays = 2;          // so Payday lien tiep con no thi Trainer dinh cong
+
         // --- Chi phi va rui ro phia Giam doc (O7) ---
         /// <summary>Giam doc luon giu lai it nhat boi so nay x luong du kien; phan du duoc tai dau tu (nang cap, mua so, ...).</summary>
         public double ReserveWageMultiple = 1.0;
@@ -46,6 +53,8 @@ namespace Game.Domain
         public double Scale;
         public double MonthIncome;      // thu nhap rong thang truoc (de tinh luong)
         public double MonthIncomeAcc;
+        public double Debt;
+        public int DebtPaydays;
     }
 
     public enum ServiceKind { Hospital = 0, Food = 1, Inn = 2, Repair = 3, Gear = 4, Bar = 5 }
@@ -71,6 +80,8 @@ namespace Game.Domain
         public readonly double[] LastMonthServiceRevenue = new double[6];
         readonly double[] serviceAcc = new double[6];
         public int Shocks;
+        public int DebtStrikes;
+        public double InterestAccrued;
         double monthProfitAcc;
         double dailyProfitEma;
 
@@ -103,7 +114,9 @@ namespace Game.Domain
                     double pay = gross * (1 - P.TaxRate);          // HUB tra cho Trainer
                     double resale = gross * P.ProcessingYield;     // HUB thu ve sau gia cong
                     Treasury -= pay; Treasury += resale; profit += resale - pay;
-                    t.Gold += pay; t.MonthIncomeAcc += pay;
+                    double repay = P.LoansEnabled ? Math.Min(t.Debt, P.RepayShare * pay) : 0;
+                    t.Debt -= repay; Treasury += repay;
+                    t.Gold += pay - repay; t.MonthIncomeAcc += pay;
 
                     double hpLoss = P.DamagePerTripHp * P.TripsPerDay * s * Noise();
                     Spend(t, hpLoss * P.HospitalPricePerHp, ref profit, ServiceKind.Hospital);
@@ -156,7 +169,15 @@ namespace Game.Domain
         {
             double paid = Math.Min(Math.Max(0, t.Gold), amount);
             t.Gold -= paid;
-            double net = paid * (1 - P.ServiceCogs);
+            double borrow = 0;
+            if (P.LoansEnabled && paid < amount)
+            {
+                double limit = P.LoanLimitWages * P.WageRatio * Math.Max(t.MonthIncome, t.MonthIncomeAcc);
+                borrow = Math.Min(amount - paid, Math.Max(0, limit - t.Debt));
+                t.Debt += borrow;               // HUB cho vay: Gold roi khoi kho bac roi quay lai thanh doanh thu dich vu
+                Treasury -= borrow;
+            }
+            double net = (paid + borrow) * (1 - P.ServiceCogs);
             Treasury += net; profit += net;
             serviceAcc[(int)kind] += net;
         }
@@ -166,7 +187,8 @@ namespace Game.Domain
             Paydays++;
             double total = 0;
             foreach (var t in Trainers) total += P.WageRatio * t.MonthIncomeAcc;
-            if (Treasury >= total)
+            bool wagesPaid = Treasury >= total;
+            if (wagesPaid)
             {
                 foreach (var t in Trainers) t.Gold += P.WageRatio * t.MonthIncomeAcc;
                 Treasury -= total; monthProfitAcc -= total;
@@ -176,6 +198,22 @@ namespace Game.Domain
                 StrikePaydays++;
                 foreach (var t in Trainers) t.StrikeLeft = P.StrikeDays;
             }
+            if (P.LoansEnabled)
+                foreach (var t in Trainers)
+                {
+                    double r = Math.Min(Math.Min(t.Debt, P.RepayShare * P.WageRatio * t.MonthIncomeAcc), Math.Max(0, t.Gold));
+                    if (wagesPaid) { t.Debt -= r; t.Gold -= r; Treasury += r; }
+                    if (t.Debt > 0)
+                    {
+                        double interest = t.Debt * P.LoanInterest;
+                        t.Debt += interest; InterestAccrued += interest;
+                        // Qua han: du no vuot han muc (1 luong thang) o nhieu Payday lien tiep
+                        double limit = P.LoanLimitWages * P.WageRatio * Math.Max(t.MonthIncome, t.MonthIncomeAcc);
+                        if (t.Debt > limit) t.DebtPaydays++; else t.DebtPaydays = 0;
+                        if (t.DebtPaydays >= P.OverduePaydays) { t.StrikeLeft = P.StrikeDays; DebtStrikes++; t.DebtPaydays = 0; }
+                    }
+                    else t.DebtPaydays = 0;
+                }
             LastMonthWages = total;
             Array.Copy(serviceAcc, LastMonthServiceRevenue, serviceAcc.Length); Array.Clear(serviceAcc, 0, serviceAcc.Length);
             foreach (var t in Trainers) { t.MonthIncome = t.MonthIncomeAcc; t.MonthIncomeAcc = 0; }

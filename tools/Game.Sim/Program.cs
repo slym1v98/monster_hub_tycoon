@@ -230,6 +230,82 @@ static class Program
             }
     }
 
+    static void Loans()
+    {
+        var mixed = new double[] { 0.45, 0.30, 0.15, 0.08, 0.02 };
+        Console.WriteLine("# Cho Trainer Vay (30 Trainer, 12 thang, 60 lan chay): lai suat moi Payday");
+        Console.WriteLine("lai/Payday  Trainer con no  no TB/luong thang  dinh cong do no (lan/Trainer/nam)  lai tich luy / loi nhuan thang");
+        foreach (var rate in new[] { 0.0, 0.05, 0.10, 0.20, 0.40 })
+        {
+            double inDebt = 0, debtWages = 0, strikes = 0, interest = 0, profit = 0; int runs = 60;
+            for (int i = 0; i < runs; i++)
+            {
+                var p = new EconomyParams { LoansEnabled = true, LoanInterest = rate };
+                var hub = new HubEconomy(p, 20000, Roster(30, mixed).ToList(), 700 + i);
+                for (int d = 0; d < 12 * p.PaydayEvery; d++) hub.StepDay();
+                inDebt += hub.Trainers.Count(t => t.Debt > 1) / 30.0 / runs;
+                debtWages += hub.Trainers.Where(t => t.Debt > 1).Select(t => t.Debt / (p.WageRatio * Math.Max(1, t.MonthIncome))).DefaultIfEmpty(0).Average() / runs;
+                strikes += hub.DebtStrikes / 30.0 / runs;
+                interest += hub.InterestAccrued / 12 / runs;
+                profit += hub.LastMonthProfit / runs;
+            }
+            Console.WriteLine($"{rate,9:P0}  {inDebt,13:P0}  {debtWages,16:F2}  {strikes,34:F2}  {interest / profit,28:P1}");
+        }
+    }
+
+    static void LoansLimit()
+    {
+        var mixed = new double[] { 0.45, 0.30, 0.15, 0.08, 0.02 };
+        Console.WriteLine("\n# Han muc vay x lai suat: dinh cong do no (lan/Trainer/nam) | lai tich luy / loi nhuan thang");
+        Console.WriteLine("han muc \\ lai   10%             20%             40%");
+        foreach (var lim in new[] { 1.0, 2.0, 3.0 })
+        {
+            var cells = new List<string>();
+            foreach (var rate in new[] { 0.10, 0.20, 0.40 })
+            {
+                double strikes = 0, interest = 0, profit = 0; int runs = 40;
+                for (int i = 0; i < runs; i++)
+                {
+                    var p = new EconomyParams { LoansEnabled = true, LoanInterest = rate, LoanLimitWages = lim };
+                    var hub = new HubEconomy(p, 20000, Roster(30, mixed).ToList(), 800 + i);
+                    for (int d = 0; d < 12 * p.PaydayEvery; d++) hub.StepDay();
+                    strikes += hub.DebtStrikes / 30.0 / runs; interest += hub.InterestAccrued / 12 / runs; profit += hub.LastMonthProfit / runs;
+                }
+                cells.Add($"{strikes,5:F2} | {interest / profit,5:P1}");
+            }
+            Console.WriteLine($"{lim,5:F1}x        " + string.Join("   ", cells));
+        }
+    }
+
+    static void Stock()
+    {
+        Console.WriteLine("# Co phieu: tan suat su kien trong 360 ngay (200 lan chay)");
+        Console.WriteLine("Hoang dong/ngay  hoang loan (giam >=10% trong 3 ngay)/nam  sap (giam >=20% trong 15 ngay)/nam  pump (tang >=20% trong 15 ngay)/nam");
+        foreach (var vol in new[] { 0.01, 0.02, 0.03, 0.05 })
+        {
+            double panic = 0, crash = 0, pump = 0; int runs = 200;
+            for (int r = 0; r < runs; r++)
+            {
+                var m = new StockMarket(r) { DailyVolatility = vol };
+                var path = new double[361]; path[0] = m.Price;
+                for (int d = 1; d <= 360; d++) path[d] = m.StepDay();
+                bool inPanic = false, inCrash = false, inPump = false;
+                for (int d = 3; d <= 360; d++)
+                {
+                    bool pn = path[d] <= 0.90 * path[d - 3];
+                    if (pn && !inPanic) panic++; inPanic = pn;
+                }
+                for (int d = 15; d <= 360; d++)
+                {
+                    bool cr = path[d] <= 0.80 * path[d - 15], pu = path[d] >= 1.20 * path[d - 15];
+                    if (cr && !inCrash) crash++; inCrash = cr;
+                    if (pu && !inPump) pump++; inPump = pu;
+                }
+            }
+            Console.WriteLine($"{vol,13:P0}  {panic / runs,40:F1}  {crash / runs,36:F1}  {pump / runs,34:F1}");
+        }
+    }
+
     static void Main(string[] args)
     {
         if (args.Length > 0 && args[0] == "calibrate") { Calibrate(); return; }
@@ -238,6 +314,8 @@ static class Program
         if (args.Length > 0 && args[0] == "ladders") { Ladders(); return; }
         if (args.Length > 0 && args[0] == "upgrades") { Upgrades(); return; }
         if (args.Length > 0 && args[0] == "bar") { Bar(); return; }
+        if (args.Length > 0 && args[0] == "loans") { Loans(); LoansLimit(); return; }
+        if (args.Length > 0 && args[0] == "stock") { Stock(); return; }
         var ftue = new double[] { 1.0 };
         var mixed = new double[] { 0.45, 0.30, 0.15, 0.08, 0.02 };
 
