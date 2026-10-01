@@ -34,6 +34,8 @@ dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll crisis      # rủi ro Payda
 dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll ladders     # chi phí kỳ vọng Nâng Sao, Tinh Luyện, Tiến hóa
 dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll upgrades    # chi phí nâng cấp công trình theo hoàn vốn
 dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll bar         # thị phần doanh thu Quán Bar
+dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll loans       # vay nợ: hạn mức x lãi suất
+dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll stock       # tần suất sự kiện cổ phiếu
 ```
 
 Logic nằm ở `src/Game.Domain` (C# thuần, không phụ thuộc Unity). Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).

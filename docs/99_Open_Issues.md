@@ -41,7 +41,8 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 | Nâng cấp công trình & thang nâng cấp | Công thức chi phí = lợi ích/tháng x tháng hoàn vốn (2 và 4 tháng); Tòa Thị Chính 10/20/30 Trainer; vận hành 50 Gold/công trình/ngày; giá trị khởi điểm cho Nâng Sao, Tinh Luyện, Tiến hóa; `UpgradeLadder` + test. | 02 §1.3, 13 §4 và §11 |
 | Hiệu ứng nâng cấp công trình dịch vụ | Công trình dịch vụ: sức chứa 10/20/30 Trainer/ngày; công trình mở khóa: tính năng theo cấp; chi phí mở khóa 1 và 2 tháng doanh thu dịch vụ; doanh thu dịch vụ đo được theo loại. | 02 §1.3, 13 §11 |
 | Quán Bar | Bar chiếm khoảng 10% doanh thu dịch vụ: Stress +25/ngày, giá Bar 800/lần, Trainer vào Bar trước khi mua trang bị. Bar bị giới hạn bởi tiền mặt của Trainer, không phải giá. | 13 §8, 02 §1.3 |
-| Giá trị khởi điểm còn lại | Thuế tài chính, cổ tức, biến động giá, hai loại vay, phí và tịch thu Ngân Hàng Gene, K của Rebellion, hao mòn độ bền. | 13 §3-4 |
+| Giá trị khởi điểm còn lại | Thuế tài chính, cổ tức, phí và tịch thu Ngân Hàng Gene, K của Rebellion (chưa mô phỏng); hao mòn độ bền, vay, biến động giá (đã mô phỏng). | 13 §3-4 |
+| Vay nợ và cổ phiếu | Mô hình vay (hạn mức, lãi, quá hạn) và `StockMarket`; mặc định hạn mức 2 lần lương, lãi 10%/Payday; biến động 3%/ngày; 27 test. | 13 §12 |
 | Kỹ thuật khác | Sửa câu O(1)/SQLite; Mac thành khuyến nghị; thêm cấu trúc Assembly Definition. | 00_Tech_Stack |
 
 **Các giá trị tôi tự đặt, cần bạn xác nhận hoặc chỉnh:**
@@ -60,7 +61,7 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 
 | # | Mức | Vấn đề | Đề xuất |
 |---|---|---|---|
-| O2 | P1 | **Một số giá trị khởi điểm chưa được mô phỏng:** Chứng khoán (giá, cổ tức, Thuế Tự Do Tài Chính), hai loại vay (lãi suất, quá hạn), phí và tịch thu Ngân Hàng Gene, hệ số K (Rebellion). Chưa kiểm tra thang nâng cấp với Trainer Rarity cao. Mô hình hiện chưa có hành vi theo tính cách. | Thêm vào Domain và runner khi có Trainer AI đầy đủ (Roadmap Bước 4-5); mỗi hệ thống thêm test và chạy lại báo cáo. |
+| O2 | P2 | **Còn thiếu trong mô phỏng:** hành vi theo tính cách (Háo chiến, Nhát gan, Tham ăn, Tư bản), cổ tức và Thuế Tự Do Tài Chính của chứng khoán, phí và tịch thu Ngân Hàng Gene, hệ số K (Rebellion), số dư ÂM của Trainer (thành tựu "Chủ Nợ Máu Lạnh"). Chưa kiểm tra thang nâng cấp với Trainer Rarity cao. | Thêm khi có Trainer AI đầy đủ (Roadmap Bước 4-5); mỗi hệ thống thêm test và chạy lại báo cáo. |
 
 ## Hoãn (cần việc ngoài repo; đã chuẩn bị sẵn tài liệu)
 
