@@ -141,11 +141,70 @@ static class Program
         }
     }
 
+    static double[] Geo(double a, double r, int n) => Enumerable.Range(0, n).Select(i => a * Math.Pow(r, i)).ToArray();
+
+    static void Ladders()
+    {
+        const double costBase = 100, dailyGross = 400;   // Trainer Common: 400 Gold/ngay
+        void Row(string name, UpgradeLadder l)
+        {
+            double e = l.ExpectedCost();
+            Console.WriteLine($"{name,-34} chi phi ky vong {e,10:F0} Gold = {e / costBase,7:F0} x CostBase = {e / dailyGross,6:F1} ngay thu nhap Common");
+        }
+        Console.WriteLine("# Thang nang cap (gia tri khoi diem)");
+        var star = new UpgradeLadder(new[] { 0.90, 0.75, 0.55, 0.35, 0.20 }, Geo(300, 1.8, 5).Select(c => c + 100).ToArray(), new[] { 0, 0, 1, 1, 1 });
+        Row("Nang Sao 0->5 (roi 1 sao tu buoc 3)", star);
+        var starSafe = new UpgradeLadder(star.Success, star.Cost, new[] { 0, 0, 0, 0, 0 });
+        Row("Nang Sao 0->5 (khong roi sao)", starSafe);
+        var refine = new UpgradeLadder(new[] { 0.70, 0.50, 0.30, 0.15 }, Geo(1000, 2.5, 4), new[] { 0, 0, 0, 0 });
+        Row("Tinh Luyen Normal->Mythic", refine);
+        var evo = new UpgradeLadder(new[] { 0.60, 0.40, 0.25, 0.10 }, Geo(2000, 3.0, 4), new[] { 0, 0, 0, 0 });
+        Row("Tien hoa Common->Ultimate (khong Bua)", evo);
+        Console.WriteLine("\n# Tung buoc: chi phi ky vong de qua buoc i (Gold)");
+        foreach (var (name, l) in new[] { ("Nang Sao", star), ("Tinh Luyen", refine), ("Tien hoa", evo) })
+        {
+            var parts = Enumerable.Range(0, l.Steps).Select(i => (l.Cost[i] / l.Success[i]).ToString("F0"));
+            Console.WriteLine($"{name,-10}: " + string.Join(" | ", parts));
+        }
+    }
+
+    static void Upgrades()
+    {
+        // Loi nhuan bien va luong tren moi Trainer Common (khong tinh chi phi van hanh co dinh)
+        var p = new EconomyParams { Buildings = 0, ReinvestRate = 0 };
+        double profit = 0, wage = 0; int runs = 40;
+        for (int i = 0; i < runs; i++)
+        {
+            var hub = new HubEconomy(p, 100000, Enumerable.Repeat(Rarity.Common, 10).ToList(), 500 + i);
+            for (int d = 0; d < 6 * p.PaydayEvery; d++) hub.StepDay();
+            profit += hub.LastMonthProfit / 10; wage += hub.LastMonthWages / 10;
+        }
+        profit /= runs; wage /= runs;
+        double gross = p.LootPerTrip * p.TripsPerDay * p.PaydayEvery;
+        Console.WriteLine($"# Moi Trainer Common: loi nhuan rong/thang {profit:F0} (da tru luong), luong/thang {wage:F0}, dong tien nguyen lieu/thang {gross:F0}");
+        Console.WriteLine("\n# Chi phi nang cap dat theo thoi gian hoan von (benh = loi ich/thang x so thang)");
+        Console.WriteLine("nang cap                       loi ich/thang   hoan von   chi phi    x quy luong dang co");
+        void Up(string name, double gain, double months, double wageBill)
+        {
+            double cost = gain * months;
+            Console.WriteLine($"{name,-30} {gain,12:F0} {months,8:F0} thang {cost,10:F0}   {cost / wageBill,6:F2}x");
+        }
+        Up("Toa Thi Chinh Lv1->2 (+10 slot)", 10 * profit, 2, 10 * wage);
+        Up("Toa Thi Chinh Lv2->3 (+10 slot)", 10 * profit, 4, 20 * wage);
+        Up("Tram/Nha may yield +0.07 (10 TN)", 0.07 * 10 * gross, 2, 10 * wage);
+        Up("Tram/Nha may yield +0.07 (20 TN)", 0.07 * 20 * gross, 4, 20 * wage);
+        Up("Tram/Nha may yield +0.07 (30 TN)", 0.07 * 30 * gross, 4, 30 * wage);
+        double upkeepFull = 0.10 * 30 * profit;
+        Console.WriteLine($"\n# Chi phi van hanh: 10% loi nhuan thang cua HUB 30 Trainer = {upkeepFull:F0}/thang, tuc {upkeepFull / 30 / 16:F0} Gold/cong trinh/ngay voi 16 cong trinh (hien dat {new EconomyParams().UpkeepPerBuildingDay})");
+    }
+
     static void Main(string[] args)
     {
         if (args.Length > 0 && args[0] == "calibrate") { Calibrate(); return; }
         if (args.Length > 0 && args[0] == "stress") { Stress(); return; }
         if (args.Length > 0 && args[0] == "crisis") { Crisis(); return; }
+        if (args.Length > 0 && args[0] == "ladders") { Ladders(); return; }
+        if (args.Length > 0 && args[0] == "upgrades") { Upgrades(); return; }
         var ftue = new double[] { 1.0 };
         var mixed = new double[] { 0.45, 0.30, 0.15, 0.08, 0.02 };
 

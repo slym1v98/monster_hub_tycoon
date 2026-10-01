@@ -21,7 +21,7 @@ namespace Game.Domain
         public double StressPerDay = 12;        // Stress tang/ngay; vao Bar khi >= 100
         public double GearShare = 0.40;         // ty le tien du Trainer chi vao trang bi moi ngay
         public double ServiceCogs = 0.25;       // gia von dich vu/trang bi (ty le doanh thu)
-        public double UpkeepPerBuildingDay = 40;
+        public double UpkeepPerBuildingDay = 50;
         public int Buildings = 12;              // so cong trinh dang van hanh
         public int StrikeDays = 5;
         public int PaydayEvery = 30;
@@ -64,6 +64,7 @@ namespace Game.Domain
         public int Paydays;
         public double LastMonthProfit;
         public double ExpansionSpent;
+        public double LastMonthWages;
         public int Shocks;
         double monthProfitAcc;
         double dailyProfitEma;
@@ -165,6 +166,7 @@ namespace Game.Domain
                 StrikePaydays++;
                 foreach (var t in Trainers) t.StrikeLeft = P.StrikeDays;
             }
+            LastMonthWages = total;
             foreach (var t in Trainers) { t.MonthIncome = t.MonthIncomeAcc; t.MonthIncomeAcc = 0; }
             LastMonthProfit = monthProfitAcc; monthProfitAcc = 0;
         }
