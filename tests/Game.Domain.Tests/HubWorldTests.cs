@@ -214,6 +214,80 @@ public class HubWorldTests
         Assert.DoesNotContain(events.Skip(from).OfType<ServiceUsed>(), u => u.Building == BuildingKind.Hospital);
     }
 
+    // ---- Chế độ cấn nợ (vỡ nợ lần 3) ----
+    static HubWorld ReachDebtMode(HubWorld w)
+    {
+        PaydayOutcome last = null;
+        for (int m = 0; m < 3; m++) { w.RunUntilPayday(); last = w.ResolvePayday(); }
+        Assert.Equal(3, last.UnpaidStreak);   // tiền đề: đã vào chế độ cấn nợ
+        return w;
+    }
+
+    static int FirstBackpackAfterFirstChunk(HubWorld w)
+    {
+        for (int i = 0; i < 4 * 1440 && w.Trainers[0].BackpackUnits == 0; i++) w.RunFor(10);
+        return w.Trainers[0].BackpackUnits;
+    }
+
+    [Fact]
+    public void DebtModeHalvesFarmYield()
+    {
+        var cfg = new SimConfig { BaseWage = 1_000_000, TrainerCount = 1 };
+        int normal = FirstBackpackAfterFirstChunk(new HubWorld(cfg, 5, new FixedFarm(10, 100, 0), null));
+        Assert.Equal(10, normal);   // tiền đề: bộ giải cố định cho 10 đơn vị mỗi khúc
+
+        var w = ReachDebtMode(new HubWorld(new SimConfig { BaseWage = 1_000_000, TrainerCount = 1 }, 5, new FixedFarm(10, 100, 0), null));
+        int inDebt = 0;
+        for (int i = 0; i < 20 * 1440 && inDebt == 0; i++) { w.RunFor(10); inDebt = w.Trainers[0].BackpackUnits; }
+        Assert.Equal(5, inDebt);   // 10 x 0.5
+    }
+
+    [Fact]
+    public void DebtModeRestaurantIsFreeAndPaysDownTheWageOwed()
+    {
+        var w = new HubWorld(new SimConfig { BaseWage = 1_000_000, TrainerCount = 1 }, 5, new FixedFarm(10, 100, 0), null);
+        ReachDebtMode(w);
+        long owedAtStart = w.Trainers[0].WageOwed;
+        Assert.True(owedAtStart > 0);
+
+        var freeMeals = new List<(long Paid, long Owed)>();
+        w.EventRaised += e =>
+        {
+            if (e is ServiceUsed u && u.Building == BuildingKind.Restaurant) freeMeals.Add((u.Paid, w.Trainers[0].WageOwed));
+        };
+        w.RunFor(10 * 1440);
+
+        Assert.NotEmpty(freeMeals);                          // tiền đề: có ăn ở Nhà Hàng trong lúc cấn nợ
+        Assert.All(freeMeals, m => Assert.Equal(0, m.Paid));
+        Assert.True(freeMeals[0].Owed < owedAtStart);        // nợ lương giảm ngay lượt đầu
+        for (int i = 1; i < freeMeals.Count; i++) Assert.True(freeMeals[i].Owed < freeMeals[i - 1].Owed);
+    }
+
+    // ---- Chi phí vận hành công trình ----
+    [Fact]
+    public void UnpaidUpkeepHalvesSlotsAndRecoversWhenTreasuryRefills()
+    {
+        // Không có nguồn thu: Trainer hết tiền, không Tổng tài, Kho bạc 0.
+        var cfg = new SimConfig { StartTreasury = 0, StartTrainerGold = 0, MaterialPrice = 0, FarmGoldPerChunk = 0,
+                                  PatronChancePerHour = 0, PatronGuaranteedAfterHours = 100_000 };
+        var w = new HubWorld(cfg, 8);
+        var events = Capture(w);
+        Assert.All(w.Buildings, b => Assert.Equal(9, b.Slots));   // tiền đề: Lv5 có 9 chỗ
+
+        w.RunFor(1440 - SimClock.DawnMinute);   // tới đúng 00:00 đầu tiên
+        Assert.Equal(0, w.Treasury);
+        foreach (BuildingKind kind in Enum.GetValues(typeof(BuildingKind)))
+            Assert.Contains(events, e => e is BuildingMaintenanceChanged m && m.Minute == 1440 && m.Building == kind && !m.Maintained);
+        Assert.All(w.Buildings, b => { Assert.False(b.Maintained); Assert.Equal(4, b.Slots); });
+
+        // Có nguồn thu trở lại (Tổng tài xuất hiện, Trainer trả tiền dịch vụ) thì 00:00 kế tiếp bảo trì lại được.
+        cfg.PatronChancePerHour = 1;
+        w.RunFor(1440);
+        Assert.True(w.Treasury > 0);
+        Assert.Contains(events, e => e is BuildingMaintenanceChanged m && m.Minute == 2880 && m.Maintained);
+        Assert.Contains(w.Buildings, b => b.Maintained && b.Slots == 9);
+    }
+
     // ---- Kho bạc ----
     [Fact]
     public void TreasuryNeverGoesNegative()
