@@ -47,7 +47,28 @@ Công thức chi phí: **Chi phí nâng cấp = Lợi ích mỗi tháng x Số t
 
 Mẫu chi phí (Trainer Common, 10 Trainer, đơn vị Gold khởi điểm): Tòa Thị Chính Lvl 1 -> 2 khoảng 158,000 (5.5 lần quỹ lương hiện có); Trạm/Nhà máy +0.07 hiệu suất khoảng 17,000 (0.6 lần quỹ lương) với 10 Trainer, 100,000 (1.2 lần) với 30 Trainer. Vì chi phí lớn hơn nhiều so với quỹ lương, **mỗi lần nâng cấp là một quyết định có rủi ro Payday** (xem §2.0).
 
-Chi phí vận hành: khoảng **50 Gold/công trình/ngày** (tương đương 10% lợi nhuận tháng của HUB 30 Trainer với 16 công trình); chi phí tăng theo cấp. Hiệu ứng nâng cấp của Nhà Trọ, Nhà Hàng, Bệnh Viện, Quán Bar, Lò Rèn, Tiệm Kim Hoàn, Xưởng Công Cụ, Học Viện, Phòng Thí Nghiệm *chưa chốt* (xem Open Issues O7).
+Chi phí vận hành: khoảng **50 Gold/công trình/ngày** (tương đương 10% lợi nhuận tháng của HUB 30 Trainer với 16 công trình); chi phí tăng theo cấp. 
+**Công trình dịch vụ (Nhà Trọ, Nhà Hàng, Bệnh Viện, Quán Bar): giới hạn sức chứa.** Mỗi công trình phục vụ tối đa **10 / 20 / 30 Trainer mỗi ngày** ở Lvl 1 / 2 / 3, khớp với dân số của Tòa Thị Chính. Vượt sức chứa thì Trainer phải xếp hàng: nhu cầu không được đáp ứng (HP, Thể lực, No nê, Stress không hồi), Trainer yếu đi và HUB mất doanh thu. Chi phí nâng cấp +10 sức chứa với hoàn vốn 2 tháng (Lvl 1 -> 2; gấp đôi cho Lvl 2 -> 3 với hoàn vốn 4 tháng), tính trên doanh thu ròng mỗi Trainer Common mỗi tháng đo được:
+
+| Công trình | Doanh thu/Trainer/tháng | Chi phí Lvl 1 -> 2 (+10 sức chứa) |
+|---|---|---|
+| Bệnh Viện Thú Y | 2,524 | khoảng 50,500 |
+| Nhà Hàng | 1,800 | khoảng 36,000 |
+| Nhà Trọ | 1,012 | khoảng 20,300 |
+| Quán Bar | 928 | khoảng 18,600 |
+
+**Công trình mở khóa (Lò Rèn, Tiệm Kim Hoàn, Phòng Thí Nghiệm Tiến Hóa, Học Viện, Xưởng Công Cụ, Cổng Dịch Chuyển):** không giới hạn sức chứa mà mở khóa tính năng theo cấp.
+
+| Công trình | Lvl 1 | Lvl 2 | Lvl 3 (Max) |
+|---|---|---|---|
+| Lò Rèn | Cường hóa tới +10, sửa chữa | Tới +15 (vùng có nguy cơ vỡ đồ) | Tới +20 |
+| Tiệm Kim Hoàn | Nâng Sao tới 3 sao | Tới 4 sao, Tinh Luyện 2 bước | Tới 5 sao, Tinh Luyện tới Mythic |
+| Phòng Thí Nghiệm Tiến Hóa | Giám định IVs, Tiến hóa tới Rare | Tới Epic hoặc Legendary | Tới Ultimate |
+| Học Viện | 2 Class | 3 Class | Cả 4 Class |
+| Xưởng Công Cụ | Tiện ích cơ bản (nước, áo mưa, mặt nạ) | Bẫy và Bóng bắt thú | Sách Chiến Thuật |
+| Cổng Dịch Chuyển | Fast-travel tới Zone 2 | Tới Zone 3-4 | Tới Zone 5 |
+
+Chi phí các công trình mở khóa: Lvl 1 -> 2 bằng **1 tháng doanh thu dịch vụ của toàn HUB**, Lvl 2 -> 3 bằng **2 tháng** (với 10 Trainer Common, một tháng doanh thu dịch vụ khoảng 93,600 Gold). Chi phí tăng theo dân số, giữ cho mỗi lần nâng cấp luôn là quyết định cân nhắc với dự trữ Payday.
 
 ## 2. QUẢN TRỊ KHỦNG HOẢNG TÀI CHÍNH
 *   **Chu kỳ Lương (Payday):** Mỗi 30 ngày in-game, HUB trả lương cho tối đa 30 Trainer.
