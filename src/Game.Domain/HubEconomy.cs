@@ -25,6 +25,16 @@ namespace Game.Domain
         public int Buildings = 12;              // so cong trinh dang van hanh
         public int StrikeDays = 5;
         public int PaydayEvery = 30;
+
+        // --- Chi phi va rui ro phia Giam doc (O7) ---
+        /// <summary>Giam doc luon giu lai it nhat boi so nay x luong du kien; phan du duoc tai dau tu (nang cap, mua so, ...).</summary>
+        public double ReserveWageMultiple = 1.0;
+        /// <summary>Ty le phan vuot qua muc du tru duoc tai dau tu moi ngay.</summary>
+        public double ReinvestRate = 0.5;
+        /// <summary>Xac suat moi thang xay ra cu soc (Siege, Thanh Tra phat, Boss lam hong cong trinh).</summary>
+        public double ShockChancePerMonth = 0.0;
+        /// <summary>Chi phi cu soc, tinh bang so ngay loi nhuan trung binh.</summary>
+        public double ShockCostDays = 10;
     }
 
     public sealed class Trainer
@@ -53,7 +63,10 @@ namespace Game.Domain
         public int StrikePaydays;
         public int Paydays;
         public double LastMonthProfit;
+        public double ExpansionSpent;
+        public int Shocks;
         double monthProfitAcc;
+        double dailyProfitEma;
 
         public HubEconomy(EconomyParams p, double startTreasury, IEnumerable<Rarity> roster, int seed)
         {
@@ -107,7 +120,24 @@ namespace Game.Domain
             }
             double upkeep = P.UpkeepPerBuildingDay * P.Buildings;
             Treasury -= upkeep; profit -= upkeep;
+
+            dailyProfitEma = Day == 1 ? profit : 0.9 * dailyProfitEma + 0.1 * profit;
+            if (P.ShockChancePerMonth > 0 && rng.NextDouble() < P.ShockChancePerMonth / P.PaydayEvery)
+            {
+                double cost = P.ShockCostDays * Math.Max(0, dailyProfitEma);
+                Treasury -= cost; profit -= cost; Shocks++;
+            }
             monthProfitAcc += profit;
+
+            // Tai dau tu: giu lai du tru bang ReserveWageMultiple x luong du kien (theo thu nhap thang truoc/dang tich luy).
+            double expectedWage = 0;
+            foreach (var t in Trainers) expectedWage += P.WageRatio * Math.Max(t.MonthIncome, t.MonthIncomeAcc / Math.Max(1, Day % P.PaydayEvery == 0 ? P.PaydayEvery : Day % P.PaydayEvery) * P.PaydayEvery);
+            double reserve = P.ReserveWageMultiple * expectedWage;
+            if (Treasury > reserve)
+            {
+                double spend = (Treasury - reserve) * P.ReinvestRate;
+                Treasury -= spend; ExpansionSpent += spend;
+            }
 
             if (Day % P.PaydayEvery == 0) Payday();
         }

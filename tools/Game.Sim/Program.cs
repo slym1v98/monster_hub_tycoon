@@ -121,10 +121,31 @@ static class Program
         }
     }
 
+    static void Crisis()
+    {
+        var mixed = new double[] { 0.45, 0.30, 0.15, 0.08, 0.02 };
+        Console.WriteLine("# Rui ro Payday khi Giam doc tai dau tu (30 Trainer, 24 thang, 100 lan chay)");
+        Console.WriteLine("# Cot: ty le Payday dinh cong | hang: du tru (boi so luong du kien) | cot: xac suat cu soc/thang (chi phi 10 ngay loi nhuan)");
+        var shocks = new[] { 0.0, 0.2, 0.5 };
+        Console.WriteLine("du tru / soc  " + string.Join("   ", shocks.Select(x => x.ToString("P0").PadLeft(5))));
+        foreach (var reserve in new[] { 0.0, 0.5, 0.75, 0.9, 1.0, 1.1, 1.25, 1.5, 2.0 })
+        {
+            var cells = new List<string>();
+            foreach (var sh in shocks)
+            {
+                var p = new EconomyParams { ReserveWageMultiple = reserve, ShockChancePerMonth = sh };
+                var r = Run(p, 30, mixed, 20000, 24, 100);
+                cells.Add(r.StrikeRate.ToString("P0").PadLeft(5));
+            }
+            Console.WriteLine($"{reserve,5:F2}x        " + string.Join("   ", cells));
+        }
+    }
+
     static void Main(string[] args)
     {
         if (args.Length > 0 && args[0] == "calibrate") { Calibrate(); return; }
         if (args.Length > 0 && args[0] == "stress") { Stress(); return; }
+        if (args.Length > 0 && args[0] == "crisis") { Crisis(); return; }
         var ftue = new double[] { 1.0 };
         var mixed = new double[] { 0.45, 0.30, 0.15, 0.08, 0.02 };
 
