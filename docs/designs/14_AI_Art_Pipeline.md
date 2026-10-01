@@ -47,5 +47,7 @@ Chạy thử để quyết định công cụ và mức độ chỉnh tay:
 *   Steam yêu cầu khai báo nội dung do AI tạo xuất hiện trong game; Google Play chưa có quy định tổng quát tương đương nhưng thắt chặt ở các nhóm nhạy cảm. Theo dõi chính sách trước khi submit.
 *   Lưu lại điều khoản thương mại của từng công cụ (tại thời điểm dùng) và nhật ký prompt/nguồn cho mỗi asset.
 *   Không dùng tên/phong cách của nghệ sĩ hoặc IP có sẵn (ví dụ Pokémon) trong prompt.
+*   **Gemini API** (tra cứu 2026-10-01): điều khoản ghi Google không đòi quyền sở hữu nội dung tạo ra, nhưng có thể tạo nội dung giống hoặc tương tự cho người dùng khác (không độc quyền); bạn tự chịu trách nhiệm khi dùng; bản miễn phí (Google AI Studio) cho phép Google dùng prompt và kết quả để cải tiến sản phẩm, bản trả phí thì không. Nên dùng tài khoản có billing để không gửi art gốc/ảnh tham chiếu dự án vào dữ liệu huấn luyện.
+*   **Meowa** (tra cứu 2026-10-01): trang giá ghi "commercial ownership" ở mọi gói (từ khoảng 5 USD/tháng); không tìm được trang điều khoản dịch vụ công khai. Cần xin hoặc xác nhận điều khoản bằng văn bản trước khi dùng cho asset phát hành.
 
 Nguồn tham khảo: [Meowa](https://meowa.ai/), [Best AI Tools for Game Assets 2026 (Ludo.ai)](https://ludo.ai/compare/best-ai-game-asset-generators), [Gemini 3 Pro Image](https://aistudio.google.com/models/gemini-3-pro-image), [AI Game Assets: Copyright, Steam Disclosure (Promise Legal)](https://blog.promise.legal/ai-game-assets-copyright-steam-disclosure-2026/).
