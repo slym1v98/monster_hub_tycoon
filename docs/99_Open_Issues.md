@@ -36,6 +36,7 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 | Công cụ trả phí | Roi Kỷ Luật có cooldown, không xóa nợ lương; Đồng Hồ Cát 1 lần/ngày, dừng trước Payday. | 07, 13 |
 | Chính sách Google Play | Công bố tỉ lệ Gacha và phần thưởng ngẫu nhiên, yêu cầu hủy đăng ký; ghi vào mục tuân thủ. | 07 §6 |
 | Sản xuất art | Dùng công cụ AI (Gemini image, Meowa, ...) kèm chỉnh tay; kế hoạch, khối lượng, art spike, pháp lý. | 14, 10 |
+| Mô phỏng kinh tế sơ bộ | Dựng `src/Game.Domain` + `tools/Game.Sim`; giá trị khởi điểm cho lương, giá dịch vụ, Cường hóa, Gacha, Pity. | 13, README |
 | Kỹ thuật khác | Sửa câu O(1)/SQLite; Mac thành khuyến nghị; thêm cấu trúc Assembly Definition. | 00_Tech_Stack |
 
 **Các giá trị tôi tự đặt, cần bạn xác nhận hoặc chỉnh:**
@@ -54,7 +55,8 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 
 | # | Mức | Vấn đề | Đề xuất |
 |---|---|---|---|
-| O2 | P1 | **Toàn bộ con số kinh tế** còn TBD: lương theo Rarity, lãi suất hai loại vay, phí Ngân Hàng Gene, tỉ lệ Cường hóa/Nâng Sao/Tinh Luyện/Tiến hóa, hệ số K, tỉ lệ Gacha và Pity, mốc Quest/Thành tựu. Cần mô phỏng, mà chưa có code. | Dựng console runner mô phỏng bằng Domain C# (Roadmap Bước 2 và 5), điền vào `13_Balance_Parameters`. |
+| O2 | P1 | **Mô phỏng mới ở mức đồ chơi:** đã có `tools/Game.Sim` và giá trị khởi điểm cho lương, giá dịch vụ, Cường hóa, Gacha (xem 13 §8-9). Chưa mô phỏng: Chứng khoán, hai loại vay (lãi suất), phí Ngân Hàng Gene, Nâng Sao, Tinh Luyện, Tiến hóa, hệ số K, sự kiện/thời tiết/Boss. Chưa có unit test cho Domain. | Mở rộng Domain và runner theo từng hệ thống (Roadmap Bước 2 và 5), thêm unit test, điền nốt các TBD trong 13. |
 | O3 | P1 | **Art spike chưa chạy:** chưa biết công cụ AI nào đạt cho paper-doll 30 slot, 4-8 hướng và model 3D. Kế hoạch ở `14_AI_Art_Pipeline`. | Chạy art spike 1 tuần (14 §4), chọn công cụ và mức chỉnh tay, rồi chốt tiến độ art. |
 | O4 | P1 | **Rủi ro hiệu năng 2.5D** (60 FPS, 120 thực thể, sprite đổ bóng, NavMesh, đèn động). Mới có tiêu chí chấp nhận ở Roadmap Bước 2, chưa kiểm chứng. | Chạy prototype hiệu năng trên thiết bị thật trước khi sản xuất art hàng loạt. |
-| O5 | P2 | **Kiểm tra pháp lý chính thức:** mục tuân thủ ở 07 §6 và 14 §5 dựa trên tra cứu web, chưa phải tư vấn pháp lý; điều khoản từng công cụ AI chưa đọc. | Đọc điều khoản thương mại của công cụ được chọn và chính sách Google Play ngay trước khi submit. |
+| O5 | P2 | **Pháp lý chưa được xác nhận chính thức:** đã tra điều khoản Gemini API (không độc quyền, bản miễn phí dùng dữ liệu để cải tiến) và giá Meowa (ghi "commercial ownership" nhưng không tìm được trang điều khoản). Mục tuân thủ Google Play ở 07 §6 dựa trên tra cứu web, chưa phải tư vấn pháp lý. | Xin điều khoản bằng văn bản từ công cụ được chọn; đọc lại chính sách Google Play ngay trước khi submit; dùng tài khoản có billing nếu dùng Gemini cho asset dự án. |
+| O7 | P0 | **Chu kỳ khủng hoảng chưa tự xảy ra (phát hiện từ mô phỏng):** trong mô hình, HUB gần như không thể phá sản vì tiền lương Trainer quay lại HUB qua dịch vụ; Đình công chỉ xảy ra khi lương vượt khoảng 100% thu nhập ròng. Thiết kế chưa có **chi phí và rủi ro phía Giám đốc**: chi phí nâng cấp công trình, bảo trì, phạt Thanh Tra, sửa chữa sau Siege/Boss, chi phí Black Friday, giá vốn nâng cấp. | Thiết kế bảng chi phí của Giám đốc (nâng cấp công trình tăng mạnh theo cấp, bảo trì tăng theo Trainer, sự kiện làm hao quỹ) rồi chạy lại mô phỏng cho đến khi Payday có xác suất Đình công thực sự. |

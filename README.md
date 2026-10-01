@@ -20,6 +20,16 @@ Game **Management Simulation / Idle RPG / Dark-Capitalist Tycoon** với phong c
 
 Chi tiết xem [docs/00_Tech_Stack.md](docs/00_Tech_Stack.md).
 
+## Mô phỏng kinh tế
+
+```
+dotnet run --project tools/Game.Sim                  # kịch bản FTUE, HUB đầy đủ, Cường hóa, Gacha
+dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll stress      # kịch bản chịu tải
+dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll calibrate   # dò tham số
+```
+
+Logic nằm ở `src/Game.Domain` (C# thuần, không phụ thuộc Unity). Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).
+
 ## Tài liệu
 
 | Tài liệu | Nội dung |
