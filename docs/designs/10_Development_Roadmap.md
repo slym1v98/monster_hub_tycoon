@@ -39,7 +39,7 @@ Tài liệu này vạch ra lộ trình 6 bước (ước tính 14 tuần) để 
 
 ## BƯỚC 5: CÂN BẰNG KINH TẾ & MONETIZATION (TUẦN 11 - 12)
 **Mục tiêu:** Xử lý rủi ro lạm phát và tích hợp các điểm chạm thương mại.
-*   **Balancing (Cân bằng):** Chạy hàng triệu vòng lặp giả lập bằng console runner dùng chính Domain C# (xuất CSV, phân tích bằng Excel/Python) để tinh chỉnh:
+*   **Balancing (Cân bằng):** Chạy hàng triệu vòng lặp giả lập bằng console runner dùng chính Domain C# (đã có bản đầu tại `tools/Game.Sim`, mở rộng dần; xuất CSV, phân tích bằng Excel/Python) để tinh chỉnh:
     *   Hệ số tiền rớt từ quái vật.
     *   Chi phí Bệnh viện và sửa chữa Độ bền (đảm bảo AI luôn nghèo đi).
     *   Tỉ lệ thành công của Cường hóa/Tiến hóa.
