@@ -41,8 +41,8 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 | Nâng cấp công trình & thang nâng cấp | Công thức chi phí = lợi ích/tháng x tháng hoàn vốn (2 và 4 tháng); Tòa Thị Chính 10/20/30 Trainer; vận hành 50 Gold/công trình/ngày; giá trị khởi điểm cho Nâng Sao, Tinh Luyện, Tiến hóa; `UpgradeLadder` + test. | 02 §1.3, 13 §4 và §11 |
 | Hiệu ứng nâng cấp công trình dịch vụ | Công trình dịch vụ: sức chứa 10/20/30 Trainer/ngày; công trình mở khóa: tính năng theo cấp; chi phí mở khóa 1 và 2 tháng doanh thu dịch vụ; doanh thu dịch vụ đo được theo loại. | 02 §1.3, 13 §11 |
 | Quán Bar | Bar chiếm khoảng 10% doanh thu dịch vụ: Stress +25/ngày, giá Bar 800/lần, Trainer vào Bar trước khi mua trang bị. Bar bị giới hạn bởi tiền mặt của Trainer, không phải giá. | 13 §8, 02 §1.3 |
-| Giá trị khởi điểm còn lại | Thuế tài chính, cổ tức, phí và tịch thu Ngân Hàng Gene, K của Rebellion (chưa mô phỏng); hao mòn độ bền, vay, biến động giá (đã mô phỏng). | 13 §3-4 |
 | Vay nợ và cổ phiếu | Mô hình vay (hạn mức, lãi, quá hạn) và `StockMarket`; mặc định hạn mức 2 lần lương, lãi 10%/Payday; biến động 3%/ngày; 27 test. | 13 §12 |
+| Tính cách, Ngân Hàng Gene, Rebellion, tài chính | Hệ số tính cách khởi điểm và kết quả; Ngân Hàng Gene thu phí mỗi Payday (20 Gold/Monster/ngày); một bậc Rarity = 20 cấp độ (K=20); cổ tức 10% và thuế tài chính 30%; điều kiện "Chủ Nợ Máu Lạnh" theo số dư ròng -2 lương; 39 test. | 03, 04, 02 §1.2, 08, 13 §13 |
 | Kỹ thuật khác | Sửa câu O(1)/SQLite; Mac thành khuyến nghị; thêm cấu trúc Assembly Definition. | 00_Tech_Stack |
 
 **Các giá trị tôi tự đặt, cần bạn xác nhận hoặc chỉnh:**
@@ -59,9 +59,7 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 
 ## Còn mở (làm được trong repo, chưa làm)
 
-| # | Mức | Vấn đề | Đề xuất |
-|---|---|---|---|
-| O2 | P2 | **Còn thiếu trong mô phỏng:** hành vi theo tính cách (Háo chiến, Nhát gan, Tham ăn, Tư bản), cổ tức và Thuế Tự Do Tài Chính của chứng khoán, phí và tịch thu Ngân Hàng Gene, hệ số K (Rebellion), số dư ÂM của Trainer (thành tựu "Chủ Nợ Máu Lạnh"). Chưa kiểm tra thang nâng cấp với Trainer Rarity cao. | Thêm khi có Trainer AI đầy đủ (Roadmap Bước 4-5); mỗi hệ thống thêm test và chạy lại báo cáo. |
+Không còn mục nào. Các mục chưa làm được nằm ở phần "Hoãn" bên dưới.
 
 ## Hoãn (cần việc ngoài repo; đã chuẩn bị sẵn tài liệu)
 

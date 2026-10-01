@@ -36,6 +36,8 @@ dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll upgrades    # chi phí nâng
 dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll bar         # thị phần doanh thu Quán Bar
 dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll loans       # vay nợ: hạn mức x lãi suất
 dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll stock       # tần suất sự kiện cổ phiếu
+dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll personality # hành vi theo tính cách
+dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll genebank    # phí và tịch thu Ngân Hàng Gene
 ```
 
 Logic nằm ở `src/Game.Domain` (C# thuần, không phụ thuộc Unity). Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).
