@@ -9,8 +9,8 @@ Tích hợp Gacha tự nhiên vào bối cảnh Tuyển dụng nhân sự:
 *   **Thư Mời Hoàng Gia (Premium Recruitment):** Dùng Gem mở Gacha để chiêu mộ Trainer hạng Epic -> Ultimate, kèm các Tính cách hiếm có lợi cho doanh nghiệp. *Có cơ chế Bảo hiểm (Pity).* Tỉ lệ rơi từng bậc Rarity và ngưỡng Pity phải được công bố trong game (xem [13_Balance_Parameters](13_Balance_Parameters.md)). Trainer nhận được sinh ngẫu nhiên từ các thành phần (giới tính, avatar, tính cách, chỉ số theo Rarity), không phải danh sách cố định.
 *   **Bùa Bảo Hộ Cường Hóa (Protection Scrolls):** Vật phẩm bắt buộc phải có để đập đồ từ +11 -> +20 mà không bị vỡ. *Luồng:* Giám đốc mua Bùa bằng Gem (IAP) từ nhà cung cấp, rồi tự đặt giá bán lại cho AI bằng Gold. AI chỉ trả Gold, không bao giờ trả Gem. Nguồn thu IAP ổn định nhất giai đoạn late-game.
 *   **Công Cụ Can Thiệp (God-Tools):** 
-    *   *Roi Kỷ Luật:* Xóa 100% thanh Stress/Đình công của toàn bộ HUB ngay lập tức.
-    *   *Đồng Hồ Cát:* Tua nhanh 8h/24h (giờ thực, tính theo công thức offline) để thu hoạch lợi nhuận tức thì. Xem [00_Master_GDD](00_Master_GDD.md) §5.
+    *   *Roi Kỷ Luật:* Xóa 100% thanh Stress và kết thúc Đình công của toàn bộ HUB ngay lập tức. **Giới hạn:** có cooldown (khởi điểm 3 ngày in-game) và không xóa nợ lương: tiền lương còn thiếu vẫn phải trả ở Payday kế tiếp.
+    *   *Đồng Hồ Cát:* Tua nhanh 8h/24h (giờ thực, tính theo công thức offline) để thu hoạch lợi nhuận tức thì. Xem [00_Master_GDD](00_Master_GDD.md) §5. **Giới hạn:** tối đa 1 lần dùng 24h mỗi ngày thực; phần tua tự dừng ngay trước Payday kế tiếp, để người chơi tự xử lý khi kho bạc không đủ trả lương.
 
 ## 3. THẺ ĐĂNG KÝ & BATTLE PASS (RETENTION REVENUE)
 *   **Thẻ Cổ Đông (Tycoon Club - Monthly Sub):** Giá $4.99/tháng.
@@ -29,3 +29,12 @@ Loại bỏ quảng cáo Pop-up ép buộc, chuyển thành các "Khoản đầu
 Doanh thu từ nhóm người chơi "Cá Voi" thích trang trí (Cosmetics):
 *   **Skin Công trình:** Đổi giao diện Tòa Thị Chính thành Tòa Nhà Cyberpunk, Lâu đài Gothic.
 *   **Nội thất Dịch vụ:** Mua sắm Bàn ghế VIP, Sàn nhảy cho Quán Bar bằng Gem. Nội thất xịn giúp thanh Stress của AI tụt nhanh hơn khi chúng sử dụng dịch vụ, gián tiếp tối ưu hóa thời gian đi farm (Pay-for-convenience).
+
+## 6. TUÂN THỦ CHÍNH SÁCH GOOGLE PLAY (CẦN KIỂM TRA LẠI KHI SUBMIT)
+Kết quả tra cứu ngày 2026-10-01, chưa phải tư vấn pháp lý; chính sách có thể thay đổi:
+*   **Gacha (Thư Mời Hoàng Gia):** Google Play (Payments policy) yêu cầu công bố tỉ lệ nhận vật phẩm ngẫu nhiên trước và gần thời điểm mua. Hiển thị tỉ lệ từng bậc Rarity và Pity ngay trên màn hình mua.
+*   **Quảng cáo có thưởng:** phần thưởng ngẫu nhiên phải công bố tỉ lệ trước khi chiếu quảng cáo; không dùng phần thưởng là tiền thật quy đổi trực tiếp. Phần thưởng Bailout TV và Airdrop hiện đều là Gold/Buff trong game, phù hợp.
+*   **Đăng ký (Tycoon Club):** Google đã siết yêu cầu về hủy đăng ký năm 2026; cần giao diện hủy rõ ràng và mô tả đặc quyền, giá, chu kỳ trước khi mua.
+*   **Nội dung AI:** xem [14_AI_Art_Pipeline](14_AI_Art_Pipeline.md) §5.
+
+Nguồn: [Payments - Play Console Help](https://support.google.com/googleplay/android-developer/answer/9858738), [Policies for ad units that offer rewards - AdMob Help](https://support.google.com/admob/answer/7313578), [Google Play now requires disclosure of loot box odds - Fenwick](https://www.fenwick.com/insights/publications/google-play-now-requires-disclosure-of-loot-box-odds).

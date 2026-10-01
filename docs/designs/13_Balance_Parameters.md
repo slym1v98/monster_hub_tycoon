@@ -43,14 +43,20 @@
 | Tỉ lệ thành công Cường hóa từng cấp | Chưa có | TBD |
 | Tỉ lệ thành công Nâng Sao, Tinh Luyện, Tiến hóa | Chưa có | TBD |
 | Hệ số K của Điểm Quản Lý (Rebellion) | Chưa có | TBD |
-| Quan hệ khắc chế của Sét, Băng, Độc | Chưa có | TBD |
+| Bảng khắc chế 9 hệ (hệ số 2 / 0.5 / 1, không có miễn nhiễm) | Xem [04](04_Monster_System.md) §2 | Khởi điểm |
 | Tốc độ hao mòn độ bền | Chưa có | TBD |
 
-## 5. Gacha
+## 5. Công cụ trả phí
+| Tham số | Giá trị | Trạng thái |
+|---|---|---|
+| Cooldown Roi Kỷ Luật | 3 ngày in-game | Khởi điểm |
+| Giới hạn Đồng Hồ Cát | 1 lần/ngày thực, dừng trước Payday | Khởi điểm |
+
+## 6. Gacha
 | Tham số | Giá trị | Trạng thái |
 |---|---|---|
 | Tỉ lệ từng bậc Rarity (Thư Mời Hoàng Gia) | Chưa có, phải công bố trong game | TBD |
 | Ngưỡng Pity | Chưa có | TBD |
 
-## 6. Mốc Quest và Thành tựu
+## 7. Mốc Quest và Thành tựu
 Các mốc ghi trong [08](08_Quests_Achievements_Collections.md) (ví dụ 50,000 Gold/ngày, 1,000,000 Gold) là **placeholder**, cần chỉnh sau khi có số liệu mô phỏng ở mục 3 và 4.

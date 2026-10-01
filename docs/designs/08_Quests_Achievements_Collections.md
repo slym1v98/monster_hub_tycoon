@@ -3,7 +3,7 @@
 Hệ thống giữ chân người chơi (Retention Systems) được thiết kế dưới lăng kính của Quản trị Doanh nghiệp. Giám đốc không làm "Nhiệm vụ", Giám đốc chạy "Chỉ tiêu KPI" và lấp đầy "Kho báu cá nhân".
 
 ## 1. HỆ THỐNG NHIỆM VỤ (THE KPI SYSTEM)
-> Các mốc số liệu (Gold, số lượng) trong tài liệu này là placeholder, xem [13_Balance_Parameters](13_Balance_Parameters.md) §6. Early Access gồm Quest chính và KPI Daily/Weekly; Thành tựu ẩn, Sách Đỏ và Bảo Tàng thuộc giai đoạn sau Early Access.
+> Các mốc số liệu (Gold, số lượng) trong tài liệu này là placeholder, xem [13_Balance_Parameters](13_Balance_Parameters.md) §7. Early Access gồm Quest chính và KPI Daily/Weekly; Thành tựu ẩn, Sách Đỏ và Bảo Tàng thuộc giai đoạn sau Early Access.
 Được giao phó bởi "Hiệp Hội Tycoon Tổng". Hoàn thành để nhận tài trợ ngân sách (Gold/Gem).
 
 ### A. Kế Hoạch Mở Rộng (Main Quests / Campaign)
