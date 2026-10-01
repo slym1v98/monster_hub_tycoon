@@ -3,6 +3,7 @@
 Hệ thống giữ chân người chơi (Retention Systems) được thiết kế dưới lăng kính của Quản trị Doanh nghiệp. Giám đốc không làm "Nhiệm vụ", Giám đốc chạy "Chỉ tiêu KPI" và lấp đầy "Kho báu cá nhân".
 
 ## 1. HỆ THỐNG NHIỆM VỤ (THE KPI SYSTEM)
+> Các mốc số liệu (Gold, số lượng) trong tài liệu này là placeholder, xem [13_Balance_Parameters](13_Balance_Parameters.md) §6. Early Access gồm Quest chính và KPI Daily/Weekly; Thành tựu ẩn, Sách Đỏ và Bảo Tàng thuộc giai đoạn sau Early Access.
 Được giao phó bởi "Hiệp Hội Tycoon Tổng". Hoàn thành để nhận tài trợ ngân sách (Gold/Gem).
 
 ### A. Kế Hoạch Mở Rộng (Main Quests / Campaign)
@@ -20,8 +21,8 @@ Tạo vòng lặp đăng nhập mỗi ngày (Daily Login), khuyến khích tươ
     *   "Bơm Thổi": Thực hiện 1 thao tác thao túng Sàn Chứng Khoán.
     *   "Xoa Dịu": Bán 20 ly rượu trong Quán Bar.
 *   *Chỉ tiêu Tuần (Weekly):*
-    *   "Tài Liệt": Tịch thu 5 Monster từ Ngân Hàng Gene do Trainer bùng tiền phí.
-    *   "Bảo Hiểm Rủi Ro": Bán thành công 10 Bùa Bảo Hộ Cường Hóa bằng Gem/Gold.
+    *   "Tài Liệt": Tịch thu 5 Monster từ Ngân Hàng Gene do Trainer bùng tiền phí (luật tịch thu: xem [02](02_HUB_Economy_Infrastructure.md) §1.2).
+    *   "Bảo Hiểm Rủi Ro": Bán thành công 10 Bùa Bảo Hộ Cường Hóa cho Trainer (thu Gold).
 
 ## 2. HỆ THỐNG THÀNH TỰU (THE TYCOON HALL OF FAME)
 Tôn vinh quá trình cày cuốc và các lối chơi phát sinh (Emergent Gameplay). Hoàn thành Thành tựu sẽ cấp **Danh Hiệu (Titles)** mang lại Buff nội tại (Passive Buffs) cho toàn HUB.
@@ -50,4 +51,4 @@ Hố đen "đốt thời gian" dành cho nhóm người chơi hệ Hoàn hảo (
 *   *Hiệu ứng Cổ vật (Game-breaking Buffs):* Can thiệp thẳng vào hệ thống game.
     *   *Xúc Xắc Bịp Bợm:* Giảm 5% tỉ lệ cường hóa thành công của Trainer (Ép chúng xịt nhiều hơn, tốn Bùa hơn).
     *   *Đồng Tiền Hai Mặt:* Tự động làm tròn lên (Round-up) 10% mỗi khi Giám đốc thu Thuế.
-    *   *Hợp Đồng Ma Quỷ:* Tăng 20% khả năng đàm phán ép lương với các Trainer hạng Expert mà chúng không bỏ đi.
+    *   *Hợp Đồng Ma Quỷ:* Tăng 20% khả năng đàm phán ép lương với các Trainer hạng Ultimate mà chúng không bỏ đi.
