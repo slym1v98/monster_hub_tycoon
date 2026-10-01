@@ -26,6 +26,17 @@ namespace Game.Domain
         public int StrikeDays = 5;
         public int PaydayEvery = 30;
 
+        // --- Tinh cach (xem docs/designs/03) ---
+        public bool PersonalityEnabled = false;
+
+        // --- Ngan Hang Gene ---
+        public bool GeneBankEnabled = false;
+        public double GeneBankFeePerMonsterDay = 20;
+        public int GeneBankSeizeAfterDays = 10;
+        public int MaxStoredMonsters = 3;
+        /// <summary>true: thu phi mot lan moi Payday (sau khi tra luong); false: thu hang ngay.</summary>
+        public bool GeneBankMonthlyBilling = false;
+
         // --- Cho Trainer Vay (Vay Nang Lai) ---
         public bool LoansEnabled = false;
         public double LoanInterest = 0.10;      // lai moi Payday tren du no
@@ -55,9 +66,15 @@ namespace Game.Domain
         public double MonthIncomeAcc;
         public double Debt;
         public int DebtPaydays;
+        public Personality Personality;
+        public int StoredMonsters;
+        public int UnpaidGeneDays;
+        public double LifetimeIncome;
     }
 
-    public enum ServiceKind { Hospital = 0, Food = 1, Inn = 2, Repair = 3, Gear = 4, Bar = 5 }
+    public enum Personality { Warlike = 0, Timid = 1, Glutton = 2, Capitalist = 3 }
+
+    public enum ServiceKind { Hospital = 0, Food = 1, Inn = 2, Repair = 3, Gear = 4, Bar = 5, GeneBank = 6 }
 
     public sealed class DayStats
     {
@@ -77,24 +94,36 @@ namespace Game.Domain
         public double ExpansionSpent;
         public double LastMonthWages;
         /// <summary>Doanh thu rong (sau gia von) theo loai dich vu, thang gan nhat.</summary>
-        public readonly double[] LastMonthServiceRevenue = new double[6];
-        readonly double[] serviceAcc = new double[6];
+        public readonly double[] LastMonthServiceRevenue = new double[7];
+        readonly double[] serviceAcc = new double[7];
         public int Shocks;
         public int DebtStrikes;
+        public int MonstersSeized;
         public double InterestAccrued;
         double monthProfitAcc;
         double dailyProfitEma;
 
-        public HubEconomy(EconomyParams p, double startTreasury, IEnumerable<Rarity> roster, int seed)
+        public HubEconomy(EconomyParams p, double startTreasury, IEnumerable<Rarity> roster, int seed, Personality? forcePersonality = null)
         {
             P = p; Treasury = startTreasury; rng = new Random(seed);
+            var assign = new Random(seed ^ 0x5eed);   // rieng, de bat/tat tinh nang khong lam doi chuoi ngau nhien chinh
             foreach (var r in roster)
             {
                 double s = RarityScale.Of(r, p.RarityGrowth);
                 Trainers.Add(new Trainer { Rarity = r, Scale = s, Gold = 200 * s,
+                    Personality = forcePersonality ?? (Personality)assign.Next(4),
+                    StoredMonsters = p.GeneBankEnabled ? assign.Next(p.MaxStoredMonsters + 1) : 0,
                     MonthIncome = p.LootPerTrip * p.TripsPerDay * s * (1 - p.TaxRate) * p.PaydayEvery });
             }
         }
+
+        // He so theo tinh cach (chi ap dung khi PersonalityEnabled)
+        double LootMult(Trainer t) => !P.PersonalityEnabled ? 1 : t.Personality == Personality.Warlike ? 1.25 : t.Personality == Personality.Timid ? 0.85 : t.Personality == Personality.Capitalist ? 1.00 : 1;
+        double HpMult(Trainer t) => !P.PersonalityEnabled ? 1 : t.Personality == Personality.Warlike ? 1.5 : t.Personality == Personality.Timid ? 0.5 : 1;
+        double FoodMult(Trainer t) => P.PersonalityEnabled && t.Personality == Personality.Glutton ? 1.6 : 1;
+        double PriceMult(Trainer t) => P.PersonalityEnabled && t.Personality == Personality.Capitalist ? 0.9 : 1;
+        double WageMult(Trainer t) => P.PersonalityEnabled && t.Personality == Personality.Capitalist ? 1.3 : 1;
+        double WageOf(Trainer t) => P.WageRatio * WageMult(t) * t.MonthIncomeAcc;
 
         double Noise() => 0.8 + 0.4 * rng.NextDouble();
 
@@ -110,19 +139,26 @@ namespace Game.Domain
 
                 if (!striking)
                 {
-                    double gross = P.LootPerTrip * P.TripsPerDay * s * Noise();
+                    double gross = P.LootPerTrip * P.TripsPerDay * s * LootMult(t) * Noise();
                     double pay = gross * (1 - P.TaxRate);          // HUB tra cho Trainer
                     double resale = gross * P.ProcessingYield;     // HUB thu ve sau gia cong
                     Treasury -= pay; Treasury += resale; profit += resale - pay;
                     double repay = P.LoansEnabled ? Math.Min(t.Debt, P.RepayShare * pay) : 0;
                     t.Debt -= repay; Treasury += repay;
-                    t.Gold += pay - repay; t.MonthIncomeAcc += pay;
+                    t.Gold += pay - repay; t.MonthIncomeAcc += pay; t.LifetimeIncome += pay;
 
-                    double hpLoss = P.DamagePerTripHp * P.TripsPerDay * s * Noise();
+                    double hpLoss = P.DamagePerTripHp * P.TripsPerDay * s * HpMult(t) * Noise();
                     Spend(t, hpLoss * P.HospitalPricePerHp, ref profit, ServiceKind.Hospital);
-                    Spend(t, P.FoodPerDay * s, ref profit, ServiceKind.Food);
+                    Spend(t, P.FoodPerDay * s * FoodMult(t), ref profit, ServiceKind.Food);
                     Spend(t, P.InnPerDay * s, ref profit, ServiceKind.Inn);
                     Spend(t, P.RepairPerTrip * P.TripsPerDay * s * Noise(), ref profit, ServiceKind.Repair);
+                    if (P.GeneBankEnabled && !P.GeneBankMonthlyBilling && t.StoredMonsters > 0)
+                    {
+                        double fee = P.GeneBankFeePerMonsterDay * t.StoredMonsters;
+                        double covered = Spend(t, fee, ref profit, ServiceKind.GeneBank);
+                        if (covered + 1e-9 >= fee) t.UnpaidGeneDays = 0;
+                        else if (++t.UnpaidGeneDays >= P.GeneBankSeizeAfterDays) { t.StoredMonsters--; MonstersSeized++; t.UnpaidGeneDays = 0; }
+                    }
                     t.Stress += P.StressPerDay + (P.TaxRate > 0.30 ? 8 : 0);
                     VisitBarIfStressed(t, s, ref profit);   // Bar duoc uu tien truoc trang bi
                     double gear = Math.Max(0, t.Gold - 2 * (P.FoodPerDay + P.InnPerDay) * s) * P.GearShare;
@@ -147,7 +183,7 @@ namespace Game.Domain
 
             // Tai dau tu: giu lai du tru bang ReserveWageMultiple x luong du kien (theo thu nhap thang truoc/dang tich luy).
             double expectedWage = 0;
-            foreach (var t in Trainers) expectedWage += P.WageRatio * Math.Max(t.MonthIncome, t.MonthIncomeAcc / Math.Max(1, Day % P.PaydayEvery == 0 ? P.PaydayEvery : Day % P.PaydayEvery) * P.PaydayEvery);
+            foreach (var t in Trainers) expectedWage += P.WageRatio * WageMult(t) * Math.Max(t.MonthIncome, t.MonthIncomeAcc / Math.Max(1, Day % P.PaydayEvery == 0 ? P.PaydayEvery : Day % P.PaydayEvery) * P.PaydayEvery);
             double reserve = P.ReserveWageMultiple * expectedWage;
             if (Treasury > reserve)
             {
@@ -165,8 +201,10 @@ namespace Game.Domain
             t.Stress = 20;
         }
 
-        void Spend(Trainer t, double amount, ref double profit, ServiceKind kind)
+        /// <summary>Tra ve so tien thuc su duoc thanh toan (tien mat + vay).</summary>
+        double Spend(Trainer t, double amount, ref double profit, ServiceKind kind)
         {
+            amount *= PriceMult(t);
             double paid = Math.Min(Math.Max(0, t.Gold), amount);
             t.Gold -= paid;
             double borrow = 0;
@@ -180,17 +218,18 @@ namespace Game.Domain
             double net = (paid + borrow) * (1 - P.ServiceCogs);
             Treasury += net; profit += net;
             serviceAcc[(int)kind] += net;
+            return paid + borrow;
         }
 
         void Payday()
         {
             Paydays++;
             double total = 0;
-            foreach (var t in Trainers) total += P.WageRatio * t.MonthIncomeAcc;
+            foreach (var t in Trainers) total += WageOf(t);
             bool wagesPaid = Treasury >= total;
             if (wagesPaid)
             {
-                foreach (var t in Trainers) t.Gold += P.WageRatio * t.MonthIncomeAcc;
+                foreach (var t in Trainers) t.Gold += WageOf(t);
                 Treasury -= total; monthProfitAcc -= total;
             }
             else
@@ -201,7 +240,7 @@ namespace Game.Domain
             if (P.LoansEnabled)
                 foreach (var t in Trainers)
                 {
-                    double r = Math.Min(Math.Min(t.Debt, P.RepayShare * P.WageRatio * t.MonthIncomeAcc), Math.Max(0, t.Gold));
+                    double r = Math.Min(Math.Min(t.Debt, P.RepayShare * WageOf(t)), Math.Max(0, t.Gold));
                     if (wagesPaid) { t.Debt -= r; t.Gold -= r; Treasury += r; }
                     if (t.Debt > 0)
                     {
@@ -213,6 +252,14 @@ namespace Game.Domain
                         if (t.DebtPaydays >= P.OverduePaydays) { t.StrikeLeft = P.StrikeDays; DebtStrikes++; t.DebtPaydays = 0; }
                     }
                     else t.DebtPaydays = 0;
+                }
+            if (P.GeneBankEnabled && P.GeneBankMonthlyBilling && wagesPaid)
+                foreach (var t in Trainers)
+                {
+                    if (t.StoredMonsters <= 0) continue;
+                    double fee = P.GeneBankFeePerMonsterDay * t.StoredMonsters * P.PaydayEvery, dummy = 0;
+                    double covered = Spend(t, fee, ref dummy, ServiceKind.GeneBank);
+                    if (covered + 1e-9 < fee) { t.StoredMonsters--; MonstersSeized++; }   // thieu phi: tich thu 1 Monster
                 }
             LastMonthWages = total;
             Array.Copy(serviceAcc, LastMonthServiceRevenue, serviceAcc.Length); Array.Clear(serviceAcc, 0, serviceAcc.Length);

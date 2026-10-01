@@ -263,15 +263,16 @@ static class Program
             var cells = new List<string>();
             foreach (var rate in new[] { 0.10, 0.20, 0.40 })
             {
-                double strikes = 0, interest = 0, profit = 0; int runs = 40;
+                double strikes = 0, interest = 0, profit = 0, deep = 0; int runs = 40;
                 for (int i = 0; i < runs; i++)
                 {
                     var p = new EconomyParams { LoansEnabled = true, LoanInterest = rate, LoanLimitWages = lim };
                     var hub = new HubEconomy(p, 20000, Roster(30, mixed).ToList(), 800 + i);
                     for (int d = 0; d < 12 * p.PaydayEvery; d++) hub.StepDay();
                     strikes += hub.DebtStrikes / 30.0 / runs; interest += hub.InterestAccrued / 12 / runs; profit += hub.LastMonthProfit / runs;
+                    deep += hub.Trainers.Count(t => t.Gold - t.Debt < -2 * p.WageRatio * Math.Max(1, t.MonthIncome)) / 30.0 / runs;
                 }
-                cells.Add($"{strikes,5:F2} | {interest / profit,5:P1}");
+                cells.Add($"{strikes,5:F2} | {interest / profit,5:P1} | ron<-2luong {deep,4:P0}");
             }
             Console.WriteLine($"{lim,5:F1}x        " + string.Join("   ", cells));
         }
@@ -306,6 +307,68 @@ static class Program
         }
     }
 
+    static void PersonalityRun()
+    {
+        Console.WriteLine("# Hanh vi theo tinh cach (40 Trainer Common, 12 thang, 60 lan chay, bat tinh cach)");
+        Console.WriteLine("tinh cach     vang TB   thu nhap/thang");
+        var sums = new Dictionary<Personality, double[]>();
+        foreach (Personality ps in Enum.GetValues(typeof(Personality))) sums[ps] = new double[6];
+        var counts = new Dictionary<Personality, double>(); foreach (Personality ps in Enum.GetValues(typeof(Personality))) counts[ps] = 0;
+        for (int i = 0; i < 60; i++)
+        {
+            var p = new EconomyParams { PersonalityEnabled = true, Buildings = 0, ReinvestRate = 0 };
+            var hub = new HubEconomy(p, 1e9, Enumerable.Repeat(Rarity.Common, 40).ToList(), 1200 + i);
+            for (int d = 0; d < 12 * p.PaydayEvery; d++) hub.StepDay();
+            foreach (var t in hub.Trainers)
+            {
+                var a = sums[t.Personality]; counts[t.Personality]++;
+                a[0] += t.Gold; a[1] += t.LifetimeIncome / 12; a[5] += p.WageRatio * t.MonthIncome;
+            }
+        }
+        foreach (Personality ps in Enum.GetValues(typeof(Personality)))
+        {
+            var a = sums[ps]; double n = counts[ps];
+            Console.WriteLine($"{ps,-10} {a[0] / n,9:F0} {a[1] / n,15:F0}");
+        }
+        Console.WriteLine("\n# Chi tieu dich vu va loi nhuan HUB theo tinh cach (HUB chi co 1 tinh cach, 20 Trainer, 6 thang)");
+        Console.WriteLine("tinh cach     loi nhuan HUB/thang   doanh thu Nha Hang/Trainer   Benh Vien/Trainer   Bar/Trainer");
+        foreach (Personality ps in Enum.GetValues(typeof(Personality)))
+        {
+            double profit = 0, food = 0, hosp = 0, bar = 0; int runs = 30;
+            for (int i = 0; i < runs; i++)
+            {
+                var p = new EconomyParams { PersonalityEnabled = true, Buildings = 0, ReinvestRate = 0 };
+                var hub = new HubEconomy(p, 1e9, Enumerable.Repeat(Rarity.Common, 20).ToList(), 1500 + i, ps);
+                for (int d = 0; d < 6 * p.PaydayEvery; d++) hub.StepDay();
+                profit += hub.LastMonthProfit / runs;
+                food += hub.LastMonthServiceRevenue[(int)ServiceKind.Food] / 20 / runs;
+                hosp += hub.LastMonthServiceRevenue[(int)ServiceKind.Hospital] / 20 / runs;
+                bar += hub.LastMonthServiceRevenue[(int)ServiceKind.Bar] / 20 / runs;
+            }
+            Console.WriteLine($"{ps,-10} {profit,18:F0} {food,24:F0} {hosp,20:F0} {bar,13:F0}");
+        }
+    }
+
+    static void GeneBank()
+    {
+        Console.WriteLine("# Ngan Hang Gene (20 Trainer Common, 0-3 Monster gui/Trainer, 12 thang, 40 lan chay)");
+        Console.WriteLine("cach thu phi  phi/Monster/ngay  Monster bi tich thu / Trainer / nam  doanh thu Gene / Trainer / thang");
+        foreach (var monthly in new[] { false, true })
+            foreach (var fee in new[] { 5.0, 10, 20, 40, 80 })
+            {
+                double seized = 0, rev = 0; int runs = 40;
+                for (int i = 0; i < runs; i++)
+                {
+                    var p = new EconomyParams { GeneBankEnabled = true, GeneBankMonthlyBilling = monthly, GeneBankFeePerMonsterDay = fee, Buildings = 0, ReinvestRate = 0 };
+                    var hub = new HubEconomy(p, 1e9, Enumerable.Repeat(Rarity.Common, 20).ToList(), 1700 + i);
+                    for (int d = 0; d < 12 * p.PaydayEvery; d++) hub.StepDay();
+                    seized += hub.MonstersSeized / 20.0 / runs;
+                    rev += hub.LastMonthServiceRevenue[(int)ServiceKind.GeneBank] / 20 / runs;
+                }
+                Console.WriteLine($"{(monthly ? "theo thang" : "theo ngay"),-12} {fee,14:F0}   {seized,36:F2}   {rev,28:F0}");
+            }
+    }
+
     static void Main(string[] args)
     {
         if (args.Length > 0 && args[0] == "calibrate") { Calibrate(); return; }
@@ -316,6 +379,8 @@ static class Program
         if (args.Length > 0 && args[0] == "bar") { Bar(); return; }
         if (args.Length > 0 && args[0] == "loans") { Loans(); LoansLimit(); return; }
         if (args.Length > 0 && args[0] == "stock") { Stock(); return; }
+        if (args.Length > 0 && args[0] == "personality") { PersonalityRun(); return; }
+        if (args.Length > 0 && args[0] == "genebank") { GeneBank(); return; }
         var ftue = new double[] { 1.0 };
         var mixed = new double[] { 0.45, 0.30, 0.15, 0.08, 0.02 };
 
