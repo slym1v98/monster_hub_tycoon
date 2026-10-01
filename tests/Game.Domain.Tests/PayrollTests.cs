@@ -103,4 +103,28 @@ public class PayrollTests
         Assert.Equal(0, payroll.UnpaidStreak);
         Assert.Equal(6000, treasury.Balance);
     }
+
+    [Fact]
+    public void AdvanceLargerThanWageIsCarriedForward()
+    {
+        var team = Team(1, 1000);
+        team[0].WageAdvance = 1500;   // ứng nhiều hơn lương kỳ này
+        var outcome = new Payroll().Resolve(team, new TreasuryAccount(5000), Cfg);
+        Assert.Equal(0, outcome.TotalDue);
+        Assert.Equal(0, team[0].Gold);
+        Assert.Equal(500, team[0].WageAdvance);   // phần dư trừ vào kỳ sau, không bị xóa
+    }
+
+    [Fact]
+    public void AdvanceExcessIsAlsoCarriedForwardOnShortfall()
+    {
+        var team = Team(2, 1000);
+        team[0].WageAdvance = 1500;
+        team[0].WageOwed = 200;       // lương + nợ = 1200, ứng 1500 -> dư 300
+        var outcome = new Payroll().Resolve(team, new TreasuryAccount(500), Cfg);
+        Assert.True(outcome.StrikeStarted);   // tiền đề: nhánh thiếu tiền (Trainer 1 đòi 1000, Kho bạc chỉ có 500)
+        Assert.Equal(300, team[0].WageAdvance);
+        Assert.Equal(0, team[0].WageOwed);
+        Assert.Equal(0, team[1].WageAdvance);
+    }
 }

@@ -22,6 +22,9 @@ namespace Game.Domain
         /// <summary>Số tiền HUB phải trả một Trainer ở kỳ này: lương hợp đồng + nợ cũ - phần đã ứng.</summary>
         public static long DueOf(Trainer t) => Math.Max(0, t.ContractWage + t.WageOwed - t.WageAdvance);
 
+        /// <summary>Phần ứng vượt quá (lương hợp đồng + nợ cũ): không bị xóa mà chuyển sang trừ vào kỳ sau.</summary>
+        static long ExcessAdvanceOf(Trainer t) => Math.Max(0, t.WageAdvance - (t.ContractWage + t.WageOwed));
+
         public long TotalDue(IReadOnlyList<Trainer> trainers)
         {
             long total = 0;
@@ -36,9 +39,10 @@ namespace Game.Domain
             {
                 foreach (Trainer t in trainers)
                 {
+                    long excess = ExcessAdvanceOf(t);
                     t.Gold += DueOf(t);
                     t.WageOwed = 0;
-                    t.WageAdvance = 0;
+                    t.WageAdvance = excess;
                 }
                 treasury.TrySpend(total);
                 UnpaidStreak = 0;
@@ -71,9 +75,10 @@ namespace Game.Domain
             {
                 Trainer t = trainers[i];
                 long due = DueOf(t);
+                long excess = ExcessAdvanceOf(t);
                 t.Gold += paid[i];
                 t.WageOwed = due - paid[i];
-                t.WageAdvance = 0;
+                t.WageAdvance = excess;
                 t.StrikeDaysLeft = cfg.StrikeDays;
                 totalPaid += paid[i];
             }
