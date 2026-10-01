@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using Game.Domain;
 
-// Console runner mô phỏng cân bằng. Chạy: dotnet run --project tools/Game.Sim [ladders|stock]
+// Console runner mô phỏng cân bằng. Chạy: dotnet run --project tools/Game.Sim [core|ladders|stock]
 static class Program
 {
     static double[] Geo(double a, double r, int n) => Enumerable.Range(0, n).Select(i => a * Math.Pow(r, i)).ToArray();
@@ -71,7 +71,8 @@ static class Program
     {
         const int months = 3, trainerCount = 10;
         var sw = Stopwatch.StartNew();
-        var world = new HubWorld(new SimConfig { TrainerCount = trainerCount }, 2026);
+        var config = new SimConfig { TrainerCount = trainerCount };
+        var world = new HubWorld(config, 2026);
 
         // Thời gian Trainer ở từng trạng thái: cộng dồn khi trạng thái đổi.
         var minutesInState = new Dictionary<TrainerState, long>();
@@ -86,16 +87,19 @@ static class Program
         };
 
         Console.WriteLine("# Core: 10 Trainer Common, 3 tháng in-game");
-        Console.WriteLine("Tháng  Kho bạc trước Payday  Quỹ lương   Trả được  Đình công  Gold TB Trainer");
+        Console.WriteLine("Tháng  Kho bạc trước Payday  Lợi nhuận tháng  Quỹ lương   Trả được  Đình công  Gold TB Trainer");
+        long afterPrevious = config.StartTreasury;   // Kho bạc sau Payday trước (tháng 1: số vốn khởi điểm)
         for (int m = 1; m <= months; m++)
         {
             world.RunUntilPayday();
             long before = world.Treasury;
+            long profit = before - afterPrevious;   // lợi nhuận HUB trong tháng, trước khi trả lương
             PaydayOutcome o = world.ResolvePayday();
+            afterPrevious = world.Treasury;
             double avgGold = 0;
             foreach (TrainerView t in world.Trainers) avgGold += t.Gold;
             avgGold /= trainerCount;
-            Console.WriteLine($"{m,5}  {before,20}  {o.TotalDue,9}  {o.PaidRatio,8:P0}  {(o.StrikeStarted ? "có" : "không"),9}  {avgGold,14:F0}");
+            Console.WriteLine($"{m,5}  {before,20}  {profit,15}  {o.TotalDue,9}  {o.PaidRatio,8:P0}  {(o.StrikeStarted ? "có" : "không"),9}  {avgGold,14:F0}");
         }
 
         int end = world.Now.TotalMinutes;

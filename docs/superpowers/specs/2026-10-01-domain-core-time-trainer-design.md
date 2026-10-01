@@ -57,6 +57,8 @@ Bất biến: mỗi Trainer có **đúng 1** sự kiện cá nhân đang chờ (
 
 **Trạng thái:** `AtHub`, `Traveling`, `Farming`, `Returning`, `Queued`, `InService`, `WaitingForMoney`, `OnStrike`.
 
+Ghi chú cài đặt: không có trạng thái `OnStrike` riêng; Trainer đang đình công là `AtHub` với lý do `Strike` (cờ đình công là `StrikeDaysLeft > 0`). Khi đình công, Trainer không dùng Bệnh Viện, chỉ dùng Nhà Hàng/Nhà Trọ/Bar.
+
 **Dữ liệu Trainer:** `Id`, `Rarity`, `Rank`, `Level`, `Personality`, `Needs` (Stamina, Satiety, Hydration, Stress; 0-100), `Gold`, `TeamHp` / `TeamHpMax` (HP gộp của 3 Monster, tạm cho tới sub-project 3), `Backpack` (tổng số đơn vị), `HasNightVision` (cờ tạm cho tới sub-project 4), `ContractWage`, `WageDebtOwed` (HUB nợ Trainer), `WageAdvance` (Trainer ứng trước), `StrikeDaysLeft`, `State`, `StateReason`.
 
 ```csharp
@@ -180,6 +182,7 @@ Quy đổi từ [13](../../designs/13_Balance_Parameters.md) §8 (theo ngày) sa
 | Tụt thanh khi farm/đi lại (mỗi giờ) | Stamina -6, Satiety -5, Hydration -6, Stress +0.5 |
 | Tụt thanh khi ở HUB / chờ (mỗi giờ) | Stamina -2, Satiety -2, Hydration -2 |
 | Mức "đủ" của thanh | 60 |
+| `NightSleepBelow` | 90 (ban đêm không kính: chỉ vào Nhà Trọ khi Thể lực < 90) |
 | Ngưỡng về HUB theo tính cách | Háo chiến 15, Nhát gan 50, Tham ăn 30 (Satiety 50), Tư bản 25 |
 | Hệ số tính cách | Háo chiến: loot x1.25, HP mất x1.5. Nhát gan: loot x0.85, HP mất x0.5. Tham ăn: Satiety tụt x1.6. Tư bản: giảm giá dịch vụ 10%, độ nhạy giá x1.5, tỉ lệ nhặt nguyên liệu 1.0 (các tính cách khác 0.85) |
 | Zone 1 | Đi bộ 30 phút |
