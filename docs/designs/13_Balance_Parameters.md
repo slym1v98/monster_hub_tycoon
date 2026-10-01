@@ -86,6 +86,8 @@ Các mốc ghi trong [08](08_Quests_Achievements_Collections.md) (ví dụ 50,00
 | Hiệu suất gia công (HUB thu về trên 1 Gold nguyên liệu) | 0.92 | |
 | Chi phí vận hành công trình | 40 Gold/công trình/ngày | |
 
+> **Ghi chú (sub-project 1):** các số liệu ở §8-§13 do mô hình gộp theo ngày `HubEconomy` tạo ra. Mô hình đó đã bị xóa khi Domain chuyển sang mô phỏng sự kiện rời rạc (xem `docs/superpowers/specs/2026-10-01-domain-core-time-trainer-design.md`). Các con số vẫn dùng làm điểm xuất phát, nhưng cần mô phỏng lại bằng `tools/Game.Sim` khi các hệ thống tương ứng được dựng lại.
+
 ## 9. Kết quả và giới hạn của mô phỏng sơ bộ
 Chạy bằng `tools/Game.Sim` (xem [README](../../README.md)); kết quả đầy đủ tại [economy_sim_output.md](../reports/economy_sim_output.md). Đây là **mô hình đồ chơi** (một dòng tiền, không có chứng khoán, vay nợ, sự kiện, thời tiết, Boss), nên **chỉ dùng tỉ lệ và xu hướng, không dùng số tuyệt đối**.
 

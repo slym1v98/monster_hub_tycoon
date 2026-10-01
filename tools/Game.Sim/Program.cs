@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Game.Domain;
 
@@ -64,11 +66,63 @@ static class Program
         }
     }
 
+    // Kịch bản core: 10 Trainer Common, 3 tháng, báo cáo dòng tiền và cách Trainer dùng thời gian.
+    static void Core()
+    {
+        const int months = 3, trainerCount = 10;
+        var sw = Stopwatch.StartNew();
+        var world = new HubWorld(new SimConfig { TrainerCount = trainerCount }, 2026);
+
+        // Thời gian Trainer ở từng trạng thái: cộng dồn khi trạng thái đổi.
+        var minutesInState = new Dictionary<TrainerState, long>();
+        foreach (TrainerState s in Enum.GetValues(typeof(TrainerState))) minutesInState[s] = 0;
+        var lastChange = new int[trainerCount];
+        for (int i = 0; i < trainerCount; i++) lastChange[i] = world.Now.TotalMinutes;
+        int donations = 0;
+        world.EventRaised += e =>
+        {
+            if (e is TrainerStateChanged s) { minutesInState[s.From] += s.Minute - lastChange[s.TrainerId]; lastChange[s.TrainerId] = s.Minute; }
+            else if (e is DonationReceived d && d.Source == "Patron") donations++;
+        };
+
+        Console.WriteLine("# Core: 10 Trainer Common, 3 tháng in-game");
+        Console.WriteLine("Tháng  Kho bạc trước Payday  Quỹ lương   Trả được  Đình công  Gold TB Trainer");
+        for (int m = 1; m <= months; m++)
+        {
+            world.RunUntilPayday();
+            long before = world.Treasury;
+            PaydayOutcome o = world.ResolvePayday();
+            double avgGold = 0;
+            foreach (TrainerView t in world.Trainers) avgGold += t.Gold;
+            avgGold /= trainerCount;
+            Console.WriteLine($"{m,5}  {before,20}  {o.TotalDue,9}  {o.PaidRatio,8:P0}  {(o.StrikeStarted ? "có" : "không"),9}  {avgGold,14:F0}");
+        }
+
+        int end = world.Now.TotalMinutes;
+        for (int i = 0; i < trainerCount; i++) minutesInState[world.Trainers[i].State] += end - lastChange[i];
+        long total = 0; foreach (long v in minutesInState.Values) total += v;
+        double Share(params TrainerState[] states) { long s = 0; foreach (var st in states) s += minutesInState[st]; return (double)s / total; }
+
+        Console.WriteLine("\n# Thời gian của Trainer");
+        Console.WriteLine($"Farm {Share(TrainerState.Farming):P1} | Đi lại {Share(TrainerState.Traveling, TrainerState.Returning):P1} | " +
+                          $"Xếp hàng {Share(TrainerState.Queued):P1} | Dịch vụ {Share(TrainerState.InService):P1} | " +
+                          $"Chờ tiền {Share(TrainerState.WaitingForMoney):P1} | Rảnh ở HUB {Share(TrainerState.AtHub):P1}");
+
+        Console.WriteLine("\n# Công trình");
+        foreach (BuildingView b in world.Buildings)
+            Console.WriteLine($"{b.Kind,-11} cấp {b.Level} {b.Slots,2} chỗ, hàng đợi dài nhất {b.MaxQueueLength}");
+        Console.WriteLine($"\nTổng tài donate {donations} lần; chờ tiền dài nhất {world.MaxMoneyWaitMinutes / 60.0:F1} giờ in-game.");
+        world.ValidateInvariants();
+        sw.Stop();
+        Console.WriteLine($"Thời gian chạy: {sw.ElapsedMilliseconds} ms (mục tiêu dưới 1000 ms)");
+    }
+
     static void Main(string[] args)
     {
-        string mode = args.Length > 0 ? args[0] : "";
+        string mode = args.Length > 0 ? args[0] : "core";
+        if (mode == "core") { Core(); return; }
         if (mode == "ladders") { Ladders(); return; }
         if (mode == "stock") { Stock(); return; }
-        Console.WriteLine("Dùng: dotnet run --project tools/Game.Sim [ladders|stock]   (kịch bản core được thêm ở Task 9)");
+        Console.WriteLine("Dùng: dotnet run --project tools/Game.Sim [core|ladders|stock]");
     }
 }

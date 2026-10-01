@@ -23,21 +23,10 @@ Chi tiết xem [docs/00_Tech_Stack.md](docs/00_Tech_Stack.md).
 ## Mô phỏng kinh tế
 
 ```
-dotnet run --project tools/Game.Sim                  # kịch bản FTUE, HUB đầy đủ, Cường hóa, Gacha
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll stress      # kịch bản chịu tải
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll calibrate   # dò tham số
-```
-
-```
-dotnet test tests/Game.Domain.Tests                       # unit test Domain
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll crisis      # rủi ro Payday theo dự trữ và cú sốc
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll ladders     # chi phí kỳ vọng Nâng Sao, Tinh Luyện, Tiến hóa
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll upgrades    # chi phí nâng cấp công trình theo hoàn vốn
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll bar         # thị phần doanh thu Quán Bar
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll loans       # vay nợ: hạn mức x lãi suất
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll stock       # tần suất sự kiện cổ phiếu
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll personality # hành vi theo tính cách
-dotnet tools/Game.Sim/bin/Debug/net8.0/Game.Sim.dll genebank    # phí và tịch thu Ngân Hàng Gene
+dotnet run --project tools/Game.Sim            # kịch bản core: 10 Trainer, 3 tháng, dòng tiền và cách Trainer dùng thời gian
+dotnet run --project tools/Game.Sim -- ladders # chi phí kỳ vọng Nâng Sao, Tinh Luyện, tăng tư chất
+dotnet run --project tools/Game.Sim -- stock   # tần suất sự kiện cổ phiếu
+dotnet test tests/Game.Domain.Tests            # unit test Domain
 ```
 
 Logic nằm ở `src/Game.Domain` (C# thuần, không phụ thuộc Unity). Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).

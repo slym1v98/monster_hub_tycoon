@@ -64,7 +64,7 @@ Rà soát toàn bộ tài liệu ngày 2026-10-01. Khi chốt một mục, sửa
 | # | Mức | Vấn đề | Việc tiếp theo |
 |---|---|---|---|
 | O6 | P1 | Số liệu nâng cấp, hiệu suất gia công, chi phí mở khóa (02 §1.7, 13 §11) tính trên mô hình cũ 3 cấp, Tòa Thị Chính quyết định dân số. | Mô phỏng lại khi Domain mới có công trình 5/25 cấp. |
-| O7 | P1 | Code lệch tài liệu: `LoanLimitWages = 1.0` (doc 2 lương), `GeneBankMonthlyBilling = false` (doc theo Payday), `Buildings = 12`, vận hành 40 (13 §8) vs 50, +8 Stress cố định khi thuế > 30%, `RebellionModel` chưa dùng cấp quy đổi, lương theo % thu nhập thay vì hợp đồng. | Sửa trong sub-project Domain tương ứng. |
+| O7 | P1 | Lõi mới (sub-project 1) đã giải quyết: lương hợp đồng, chi phí vận hành, Stress theo giá, số công trình. Còn lại: hạn mức vay 2 lương và Gene Bank thu theo Payday (sub-project 5), `RebellionModel` dùng cấp quy đổi Trainer (sub-project 3). | Sửa khi làm sub-project tương ứng. |
 | O8 | P2 | Thanh Tra thuộc sau Early Access (10) nhưng Stress đỏ, thuế > 30% và Danh tiếng đều tham chiếu tới nó. | Quyết định: đưa Thanh Tra rút gọn vào EA, hoặc thay hậu quả trong EA bằng Danh tiếng. |
 | O9 | P2 | Tiệm Tạp hóa và Xưởng Công Cụ cùng là cửa hàng tiêu hao; có thể gộp để bớt model. | Quyết định khi khóa danh mục asset (trước Roadmap Bước 3). |
 | O10 | P2 | Tiến hóa (đổi hình thái): tỉ lệ, chi phí, mốc cấp chưa có số. | Đặt khi làm sub-project Monster. |
