@@ -26,9 +26,9 @@ Sự kết hợp giữa 3D Environment và 2D Sprite yêu cầu các thiết l�
 ---
 
 ## 2. QUY TRÌNH SẢN XUẤT NHÂN VẬT & TRANG BỊ (MODULAR 2D WORKFLOW)
-Để đáp ứng hệ thống **18 Slot Trang Bị** có thể thay đổi linh hoạt mà không làm phình to dung lượng bộ nhớ:
+Để đáp ứng hệ thống **30 Slot Trang Bị** (12 Trainer + 3 Monster x 6) có thể thay đổi linh hoạt mà không làm phình to dung lượng bộ nhớ:
 *   **Không dùng Sprite Sheet tĩnh:** Không vẽ frame-by-frame cho từng bộ quần áo.
-*   **Hệ thống Paper-doll (Spine 2D / Unity 2D Animation):**
+*   **Hệ thống Paper-doll (Unity 2D Animation, tích hợp sẵn trong Unity, không dùng Spine):**
     *   Vẽ một "Phôi gốc" (Base Body) dạng Chibi trần.
     *   Vẽ tách rời các bộ phận (Mũ, Áo, Balo, Vũ khí).
     *   Sử dụng tính năng **Sprite Swap** để tự động đắp các mảnh trang bị này lên khung xương (Bone) của nhân vật ngay tại Runtime.
@@ -47,15 +47,16 @@ Sự kết hợp giữa 3D Environment và 2D Sprite yêu cầu các thiết l�
 
 ### B. Môi trường & Công trình (3D Low-poly)
 *   **Tile/Block 3D:** Khối đất, đá, nước để xếp Map theo dạng Grid vuông. Bề mặt bọc Texture Pixel Art.
-*   **5 Biome Environments:** HUB (Đất/Cỏ), Zone 2 (Núi lửa/Dung nham), Zone 3 (Băng/Tuyết), Zone 4 (Đầm lầy độc), Zone 5 (Hư vô).
+*   **5 Biome Environments:** HUB (Đất/Cỏ), Zone 2 (Núi lửa/Dung nham), Zone 3 (Hầm Băng/Tuyết), Zone 4 (Đầm lầy độc), Zone 5 (Vực Thẳm). Hai khu ẩn Nightmare và The Void tái sử dụng bộ Tile của Zone 5, chỉ đổi palette/ánh sáng/VFX, không có biome riêng. HUB và Zone 1 (Đồng Cỏ) dùng chung bộ Đất/Cỏ.
 *   **Công trình HUB:**
-    *   Tòa Thị Chính, Nhà Hàng, Nhà Trọ, Lò Rèn, Bệnh Viện, Trạm Giao Thương, Quán Bar.
+    *   18 công trình có 4 trạng thái: Tòa Thị Chính, Học Viện, Trạm Giao Thương, Ngân Hàng Gene, Nhà máy Tinh chế, Lò Phản Ứng, Nhà Trọ, Nhà Hàng, Bệnh Viện, Quán Bar, Xưởng Công Cụ, Lò Rèn, Tiệm Kim Hoàn, Phòng Thí Nghiệm Tiến Hóa, Sàn Chứng Khoán, Cổng Dịch Chuyển, Bảo Tàng Khảo Cổ, Đấu Trường Nội Bộ. Hai công trình cuối (Bảo Tàng, Đấu Trường) thuộc giai đoạn sau Early Access, nên Early Access cần 16 công trình (64 model).
+    *   Bảng Truy Nã: 1 prop, không cần 4 trạng thái.
     *   *Yêu cầu:* Mỗi công trình cần 4 Model 3D tương ứng 4 trạng thái (Đổ nát -> Lvl 1 -> Lvl 2 -> Lvl Max). Công trình cấp càng cao thì model 3D càng vươn cao lên theo trục Y để thể hiện sự phát triển.
 
 ### C. Nhân vật, Quái vật & Kẻ địch (2D Pixel Art Sprites)
 *   **Trainer:** 2 Base model (Nam/Nữ). Animation Set: *Idle, Walk, Run, Attack, Gather, Defeat, Sleep, Sit.* (Render 4 hoặc 8 hướng cho isometric).
 *   **Trang bị (Modular Assets):** 
-    *   Trainer: Nón, Áo, Balo, Giày, Bình nước, Găng, Còi, Huy hiệu, Áo choàng, Kính, Vệ tinh.
+    *   Trainer: Nón, Áo, Balo, Giày, Bình nước, Găng, Còi, Huy hiệu, Áo choàng, Kính, Trang Sức, Vệ tinh.
     *   Monster: Vũ khí, Giáp, Vòng cổ, Lục lạc, Guốc, Lõi nguyên tố.
     *   *(Mỗi loại thiết kế tối thiểu 3 Tier ngoại hình: Rác/Thường -> Xịn -> Thần Thoại rực sáng).*
 *   **Monster/Enemy:** 10-15 Khung quái cơ bản (Slime, Cáo, Chó sói, Khủng long, Golem, Rồng). Có 2 form: Chibi (Bình thường) và Hầm hố (Tiến hóa).
