@@ -3181,7 +3181,7 @@ Expected: 3 file thay đổi.
 - [ ] **Step 4: Kiểm tra cuối**
 
 ```bash
-dotnet build && dotnet test tests/Game.Domain.Tests
+dotnet build src/Game.Domain && dotnet build tools/Game.Sim && dotnet test tests/Game.Domain.Tests
 grep -rn "HubEconomy\|EconomyParams" --include=*.cs --include=*.csproj . ; echo "grep exit: $?"
 ```
 Expected: build thành công; test `Passed!`; `grep` không in dòng nào và `grep exit: 1` (không còn tham chiếu). Các tham chiếu `HubEconomy` trong file `.md` (docs lịch sử) là chấp nhận được.
