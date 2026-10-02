@@ -296,11 +296,11 @@
 - `ReplacementScore` identifies the weakest roster member by derived power, then stable ID. `CaptureResolver.ShouldAttempt` accepts a wild candidate only when its Rarity is greater than that member's Rarity **or** its derived power is greater; keep the GDD OR rule rather than a rarity-first comparison.
 - Balls are mandatory; traps, Dexterity, `TrainerClass.Trapper` and target rarity feed the capture formula. Prototype formula/rates are named config values.
 
-- [ ] **Step 1: Write failing tests** for no-Ball rejection, not-weakened skip, rarity/strength replacement criteria, each probability input and deterministic success/failure/item consumption.
-- [ ] **Step 2: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~CaptureResolverTests` and observe expected failure.**
-- [ ] **Step 3: Implement resolver and result record** without directly mutating HUB inventory or roster.
-- [ ] **Step 4: Run focused and full Domain tests.**
-- [ ] **Step 5: Commit** as `feat(domain): resolve monster capture attempts`.
+- [x] **Step 1: Write failing tests** for no-Ball rejection, not-weakened skip, rarity/strength replacement criteria, each probability input and deterministic success/failure/item consumption.
+- [x] **Step 2: Run focused tests and observe the missing capture contracts fail compilation.**
+- [x] **Step 3: Implement resolver and result record** without directly mutating HUB inventory or roster.
+- [x] **Step 4: Run focused and full Domain tests.**
+- [x] **Step 5: Commit** as `feat(domain): resolve monster capture attempts`.
 
 ### Task 13: Veterinary Hospital and Gene Bank ownership lifecycle
 
