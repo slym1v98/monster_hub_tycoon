@@ -1,46 +1,6 @@
 using System;
-using Game.Domain.Materials;
-
 namespace Game.Domain
 {
-    /// <summary>Kết quả một khúc farm.</summary>
-    /// <summary>
-    /// Một khúc farm. Material để null chỉ dành cho resolver cũ chưa cung cấp danh tính nguyên liệu;
-    /// HubWorld giữ lô đó dưới mã legacy_untyped và không gán nhầm thành nguyên liệu trong catalog.
-    /// </summary>
-    public sealed record FarmResult(int MaterialUnits, long Gold, long HpLost, MaterialId? Material = null);
-
-    /// <summary>Điểm cắm cho chiến đấu thật (sub-project 3): tính kết quả farm của một Trainer trong <paramref name="minutes"/> phút.</summary>
-    public interface IFarmResolver
-    {
-        FarmResult Resolve(Trainer trainer, int minutes);
-    }
-
-    /// <summary>Bộ giải farm tạm: công thức đơn giản theo tính cách và Rarity, có nhiễu ±20%.</summary>
-    public sealed class SimpleFarmResolver : IFarmResolver
-    {
-        readonly SimConfig cfg;
-        readonly SimRandom rng;
-
-        public SimpleFarmResolver(SimConfig config, SimRandom random)
-        {
-            cfg = config; rng = random;
-        }
-
-        public FarmResult Resolve(Trainer trainer, int minutes)
-        {
-            PersonalityProfile p = PersonalityProfile.Of(trainer.Personality);
-            double rarityScale = Math.Pow(cfg.RarityGrowth, (int)trainer.Rarity);
-            double chunks = minutes / (double)cfg.FarmChunkMinutes;
-            double noise = 0.8 + 0.4 * rng.NextDouble();   // một lần bốc ngẫu nhiên cho cả khúc
-
-            int units = (int)Math.Round(cfg.FarmMaterialsPerChunk * chunks * p.MaterialPickRate * p.LootMult * rarityScale * noise);
-            long gold = (long)Math.Round(cfg.FarmGoldPerChunk * chunks * p.LootMult * rarityScale * noise);
-            long hpLost = (long)Math.Round(cfg.FarmHpLostPerChunk * chunks * p.HpLossMult * rarityScale * noise);
-            return new FarmResult(units, gold, hpLost, MaterialId.For(MaterialFamily.Ore, 1));
-        }
-    }
-
     /// <summary>Kết quả bán nguyên liệu: Trainer nhận <c>GrossToTrainer - Tax</c>, Kho bạc nhận <c>Tax</c>.</summary>
     public sealed record SaleResult(long GrossToTrainer, long Tax);
 

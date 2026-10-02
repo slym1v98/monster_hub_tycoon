@@ -78,7 +78,7 @@ public class HubWorldSupplyTests
         var events = new List<IDomainEvent>();
         world.EventRaised += events.Add;
 
-        world.RunFor(500);
+        world.RunFor(1000);
 
         Assert.Contains(events.OfType<MaterialTradeSettled>(), x => x.Channel == "Merchant" && x.Units > 0);
         Assert.DoesNotContain(events.OfType<TrainerStateChanged>(), x => x.Reason == "MarketWaitLimit");
@@ -151,11 +151,12 @@ public class HubWorldSupplyTests
         Assert.True(world.SetMaterialReferencePrice(12).Ok);
     }
 
-    private sealed class TypedFarm : IFarmResolver
+    private sealed class TypedFarm : IExpeditionResolver
     {
         private readonly int units;
         public TypedFarm(int units) => this.units = units;
-        public FarmResult Resolve(Trainer trainer, int minutes)
-            => new FarmResult(units, 0, 0, MaterialId.For(MaterialFamily.Ore, 1));
+        public ExpeditionResult Resolve(TrainerSnapshot trainer, ZoneDefinition zone, int minutes, SimRandom random)
+            => new ExpeditionResult(System.Array.Empty<Game.Domain.Combat.BattleResult>(), new ExpeditionLoot(
+                new[] { new MaterialQuantity(MaterialId.For(MaterialFamily.Ore, 1), units) }, System.Array.Empty<MaterialQuantity>(), 0, 0));
     }
 }

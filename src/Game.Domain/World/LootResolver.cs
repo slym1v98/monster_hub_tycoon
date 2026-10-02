@@ -9,6 +9,7 @@ namespace Game.Domain
 {
     public sealed class LootConfig
     {
+        public static LootConfig Prototype { get; } = new LootConfig();
         public double LuckGoldPerPoint { get; }
         public double MaterialPickupChance { get; }
         public int BackpackCapacity { get; }

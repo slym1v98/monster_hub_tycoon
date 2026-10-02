@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Game.Domain.Combat;
 using Game.Domain.Materials;
+using Game.Domain.Monsters;
 
 namespace Game.Domain
 {
@@ -30,7 +31,15 @@ namespace Game.Domain
     {
         public IReadOnlyList<BattleResult> Battles { get; }
         public ExpeditionLoot Loot { get; }
-        public ExpeditionResult(IEnumerable<BattleResult> battles, ExpeditionLoot loot)
-        { if (battles == null) throw new ArgumentNullException(nameof(battles)); Battles = Array.AsReadOnly(battles.ToArray()); Loot = loot ?? throw new ArgumentNullException(nameof(loot)); }
+        public IReadOnlyDictionary<MonsterId, long> FinalMonsterHp { get; }
+        public ExpeditionResult(IEnumerable<BattleResult> battles, ExpeditionLoot loot, long trainerExperience = 0,
+            IReadOnlyDictionary<MonsterId, long> finalMonsterHp = null)
+        {
+            if (battles == null) throw new ArgumentNullException(nameof(battles));
+            if (trainerExperience < 0) throw new ArgumentOutOfRangeException(nameof(trainerExperience));
+            Battles = Array.AsReadOnly(battles.ToArray()); Loot = loot ?? throw new ArgumentNullException(nameof(loot)); TrainerExperience = trainerExperience;
+            FinalMonsterHp = new System.Collections.ObjectModel.ReadOnlyDictionary<MonsterId, long>(new Dictionary<MonsterId, long>(finalMonsterHp ?? new Dictionary<MonsterId, long>()));
+        }
+        public long TrainerExperience { get; }
     }
 }

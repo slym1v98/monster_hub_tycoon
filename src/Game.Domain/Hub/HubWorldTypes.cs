@@ -19,7 +19,11 @@ namespace Game.Domain
     public sealed record TrainerView(
         int Id, Rarity Rarity, Personality Personality, TrainerState State, string StateReason, long Gold,
         double Stamina, double Satiety, double Hydration, double Stress,
-        long TeamHp, long TeamHpMax, int BackpackUnits, long ContractWage, long WageOwed, int StrikeDaysLeft);
+        int BackpackUnits, long ContractWage, long WageOwed, int StrikeDaysLeft,
+        System.Collections.Generic.IReadOnlyList<MonsterView> Monsters, string CurrentZoneId, int Rank, int Level);
+
+    public sealed record MonsterView(string Id, string SpeciesId, Game.Domain.Monsters.MonsterElement Element,
+        int Level, long CurrentHp, long MaxHp, Game.Domain.Monsters.MonsterLifeState LifeState, bool IsActive);
 
     /// <summary>Ảnh chụp chỉ đọc của một công trình dịch vụ cho UI.</summary>
     public sealed record BuildingView(

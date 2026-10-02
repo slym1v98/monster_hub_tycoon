@@ -34,7 +34,7 @@ namespace Game.Domain
 
     /// <summary>
     /// Dữ liệu phẳng của một Trainer. Chỉ chứa dữ liệu; logic nằm ở TrainerBrain và HubWorld.
-    /// Trainer không có HP riêng: <see cref="TeamHp"/> chỉ là tổng HP suy ra từ đội Monster đến tác vụ 9.
+    /// Trainer không có HP riêng; HP thuộc từng Monster trong Roster.
     /// </summary>
     public sealed class Trainer
     {
@@ -61,13 +61,12 @@ namespace Game.Domain
         public readonly Needs Needs = new Needs();
         public long Gold;
         public MonsterRoster Roster { get; }
-        public long TeamHp => Roster.TotalHp;
-        public long TeamHpMax => Roster.TotalHpMax;
         public int BackpackUnits;
         public readonly Dictionary<MaterialId, int> BackpackMaterials = new Dictionary<MaterialId, int>();
         public int BackpackCapacity;
         /// <summary>Cờ tạm thay cho slot Kính (sub-project 4).</summary>
         public bool HasNightVision;
+        public string CurrentZoneId;
 
         // --- Lương ---
         public long ContractWage;

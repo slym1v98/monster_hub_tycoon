@@ -68,7 +68,11 @@ namespace Game.Domain
                 new BalanceParameter(id + ".night_loot_multiplier", nightLootMultiplier, "multiplier", "Locked", "docs/designs/04_Monster_System.md: night loot ×2."),
                 new BalanceParameter(id + ".night_experience_multiplier", nightExperienceMultiplier, "multiplier", "Locked", "docs/designs/04_Monster_System.md: night EXP ×2.")
             };
-            foreach (var w in weights) parameters.Add(new BalanceParameter(id + ".material." + w.MaterialId.Value + ".weight", w.Weight, "relative_weight", "Prototype", "Prototype encounter material distribution."));
+            foreach (var w in weights)
+            {
+                parameters.Add(new BalanceParameter(id + ".material." + w.MaterialId.Value + ".weight", w.Weight, "relative_weight", "Prototype", "Prototype encounter material distribution."));
+                parameters.Add(new BalanceParameter(id + ".material." + w.MaterialId.Value + ".gold_equivalent", w.GoldEquivalentPerUnit, "gold/unit", "Prototype", "Prototype material fair-value estimate used for Zone scoring."));
+            }
             foreach (var (key, value, unit) in EncounterParameters(EncounterProfile)) parameters.Add(new BalanceParameter(id + ".encounter." + key, value, unit, "Prototype", "Prototype encounter profile; not numerically fixed by GDD."));
             foreach (var e in EncounterProfile.ElementWeights) parameters.Add(new BalanceParameter(id + ".element." + e.Key.ToString().ToLowerInvariant() + ".weight", e.Value, "relative_weight", "Prototype", "docs/designs/04_Monster_System.md element theme; relative mix is a prototype."));
             BalanceParameters = Array.AsReadOnly(parameters.ToArray());

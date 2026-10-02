@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Game.Domain
 {
     /// <summary>Các quyết định thuần (không có trạng thái): có nên về HUB không, và nên dùng dịch vụ nào.</summary>
@@ -12,7 +14,7 @@ namespace Game.Domain
             PersonalityProfile p = PersonalityProfile.Of(t.Personality);
             if (t.IsOnStrike) return ReturnReason.Strike;
             if (isNight && !t.HasNightVision) return ReturnReason.Night;
-            if (t.TeamHp <= 0) return ReturnReason.TeamDown;
+            if (!t.Roster.Members.Any(x => x.CurrentHp > 0)) return ReturnReason.TeamDown;
             if (t.BackpackUnits >= t.BackpackCapacity) return ReturnReason.BackpackFull;
             if (t.Needs.Stamina < p.StaminaThreshold) return ReturnReason.Tired;
             if (t.Needs.Satiety < p.SatietyThreshold) return ReturnReason.Hungry;
@@ -29,7 +31,7 @@ namespace Game.Domain
         {
             Needs n = t.Needs;
             if (n.Stress >= 100) return BuildingKind.Bar;
-            if (allowHospital && t.TeamHp < t.TeamHpMax) return BuildingKind.Hospital;
+            if (allowHospital && t.Roster.TotalMissingHp > 0) return BuildingKind.Hospital;
             if (isNight && !t.HasNightVision && n.Stamina < cfg.NightSleepBelow) return BuildingKind.Inn;
             if (n.LowestPhysical < cfg.SufficientNeed)
             {

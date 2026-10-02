@@ -47,6 +47,10 @@ namespace Game.Domain
         public TrainerProgressionConfig TrainerProgressionSettings = TrainerProgressionConfig.Prototype;
         public ZoneCatalog ZoneCatalogSettings = ZoneCatalog.Default;
         public ZoneSelectionConfig ZoneSelectionSettings = ZoneSelectionConfig.Prototype;
+        public LootConfig LootSettings = LootConfig.Prototype;
+        public ExpeditionConfig ExpeditionSettings = ExpeditionConfig.Prototype;
+        /// <summary>Progression unlock is owned by Sub-project 6; default campaign begins in Zone 1.</summary>
+        public string[] UnlockedZoneIds = { "zone_1" };
 
         // --- Nhu cầu (mỗi giờ) ---
         public double FieldStaminaPerHour = 6, FieldSatietyPerHour = 5, FieldHydrationPerHour = 6, FieldStressPerHour = 0.5;
@@ -62,14 +66,11 @@ namespace Game.Domain
         /// <summary>Stress cộng thêm = hệ số x (giá/giá hợp lý - 1) x độ nhạy giá.</summary>
         public double PriceStressFactor = 10;
 
-        // --- Farm và chợ (tạm, sub-project 2 và 3 thay thế) ---
+        // --- Expedition timing, backpack and market ---
         public int FarmChunkMinutes = 30;
         public int ZoneTravelMinutes = 30;
-        public int FarmMaterialsPerChunk = 3;
-        public long FarmGoldPerChunk = 2;
-        public long FarmHpLostPerChunk = 3;
         public int BackpackCapacity = 30;
-        public long TeamHpMax = 300;
+        public long StarterMonsterHp = 300;
         public long MaterialPrice = 10;
         public double TaxRate = 0.20;
         public MerchantConfig MerchantSettings = MerchantConfig.Prototype;

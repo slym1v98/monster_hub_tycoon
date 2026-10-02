@@ -134,7 +134,8 @@ namespace Game.Domain.Tests
         public void AllNewNumericDefaultsHaveStableUniqueIdsUnitsStatusesAndSources()
         {
             var parameters = ZoneCatalog.Default.Definitions.SelectMany(x => x.BalanceParameters)
-                .Concat(ZoneSelectionConfig.Prototype.BalanceParameters).ToArray();
+                .Concat(ZoneSelectionConfig.Prototype.BalanceParameters)
+                .Concat(ExpeditionConfig.Prototype.BalanceParameters).Concat(LootConfig.Prototype.BalanceParameters).ToArray();
             Assert.Equal(parameters.Length, parameters.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count());
             Assert.All(parameters, x => {
                 Assert.False(string.IsNullOrWhiteSpace(x.Id));
@@ -147,7 +148,10 @@ namespace Game.Domain.Tests
                 Assert.Contains(zone.BalanceParameters, x => x.Id == zone.Id + ".walk_minutes" && x.Status == "Prototype" && x.Value == zone.WalkMinutes);
                 Assert.Contains(zone.BalanceParameters, x => x.Id == zone.Id + ".night_loot_multiplier" && x.Status == "Locked" && x.Value == 2);
                 foreach (var material in zone.MaterialWeights)
+                {
                     Assert.Contains(zone.BalanceParameters, x => x.Id == zone.Id + ".material." + material.MaterialId.Value + ".weight" && x.Status == "Prototype" && x.Value == material.Weight);
+                    Assert.Contains(zone.BalanceParameters, x => x.Id == zone.Id + ".material." + material.MaterialId.Value + ".gold_equivalent" && x.Status == "Prototype" && x.Value == material.GoldEquivalentPerUnit);
+                }
             }
             Assert.Same(ZoneCatalog.Default, SimConfig.Default.ZoneCatalogSettings);
             Assert.Same(ZoneSelectionConfig.Prototype, SimConfig.Default.ZoneSelectionSettings);

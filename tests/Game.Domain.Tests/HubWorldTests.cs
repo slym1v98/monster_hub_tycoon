@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 using Game.Domain;
+using Game.Domain.Materials;
+using Game.Domain.Monsters;
 
 public class HubWorldTests
 {
@@ -153,7 +155,8 @@ public class HubWorldTests
     public void StrikeSendsOutsideTrainersHomeEvenAtNight()
     {
         // Có kính nhìn đêm nên Trainer vẫn ở ngoài lúc 23:59 khi đến kỳ lương.
-        var w = new HubWorld(new SimConfig { BaseWage = 1_000_000, StartWithNightVision = true, TrainerCount = 10 }, 9);
+        var strikeConfig = new SimConfig { BaseWage = 1_000_000, StartWithNightVision = true, TrainerCount = 10 };
+        var w = new HubWorld(strikeConfig, 9, new FixedFarm(0, 0, 0), new FixedPriceMarket(strikeConfig));
         w.RunUntilPayday();
         var outsideIds = w.Trainers
             .Where(t => t.State == TrainerState.Farming || t.State == TrainerState.Traveling)
@@ -206,7 +209,7 @@ public class HubWorldTests
         var w = new HubWorld(cfg, 9, new FixedFarm(0, 0, 100), null);
         var events = Capture(w);
         w.RunUntilPayday();
-        Assert.Contains(w.Trainers, t => t.TeamHp < t.TeamHpMax);   // tiền đề: có người thiếu HP khi đình công bắt đầu
+        Assert.Contains(w.Trainers, t => t.Monsters.Any(m => m.CurrentHp < m.MaxHp));   // tiền đề: có người thiếu HP khi đình công bắt đầu
         Assert.Contains(events, e => e is ServiceUsed u && u.Building == BuildingKind.Hospital);   // và Bệnh Viện vẫn được dùng bình thường trước đó
         int from = events.Count;
         w.ResolvePayday();
@@ -268,9 +271,9 @@ public class HubWorldTests
     public void UnpaidUpkeepHalvesSlotsAndRecoversWhenTreasuryRefills()
     {
         // Không có nguồn thu: Trainer hết tiền, không Tổng tài, Kho bạc 0.
-        var cfg = new SimConfig { StartTreasury = 0, StartTrainerGold = 0, MaterialPrice = 0, FarmGoldPerChunk = 0,
+        var cfg = new SimConfig { StartTreasury = 0, StartTrainerGold = 0, MaterialPrice = 0,
                                   PatronChancePerHour = 0, PatronGuaranteedAfterHours = 100_000 };
-        var w = new HubWorld(cfg, 8);
+        var w = new HubWorld(cfg, 8, new FixedFarm(0, 0, 0), new FixedPriceMarket(cfg));
         var events = Capture(w);
         Assert.All(w.Buildings, b => Assert.Equal(9, b.Slots));   // tiền đề: Lv5 có 9 chỗ
 
@@ -304,9 +307,15 @@ public class HubWorldTests
 }
 
 /// <summary>Bộ giải farm cố định: mỗi khúc luôn cho cùng một kết quả (tiện kiểm tra chính xác).</summary>
-sealed class FixedFarm : IFarmResolver
+sealed class FixedFarm : IExpeditionResolver
 {
-    readonly FarmResult result;
-    public FixedFarm(int units, long gold, long hpLost) { result = new FarmResult(units, gold, hpLost); }
-    public FarmResult Resolve(Trainer trainer, int minutes) => result;
+    readonly int units; readonly long gold; readonly long hpLost;
+    public FixedFarm(int units, long gold, long hpLost) { this.units = units; this.gold = gold; this.hpLost = hpLost; }
+    public ExpeditionResult Resolve(TrainerSnapshot trainer, ZoneDefinition zone, int minutes, SimRandom random)
+    {
+        var materials = units == 0 ? Array.Empty<MaterialQuantity>() : new[] { new MaterialQuantity(MaterialId.For(MaterialFamily.Ore, 1), units) };
+        var hp = new Dictionary<MonsterId, long>(); long remaining = hpLost;
+        foreach (var member in trainer.Team) { long damage = Math.Min(member.CurrentHp, remaining); hp[member.Id] = member.CurrentHp - damage; remaining -= damage; }
+        return new ExpeditionResult(Array.Empty<Game.Domain.Combat.BattleResult>(), new ExpeditionLoot(materials, Array.Empty<MaterialQuantity>(), gold, 0), 0, hp);
+    }
 }

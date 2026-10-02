@@ -15,8 +15,7 @@ namespace Game.Domain.Monsters
         public IReadOnlyList<Monster> Storage { get; }
         public Monster Active { get; private set; }
         public IReadOnlyList<Monster> Reserves => Array.AsReadOnly(members.Where(x => x != Active).ToArray());
-        public long TotalHp => members.Sum(x => x.CurrentHp);
-        public long TotalHpMax => members.Sum(x => x.MaxHp);
+        public long TotalMissingHp => members.Sum(x => x.MaxHp - x.CurrentHp);
 
         public MonsterRoster() : this(null) { }
 

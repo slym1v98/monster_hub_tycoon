@@ -9,7 +9,7 @@ namespace Game.Domain
         {
             ServiceBuilding b = buildings[(int)kind];
             PersonalityProfile profile = PersonalityProfile.Of(t.Personality);
-            long price = b.PriceFor(profile, t.TeamHpMax - t.TeamHp);
+            long price = b.PriceFor(profile, t.Roster.TotalMissingHp);
             bool freeInDebtMode = payroll.DebtMode && kind == BuildingKind.Restaurant && t.WageOwed > 0;
             if (!freeInDebtMode && t.Gold < price) { BeginWaitForMoney(t, kind); return; }
 
@@ -35,7 +35,7 @@ namespace Game.Domain
         {
             Settle(t);   // cộng nốt Stress xếp hàng
             PersonalityProfile profile = PersonalityProfile.Of(t.Personality);
-            long normalPrice = b.PriceFor(profile, t.TeamHpMax - t.TeamHp);
+            long normalPrice = b.PriceFor(profile, t.Roster.TotalMissingHp);
             bool free = payroll.DebtMode && b.Kind == BuildingKind.Restaurant && t.WageOwed > 0;
             long paid = free ? 0 : normalPrice;
 
@@ -108,7 +108,7 @@ namespace Game.Domain
         {
             Settle(t);
             ServiceBuilding b = buildings[(int)t.PendingService];
-            long needed = b.PriceFor(PersonalityProfile.Of(t.Personality), t.TeamHpMax - t.TeamHp);
+            long needed = b.PriceFor(PersonalityProfile.Of(t.Personality), t.Roster.TotalMissingHp);
 
             if (t.Gold >= needed)
             {

@@ -37,7 +37,7 @@ namespace Game.Domain
                     for (int t = 1; t <= tier; t++) mats.Add(new ZoneMaterialWeight(MaterialId.For(family, t), t == tier ? 10 : 1, 10 * t));
                 var em = elements[tier - 1].ToDictionary(x => x, _ => 1d);
                 var encounter = new EncounterProfile(em, 2.0 / tier, 10 * tier, 2, 20 * tier);
-                result.Add(new ZoneDefinition("zone_" + tier, names[tier - 1], tier, (tier - 1) * 30, mats, encounter));
+                result.Add(new ZoneDefinition("zone_" + tier, names[tier - 1], tier, tier * 30, mats, encounter));
             }
             return new ZoneCatalog(result);
         }

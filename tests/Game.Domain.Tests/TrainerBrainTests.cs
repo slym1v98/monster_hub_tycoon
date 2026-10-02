@@ -57,6 +57,20 @@ public class TrainerBrainTests
     }
 
     [Fact]
+    public void ActiveFaintDoesNotReturnWhileAReserveCanStillFight()
+    {
+        var t = TestTrainers.Make();
+        var definition = Game.Domain.Monsters.MonsterCatalog.Default.Definitions[0];
+        var reserve = Game.Domain.Monsters.Monster.Create(new Game.Domain.Monsters.MonsterId("reserve"), definition,
+            Rarity.Common, Game.Domain.Monsters.MonsterIvGrade.B, 1, 7);
+        t.Roster.Add(reserve);
+        t.Roster.Active.SetCurrentHp(0);
+        Assert.Equal(ReturnReason.None, TrainerBrain.ShouldReturn(t, false));
+        reserve.SetCurrentHp(0);
+        Assert.Equal(ReturnReason.TeamDown, TrainerBrain.ShouldReturn(t, false));
+    }
+
+    [Fact]
     public void NightForcesReturnOnlyWithoutNightVision()
     {
         var t = TestTrainers.Make();

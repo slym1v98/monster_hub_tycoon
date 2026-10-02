@@ -168,23 +168,20 @@ namespace Game.Domain.Tests
         }
 
         [Fact]
-        public void TrainerCompatibilityHpIsComputedOnlyFromFieldMembers()
+        public void TrainerDoesNotExposeAggregateHpAndRosterOwnsEveryMonster()
         {
             var trainer = new Trainer();
-            Assert.Equal(0, trainer.TeamHp);
-            Assert.Equal(0, trainer.TeamHpMax);
             var first = Make("a");
             var second = Make("b");
             trainer.Roster.Add(first);
             trainer.Roster.Add(second);
             first.SetCurrentHp(100);
-            Assert.Equal(400, trainer.TeamHp);
-            Assert.Equal(600, trainer.TeamHpMax);
+            Assert.Equal(100, first.CurrentHp);
             trainer.Roster.MoveToStorage(second.Id);
-            Assert.Equal(100, trainer.TeamHp);
-            Assert.Equal(300, trainer.TeamHpMax);
-            Assert.False(typeof(Trainer).GetProperty(nameof(Trainer.TeamHp)).CanWrite);
-            Assert.False(typeof(Trainer).GetProperty(nameof(Trainer.TeamHpMax)).CanWrite);
+            Assert.Single(trainer.Roster.Members);
+            Assert.Single(trainer.Roster.Storage);
+            Assert.Null(typeof(Trainer).GetProperty("TeamHp"));
+            Assert.Null(typeof(Trainer).GetProperty("TeamHpMax"));
         }
 
         [Fact]
@@ -230,7 +227,7 @@ namespace Game.Domain.Tests
         {
             var config = SimConfig.Default;
             config.TrainerCount = 3;
-            config.TeamHpMax = 450;
+            config.StarterMonsterHp = 450;
             var world = new HubWorld(config, 123);
             var trainers = GetTrainers(world);
             Assert.Equal(3, trainers.Count);
@@ -242,7 +239,6 @@ namespace Game.Domain.Tests
                 Assert.Equal(trainer.Rarity, starter.Rarity);
                 Assert.Equal(1, starter.Level);
                 Assert.Equal(450, starter.CurrentHp);
-                Assert.Equal(450, trainer.TeamHpMax);
             });
             Assert.Equal(3, trainers.Select(x => x.Roster.Active.Id).Distinct().Count());
         }

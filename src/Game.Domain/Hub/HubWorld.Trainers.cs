@@ -2,6 +2,8 @@ using System;
 using Game.Domain.Materials;
 using Game.Domain.Supply;
 using System.Linq;
+using Game.Domain.Combat;
+using Game.Domain.Monsters;
 
 namespace Game.Domain
 {
@@ -71,8 +73,18 @@ namespace Game.Domain
                 queue.Schedule(SimClock.NextMinuteOfDay(now, SimClock.DawnMinute), SimEventKind.TrainerDecide, t.Id, t.Token);
                 return;
             }
+            var unlocked = (cfg.UnlockedZoneIds ?? Array.Empty<string>())
+                .Select(id => cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == id)).Where(z => z != null).ToArray();
+            var zone = new ZoneSelector(cfg.ZoneSelectionSettings).Select(TrainerSnapshot.FromTrainer(t, now), unlocked, Array.Empty<ZoneIncomeModifier>());
+            if (zone == null)
+            {
+                SetState(t, TrainerState.AtHub, "NoEligibleZone");
+                queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
+            t.CurrentZoneId = zone.Id;
             SetState(t, TrainerState.Traveling, "Farm");
-            queue.Schedule(now + cfg.ZoneTravelMinutes, SimEventKind.TrainerArriveZone, t.Id, t.Token);
+            queue.Schedule(now + zone.WalkMinutes, SimEventKind.TrainerArriveZone, t.Id, t.Token);
         }
 
         void OnArriveZone(Trainer t)
@@ -86,19 +98,30 @@ namespace Game.Domain
         void OnFarmChunk(Trainer t)
         {
             Settle(t);
-            FarmResult r = farm.Resolve(t, cfg.FarmChunkMinutes);
-            if (payroll.DebtMode)   // chế độ cấn nợ: farm ít hơn
-                r = new FarmResult((int)(r.MaterialUnits * cfg.DebtModeFarmMultiplier), (long)(r.Gold * cfg.DebtModeFarmMultiplier), r.HpLost, r.Material);
-
-            int gained = Math.Min(t.BackpackCapacity - t.BackpackUnits, r.MaterialUnits);
-            t.BackpackUnits += gained;
-            if (gained > 0)
+            var zone = cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == t.CurrentZoneId)
+                ?? throw new InvalidOperationException("Trainer đang farm nhưng Zone hiện tại không còn trong catalog.");
+            ExpeditionResult result = expeditions.Resolve(TrainerSnapshot.FromTrainer(t, now), zone, cfg.FarmChunkMinutes, rng);
+            var loot = result.Loot;
+            foreach (var battle in result.Battles)
+                foreach (var state in battle.FinalMonsters.Where(x => x.Side == BattleSide.Team))
+                {
+                    var monster = t.Roster.Members.FirstOrDefault(x => x.Id == state.Id);
+                    if (monster != null) monster.SetCurrentHp(state.CurrentHp);
+                }
+            foreach (var state in result.FinalMonsterHp)
             {
-                MaterialId material = r.Material ?? new MaterialId("legacy_untyped");
-                t.BackpackMaterials[material] = checked(t.BackpackMaterials.TryGetValue(material, out int held) ? held + gained : gained);
+                var monster = t.Roster.Members.FirstOrDefault(x => x.Id == state.Key);
+                if (monster != null) monster.SetCurrentHp(state.Value);
             }
-            t.Gold += r.Gold;                                  // Gold quái rơi là nguồn tiền từ ngoài vào
-            t.Roster.ApplyDamage(r.HpLost);
+            int available = Math.Max(0, t.BackpackCapacity - t.BackpackUnits);
+            foreach (var lot in loot.Collected.OrderBy(x => x.MaterialId.Value, StringComparer.Ordinal))
+            {
+                int requested = payroll.DebtMode ? (int)(lot.Quantity * cfg.DebtModeFarmMultiplier) : lot.Quantity;
+                int gained = Math.Min(available, requested); available -= gained; t.BackpackUnits += gained;
+                if (gained > 0) t.BackpackMaterials[lot.MaterialId] = checked(t.BackpackMaterials.TryGetValue(lot.MaterialId, out var held) ? held + gained : gained);
+            }
+            t.Gold = checked(t.Gold + (payroll.DebtMode ? (long)(loot.Gold * cfg.DebtModeFarmMultiplier) : loot.Gold));
+            TrainerProgression.AddExperience(t, result.TrainerExperience, cfg.TrainerProgressionSettings);
 
             ReturnReason reason = TrainerBrain.ShouldReturn(t, SimClock.IsNight(now));
             if (reason != ReturnReason.None) StartReturn(t, reason);
@@ -109,7 +132,8 @@ namespace Game.Domain
         void StartReturn(Trainer t, ReturnReason reason)
         {
             SetState(t, TrainerState.Returning, reason.ToString());
-            queue.Schedule(now + cfg.ZoneTravelMinutes, SimEventKind.TrainerArriveHub, t.Id, t.Token);
+            var zone = cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == t.CurrentZoneId);
+            queue.Schedule(now + (zone?.WalkMinutes ?? cfg.ZoneTravelMinutes), SimEventKind.TrainerArriveHub, t.Id, t.Token);
         }
 
         /// <summary>Ngắt việc đang làm của Trainer (hủy sự kiện cũ bằng token) và cho về HUB.</summary>

@@ -21,7 +21,7 @@ namespace Game.Domain
         readonly Payroll payroll = new Payroll();
         readonly List<Trainer> trainers = new List<Trainer>();
         readonly ServiceBuilding[] buildings = new ServiceBuilding[4];
-        readonly IFarmResolver farm;
+        readonly IExpeditionResolver expeditions;
         readonly IMaterialMarket market;
         readonly bool useSupplyChain;
         readonly MoneyLedger supplyLedger;
@@ -44,15 +44,15 @@ namespace Game.Domain
 
         public HubWorld(SimConfig config, int seed) : this(config, seed, null, null) { }
 
-        /// <param name="farmResolver">Bộ giải farm; null thì dùng bản tạm <see cref="SimpleFarmResolver"/>.</param>
+        /// <param name="expeditionResolver">Bộ giải expedition; null thì dùng bộ giải Domain mặc định.</param>
         /// <param name="materialMarket">Chợ tương thích cho caller cũ; để null dùng supply chain mặc định.</param>
-        public HubWorld(SimConfig config, int seed, IFarmResolver farmResolver, IMaterialMarket materialMarket)
+        public HubWorld(SimConfig config, int seed, IExpeditionResolver expeditionResolver, IMaterialMarket materialMarket)
         {
             cfg = config ?? throw new ArgumentNullException(nameof(config));
             marketReferencePrice = cfg.MaterialPrice;
             marketTaxRate = cfg.TaxRate;
             rng = new SimRandom(seed);
-            farm = farmResolver ?? new SimpleFarmResolver(cfg, rng);
+            expeditions = expeditionResolver ?? new DefaultExpeditionResolver(cfg);
             useSupplyChain = materialMarket == null;
             market = materialMarket;
             treasury = new TreasuryAccount(cfg.StartTreasury);
@@ -72,7 +72,7 @@ namespace Game.Domain
             for (int i = 0; i < buildings.Length; i++)
                 if (buildings[i] == null) throw new ArgumentException($"SimConfig.Buildings thiếu công trình {(BuildingKind)i}.");
 
-            var starterDefinition = MonsterCatalog.CreateDefault(cfg.TeamHpMax).Definitions[0];
+            var starterDefinition = MonsterCatalog.CreateDefault(cfg.StarterMonsterHp).Definitions[0];
             for (int i = 0; i < cfg.TrainerCount; i++)
             {
                 Personality personality = cfg.ForcedPersonality ?? (Personality)rng.NextInt(4);

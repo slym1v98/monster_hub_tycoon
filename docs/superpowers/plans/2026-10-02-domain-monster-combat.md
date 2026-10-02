@@ -229,11 +229,11 @@
 - `HubWorld` selects an unlocked Zone on each farm decision, stores `Trainer.CurrentZoneId`, applies walk duration/need decay, applies battle state/loot/XP in stable order, and returns to HUB when all physical needs hit personality threshold, backpack is full, team is down, or the GDD night rule applies.
 - `TrainerView` exposes per-Monster views; `TeamHp` aggregate is removed after all consumers migrate. `ShouldReturn` reads roster states, not an aggregate scalar.
 
-- [ ] **Step 1: Write failing HubWorld tests** for default one-Monster team return, typed material yields from multiple Zones, HP per Monster, EXP level-up, all-team-down return, walk need decay, Night Vision ×2, no-glasses Dusk return and per-Monster view.
-- [ ] **Step 2: Run focused tests and confirm the expected failures.**
-- [ ] **Step 3: Replace the default `SimpleFarmResolver` path with `IExpeditionResolver`**, migrate `FixedFarm`/`TypedFarm` tests to expedition fixtures, and update HubWorld dispatch/state/views; preserve event queue one-pending-event invariants.
-- [ ] **Step 4: Run focused HubWorld/Trainer tests and full Domain suite.**
-- [ ] **Step 5: Commit** as `feat(domain): run monster expeditions through hub world`.
+- [x] **Step 1: Write failing HubWorld tests** for default one-Monster team return, typed material yields from multiple Zones, HP per Monster, EXP level-up, all-team-down return, walk need decay, Night Vision ×2, no-glasses Dusk return and per-Monster view.
+- [x] **Step 2: Run focused tests and confirm the expected failures.**
+- [x] **Step 3: Replace the default `SimpleFarmResolver` path with `IExpeditionResolver`**, migrate `FixedFarm`/`TypedFarm` tests to expedition fixtures, and update HubWorld dispatch/state/views; preserve event queue one-pending-event invariants.
+- [x] **Step 4: Run focused HubWorld/Trainer tests and full Domain suite.**
+- [x] **Step 5: Commit** as `feat(domain): run monster expeditions through hub world`.
 
 ### Task 10: Trainer product inventory and atomic purchases
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Game.Domain
 {
@@ -14,7 +15,9 @@ namespace Game.Domain
                     list.Add(new TrainerView(
                         t.Id, t.Rarity, t.Personality, t.State, t.StateReason, t.Gold,
                         t.Needs.Stamina, t.Needs.Satiety, t.Needs.Hydration, t.Needs.Stress,
-                        t.TeamHp, t.TeamHpMax, t.BackpackUnits, t.ContractWage, t.WageOwed, t.StrikeDaysLeft));
+                        t.BackpackUnits, t.ContractWage, t.WageOwed, t.StrikeDaysLeft,
+                        System.Array.AsReadOnly(t.Roster.Members.Select(m => new MonsterView(m.Id.Value, m.SpeciesId, m.Element,
+                            m.Level, m.CurrentHp, m.MaxHp, m.LifeState, m == t.Roster.Active)).ToArray()), t.CurrentZoneId, t.Rank, t.Level));
                 return list;
             }
         }
