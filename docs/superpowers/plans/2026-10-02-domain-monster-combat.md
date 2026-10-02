@@ -75,11 +75,11 @@
 - `TrainerAttributes` exposes Dexterity, Luck, Endurance and Leadership with seeded, configurable prototype defaults; `TrainerClass` is `None|Medic|Commander|Engineer|Trapper`, defaults to `None` until Academy progression in Sub-project 6. No Trainer has HP.
 - `TrainerProgression.AddExperience(Trainer trainer, long amount, TrainerProgressionConfig config) -> IReadOnlyList<TrainerLevelChanged>` advances Trainer Lv to at most 100 using a named Prototype XP curve; Rebirth stays in Sub-project 6.
 
-- [ ] **Step 1: Write failing boundary tests** for Rank I–V at Trainer Lv 1/5/6/100, Monster level on Rank change without demotion, each IV multiplier, positive integer HP, deterministic Trainer attributes, class default, XP threshold crossing and level cap 100.
-- [ ] **Step 2: Run focused tests and confirm expected failure:** `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~MonsterProgressionTests`.
-- [ ] **Step 3: Implement formulas, seeded attributes/class and XP progression** with all scaling factors in `SimConfig`/catalog inputs, never species-specific arithmetic branches. Awarded XP does not create Monster XP.
-- [ ] **Step 4: Run focused tests and the full Domain test suite.**
-- [ ] **Step 5: Commit** as `feat(domain): model monster stats and level conversion`.
+- [x] **Step 1: Write failing boundary tests** for Rank I–V at Trainer Lv 1/5/6/100, Monster level on Rank change without demotion, each IV multiplier, positive integer HP, deterministic Trainer attributes, class default, XP threshold crossing and level cap 100.
+- [x] **Step 2: Run focused tests and confirm expected failure:** `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~MonsterProgressionTests`.
+- [x] **Step 3: Implement formulas, seeded attributes/class and XP progression** with all scaling factors in `SimConfig`/catalog inputs, never species-specific arithmetic branches. Awarded XP does not create Monster XP.
+- [x] **Step 4: Run focused tests and the full Domain test suite.**
+- [x] **Step 5: Commit** as `feat(domain): model monster stats and level conversion`.
 
 ### Task 3: Rebellion score uses the GDD level scale
 
