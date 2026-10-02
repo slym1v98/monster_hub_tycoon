@@ -1,6 +1,6 @@
 # SUB-GDD 13: BALANCE PARAMETERS (BẢNG THAM SỐ CÂN BẰNG)
 
-Đây là nơi duy nhất ghi các con số kinh tế. Các tài liệu khác (Quest, Thành tựu, Monetization) tham chiếu về đây. Cột "Trạng thái": **Chốt** = đã quyết trong thiết kế; **Khởi điểm** = giá trị tạm để dựng prototype (kèm "mô phỏng" nếu đã chạy qua `tools/Game.Sim`, "chưa mô phỏng" nếu mới là giá trị đề xuất); **TBD** = chưa có số, sẽ xác định bằng mô phỏng (Roadmap Bước 5). Khi dữ liệu thật có, chuyển sang CSV/Google Sheets và parse vào ScriptableObjects (xem [00_Tech_Stack](../00_Tech_Stack.md)).
+Đây là nguồn giải thích và provenance cho các con số cân bằng. Workbook thao tác chính là [MonsterHUB_Balance.xlsx](../balance/MonsterHUB_Balance.xlsx): có các giá trị GDD, runtime config và TBD tách riêng. Cột "Trạng thái": **Chốt** = đã quyết trong thiết kế; **Khởi điểm** = giá trị tạm để dựng prototype (kèm "mô phỏng" nếu đã chạy qua `tools/Game.Sim`, "chưa mô phỏng" nếu mới là giá trị đề xuất); **TBD** = chưa có số, sẽ xác định bằng mô phỏng. Sau khi hành vi Domain đầy đủ, cân bằng bằng workbook và đồng bộ về cấu hình runtime/ScriptableObjects (xem [00_Tech_Stack](../00_Tech_Stack.md)).
 
 ## 1. Thời gian
 | Tham số | Giá trị | Trạng thái |

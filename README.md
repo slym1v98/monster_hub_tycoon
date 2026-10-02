@@ -35,6 +35,8 @@ dotnet run --project tools/Game.Sim -- stock        # tần suất sự kiện c
 
 Các tham số kinh tế hiện là **giá trị khởi điểm chưa cân bằng** (kịch bản `core` cho thấy HUB đang quá dư dả). Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).
 
+Workbook tham số gồm số trong GDD, giá trị runtime và backlog TBD: [MonsterHUB_Balance.xlsx](docs/balance/MonsterHUB_Balance.xlsx). Chỉnh số trong workbook sau khi mô phỏng đủ hành vi; không coi các giá trị Prototype là cân bằng cuối.
+
 ### Tiến độ Domain
 
 Mỗi sub-project có spec ([docs/superpowers/specs](docs/superpowers/specs)) và kế hoạch triển khai ([docs/superpowers/plans](docs/superpowers/plans)) riêng.
@@ -73,3 +75,4 @@ Các mô hình độc lập đã có sẵn và có test: Cường hóa, Gacha, t
 | [99_Open_Issues.md](docs/99_Open_Issues.md) | Các vấn đề còn mở cần quyết định |
 | [docs/superpowers/specs](docs/superpowers/specs) | Spec thiết kế từng sub-project Domain |
 | [docs/superpowers/plans](docs/superpowers/plans) | Kế hoạch triển khai từng sub-project Domain |
+| [Workbook cân bằng](docs/balance/MonsterHUB_Balance.xlsx) | Tham số GDD, runtime và backlog cân bằng |
