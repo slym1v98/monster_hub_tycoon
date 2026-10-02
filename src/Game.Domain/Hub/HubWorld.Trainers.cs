@@ -4,6 +4,7 @@ using Game.Domain.Supply;
 using System.Linq;
 using Game.Domain.Combat;
 using Game.Domain.Monsters;
+using Game.Domain.Gear;
 
 namespace Game.Domain
 {
@@ -25,9 +26,9 @@ namespace Game.Domain
             bool outside = t.State == TrainerState.Traveling || t.State == TrainerState.Farming || t.State == TrainerState.Returning;
             if (outside)
             {
-                n.Stamina -= cfg.FieldStaminaPerHour * hours;
+                n.Stamina -= GearEffects.StaminaDecayPerHour(t, GearCat, cfg.FieldStaminaPerHour) * hours;
                 n.Satiety -= cfg.FieldSatietyPerHour * p.SatietyDecayMult * hours;
-                n.Hydration -= cfg.FieldHydrationPerHour * hours;
+                n.Hydration -= GearEffects.HydrationDecayPerHour(t, GearCat, cfg.FieldHydrationPerHour) * hours;
                 n.Stress += cfg.FieldStressPerHour * hours;
             }
             else if (t.State != TrainerState.InService)   // đang được phục vụ thì không tụt
@@ -64,7 +65,7 @@ namespace Game.Domain
                 queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
                 return;
             }
-            BuildingKind? need = TrainerBrain.PickService(t, cfg, isNight, !t.IsOnStrike);   // đình công: không vào Bệnh Viện
+            BuildingKind? need = TrainerBrain.PickService(t, cfg, isNight, !t.IsOnStrike, GearEffects.HasNightVision(t, GearCat, t.HasNightVision));   // đình công: không vào Bệnh Viện
             if (need.HasValue) { RequestService(t, need.Value); return; }
 
             if (t.IsOnStrike)
@@ -135,7 +136,8 @@ namespace Game.Domain
             var finalActive = result.Battles.LastOrDefault()?.ActiveId;
             if (finalActive.HasValue && t.Roster.Members.Any(m => m.Id == finalActive.Value && m.CurrentHp > 0))
                 t.Roster.SetActive(finalActive.Value);
-            int available = Math.Max(0, t.BackpackCapacity - t.BackpackUnits);
+            ApplyGearWear(t, result, cfg.FarmChunkMinutes);
+            int available = Math.Max(0, GearEffects.BackpackCapacity(t, GearCat, t.BackpackCapacity) - t.BackpackUnits);
             var collected = new System.Collections.Generic.List<MaterialQuantity>();
             var dropped = new System.Collections.Generic.List<MaterialQuantity>(loot.Dropped);
             foreach (var lot in loot.Collected.OrderBy(x => x.MaterialId.Value, StringComparer.Ordinal))
@@ -152,7 +154,7 @@ namespace Game.Domain
             Raise(new ExpeditionCompleted(now, t.Id, zone.Id, result.Battles, collected.AsReadOnly(), dropped.AsReadOnly(),
                 goldGained, result.TrainerExperience, t.Level));
 
-            ReturnReason reason = TrainerBrain.ShouldReturn(t, SimClock.IsNight(now));
+            ReturnReason reason = TrainerBrain.ShouldReturn(t, SimClock.IsNight(now), GearEffects.BackpackCapacity(t, GearCat, t.BackpackCapacity), GearEffects.HasNightVision(t, GearCat, t.HasNightVision));
             if (reason != ReturnReason.None) StartReturn(t, reason);
             else queue.Schedule(now + cfg.FarmChunkMinutes, SimEventKind.FarmChunk, t.Id, t.Token);
         }

@@ -14,7 +14,7 @@ namespace Game.Domain
             [new ProductId("food_drink")] = 10, [new ProductId("reward_cake")] = 10, [new ProductId("liquor")] = 10,
             [new ProductId("raincoat")] = 10, [new ProductId("gas_mask")] = 10, [new ProductId("capture_ball")] = 10,
             [new ProductId("trap")] = 10, [new ProductId("tactics_book")] = 10, [new ProductId("overclock_coffee")] = 10,
-            [new ProductId("monster_buff_bottle")] = 10 });
+            [new ProductId("monster_buff_bottle")] = 10, [new ProductId("enhancement_stone")] = 20, [new ProductId("distilled_water")] = 15, [new ProductId("evolution_stone")] = 50, [new ProductId("protection_charm")] = 500 });
         public IReadOnlyDictionary<ProductId, long> Prices => prices;
         public IReadOnlyList<BalanceParameter> BalanceParameters { get; }
         public ConsumablePriceConfig(IDictionary<ProductId, long> prices)

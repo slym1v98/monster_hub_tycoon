@@ -50,7 +50,7 @@ namespace Game.Domain.Tests
             var snap = MonsterSnapshot.FromMonster(monster, monster.CombatSkillIds, null, 0, loadout, Cat);
             var setBonus = GearLoadout.SetBonus(loadout.Equipped, Cat);
             Assert.True(snap.Stats.Attack > monster.Stats.Attack + GearScore.EffectiveStats(loadout.Equipped[0], Cat).Attack - 0.001);
-            Assert.Equal(setBonus.Attack, 5); // 2-piece bonus
+            Assert.Equal(5, setBonus.Attack); // 2-piece bonus
         }
 
         [Fact]
