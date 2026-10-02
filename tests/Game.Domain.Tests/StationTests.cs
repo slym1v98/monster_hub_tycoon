@@ -49,6 +49,20 @@ namespace Game.Domain.Tests
             Assert.Equal(2, station.Stock.Get(new InventoryItem(Ore)).Available);
         }
 
+        [Fact]
+        public void MerchantMarkupOverflowLeavesGoodsUnsoldInsteadOfThrowing()
+        {
+            var ledger = new MoneyLedger();
+            var station = new Station(long.MaxValue, 0.1, ledger);
+            var request = new BuyRequest(Ore, 1, long.MaxValue);
+
+            var result = station.BuyFromMerchant("merchant:1", Ore, 1, request, 0.10);
+
+            Assert.Equal(1, result.UnsoldUnits);
+            Assert.Equal(0, station.Stock.Get(new InventoryItem(Ore)).Available);
+            Assert.Empty(ledger.Transactions);
+        }
+
         [Theory]
         [InlineData(-1, 0.1)]
         [InlineData(0, -0.1)]

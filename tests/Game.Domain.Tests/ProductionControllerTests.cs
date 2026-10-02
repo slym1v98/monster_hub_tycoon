@@ -60,6 +60,41 @@ namespace Game.Domain.Tests
         }
 
         [Fact]
+        public void IntegratedProductionSpendsHubTreasuryWhenJobStarts()
+        {
+            var inventory = new Inventory();
+            inventory.Add(new InventoryItem(Ore), 1);
+            var ledger = new MoneyLedger();
+            var treasury = new TreasuryAccount(10);
+            var controller = new ProductionController(MaterialCatalog.Default, inventory, ledger,
+                new ProductionConfig(8, defaultOperatingCost: 3), treasury);
+
+            controller.SetTarget(Blank, 1, now: 0);
+
+            Assert.Single(controller.ActiveJobs);
+            Assert.Equal(7, treasury.Balance);
+            Assert.Equal(1, inventory.Get(new InventoryItem(Ore)).InProduction);
+            Assert.Equal("production operating cost", Assert.Single(ledger.Transactions).Reason);
+        }
+
+        [Fact]
+        public void IntegratedProductionDoesNotReserveInputsWhenTreasuryCannotPay()
+        {
+            var inventory = new Inventory();
+            inventory.Add(new InventoryItem(Ore), 1);
+            var treasury = new TreasuryAccount(2);
+            var controller = new ProductionController(MaterialCatalog.Default, inventory, new MoneyLedger(),
+                new ProductionConfig(8, defaultOperatingCost: 3), treasury);
+
+            controller.SetTarget(Blank, 1, now: 0);
+
+            Assert.Empty(controller.ActiveJobs);
+            Assert.Equal(1, inventory.Get(new InventoryItem(Ore)).Available);
+            Assert.Equal(0, inventory.Get(new InventoryItem(Ore)).InProduction);
+            Assert.Equal(2, treasury.Balance);
+        }
+
+        [Fact]
         public void CancellingJobReturnsEveryReservedInputExactlyOnce()
         {
             var inventory = new Inventory();
@@ -100,6 +135,33 @@ namespace Game.Domain.Tests
         {
             Assert.Equal(17, RefineAtLevel(1, 17));
             Assert.Equal(19, RefineAtLevel(5, 19));
+        }
+
+        [Theory]
+        [InlineData(1, 60)]
+        [InlineData(2, 54)]
+        [InlineData(3, 48)]
+        [InlineData(4, 42)]
+        [InlineData(5, 36)]
+        public void ProducerLevelScalesJobDurationUsingFiveLevelPrototypeCurve(int level, int expectedMinutes)
+        {
+            var inventory = new Inventory();
+            inventory.Add(new InventoryItem(Ore), 1);
+            var controller = CreateController(inventory, jobDuration: 60, efficiency: 1m);
+            controller.SetProducerState(new ProducerId("refinery"), level, 1);
+
+            controller.SetTarget(Blank, 1, now: 0);
+
+            var job = Assert.Single(controller.ActiveJobs);
+            Assert.Equal(expectedMinutes, job.FinishMinute - job.StartMinute);
+            Assert.Equal(level, job.ProducerLevel);
+        }
+
+        [Fact]
+        public void ProductionConfigRejectsInvalidProducerDurationCurve()
+        {
+            Assert.Throws<ArgumentException>(() => new ProductionConfig(
+                new[] { 1.0m, 0.9m, 0.8m, 0.7m, 1.1m }));
         }
 
         private static int RefineAtLevel(int level, int target)

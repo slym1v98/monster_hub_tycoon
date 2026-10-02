@@ -16,7 +16,7 @@ namespace Game.Domain
         public void Add(long amount)
         {
             if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
-            Balance += amount;
+            Balance = checked(Balance + amount);
         }
 
         /// <summary>Trừ tiền nếu đủ; trả về false và giữ nguyên số dư nếu không đủ.</summary>

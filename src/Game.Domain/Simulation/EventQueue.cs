@@ -15,7 +15,10 @@ namespace Game.Domain
         Dawn,               // 06:00
         Dusk,               // 18:00
         DayStart,           // 00:00: trừ chi phí vận hành, giảm ngày đình công
-        PaydayDue           // 23:59 ngày 30: RunFor dừng tại đây
+        PaydayDue,          // 23:59 ngày 30: RunFor dừng tại đây
+        MerchantRouteStep,
+        ProductionComplete,
+        MarketRetry
     }
 
     /// <summary>Một sự kiện đã hẹn giờ. <see cref="Token"/> dùng để bỏ qua sự kiện cũ khi Trainer bị ngắt giữa chừng.</summary>

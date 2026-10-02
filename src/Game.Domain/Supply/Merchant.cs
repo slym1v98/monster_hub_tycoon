@@ -37,7 +37,8 @@ namespace Game.Domain.Supply
             ReplacementDelayMinutes = replacementDelayMinutes; MaximumWaitMinutes = maximumWaitMinutes;
         }
 
-        public static MerchantConfig Prototype => new MerchantConfig(1000, 0.05, 0.10, 100);
+        // Prototype safety cap; replacement arrivals also wake waiting Trainers immediately.
+        public static MerchantConfig Prototype => new MerchantConfig(1000, 0.05, 0.10, 100, maximumWaitMinutes: 210);
     }
 
     /// <summary>Merchant lưu động có vốn và sức chứa hữu hạn; giao dịch chỉ diễn ra tại đúng điểm tuyến.</summary>
@@ -63,18 +64,24 @@ namespace Game.Domain.Supply
 
         public SaleBreakdown BuyFromTrainer(string trainerAccount, MaterialId material, int offeredUnits,
             long stationReferencePrice, double taxRate)
+            => BuyFromTrainer(trainerAccount, material, offeredUnits, stationReferencePrice, taxRate, long.MaxValue);
+
+        public SaleBreakdown BuyFromTrainer(string trainerAccount, MaterialId material, int offeredUnits,
+            long stationReferencePrice, double taxRate, long maximumTax)
         {
             EnsureState(MerchantState.AtTrainerRoute);
             if (string.IsNullOrWhiteSpace(trainerAccount)) throw new ArgumentException("Thiếu tài khoản Trainer.", nameof(trainerAccount));
             if (offeredUnits < 0) throw new ArgumentOutOfRangeException(nameof(offeredUnits));
             if (stationReferencePrice < 0) throw new ArgumentOutOfRangeException(nameof(stationReferencePrice));
+            if (maximumTax < 0) throw new ArgumentOutOfRangeException(nameof(maximumTax));
             ValidateTax(taxRate);
             if (offeredUnits == 0) return new SaleBreakdown(0, 0, 0, 0, 0, 0);
             var space = Config.CapacityUnits - LoadUnits;
-            var quantity = MaxAffordablePurchase(Math.Min(offeredUnits, space), stationReferencePrice);
+            var quantity = MaxAffordablePurchase(Math.Min(offeredUnits, space), stationReferencePrice, taxRate, maximumTax);
             if (quantity <= 0) return new SaleBreakdown(0, 0, offeredUnits, 0, 0, 0);
             var spread = BuyDiscountForLot(quantity);
-            var unitPrice = QuoteUnitPrice(stationReferencePrice, spread, buying: true);
+            if (!TryQuoteUnitPrice(stationReferencePrice, spread, buying: true, out long unitPrice))
+                throw new InvalidOperationException("Giá đã chọn không thể biểu diễn.");
             var unsold = offeredUnits - quantity;
             if (quantity == 0) return new SaleBreakdown(0, 0, unsold, 0, 0, 0);
             var gross = checked(unitPrice * quantity);
@@ -97,7 +104,9 @@ namespace Game.Domain.Supply
             var item = new InventoryItem(material);
             var available = Goods.Get(item).Available;
             if (available == 0) return new SaleBreakdown(0, 0, 0, 0, 0, 0);
-            var stationDeficit = request.Deficit(station.Stock.Get(item).Available);
+            var stationStock = station.Stock.Get(item);
+            var covered = (int)Math.Min(int.MaxValue, (long)stationStock.Available + stationStock.Reserved + stationStock.InProduction);
+            var stationDeficit = request.Deficit(covered);
             var offered = MaxAffordableSale(Math.Min(available, stationDeficit), request.BidPrice, station.Treasury, long.MaxValue - Cash);
             if (offered == 0) return new SaleBreakdown(0, 0, available, 0, 0, 0);
             var spread = SellMarkupForLot(offered);
@@ -152,15 +161,17 @@ namespace Game.Domain.Supply
         public double SellMarkupForLot(int quantity)
         { if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity)); return Spread(quantity); }
 
-        private int MaxAffordablePurchase(int maximum, long referencePrice)
+        private int MaxAffordablePurchase(int maximum, long referencePrice, double taxRate, long maximumTax)
         {
             var low = 0;
             var high = maximum;
             while (low < high)
             {
                 var candidate = low + (high - low + 1) / 2;
-                var unitPrice = QuoteUnitPrice(referencePrice, BuyDiscountForLot(candidate), buying: true);
-                if ((decimal)unitPrice * candidate <= Cash) low = candidate;
+                if (!TryQuoteUnitPrice(referencePrice, BuyDiscountForLot(candidate), buying: true, out long unitPrice))
+                { high = candidate - 1; continue; }
+                var gross = (decimal)unitPrice * candidate;
+                if (gross <= Cash && gross <= long.MaxValue && CalculateTax(decimal.ToInt64(gross), taxRate) <= maximumTax) low = candidate;
                 else high = candidate - 1;
             }
             return low;
@@ -174,17 +185,21 @@ namespace Game.Domain.Supply
             while (low < high)
             {
                 var candidate = low + (high - low + 1) / 2;
-                var unitPrice = QuoteUnitPrice(referencePrice, SellMarkupForLot(candidate), buying: false);
+                if (!TryQuoteUnitPrice(referencePrice, SellMarkupForLot(candidate), buying: false, out long unitPrice))
+                { high = candidate - 1; continue; }
                 if ((decimal)unitPrice * candidate <= affordable) low = candidate;
                 else high = candidate - 1;
             }
             return low;
         }
 
-        private static long QuoteUnitPrice(long referencePrice, double spread, bool buying)
+        private bool TryQuoteUnitPrice(long referencePrice, double spread, bool buying, out long unitPrice)
         {
             var factor = buying ? 1m - (decimal)spread : 1m + (decimal)spread;
-            return decimal.ToInt64(decimal.Floor((decimal)referencePrice * factor));
+            var quoted = decimal.Floor((decimal)referencePrice * factor);
+            if (quoted > long.MaxValue) { unitPrice = 0; return false; }
+            unitPrice = decimal.ToInt64(quoted);
+            return true;
         }
 
         private static long CalculateTax(long gross, double taxRate)

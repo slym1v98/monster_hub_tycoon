@@ -25,4 +25,9 @@ namespace Game.Domain
     public sealed record BuildingView(
         BuildingKind Kind, int Level, int Slots, int Occupied, int QueueLength, int MaxQueueLength,
         long Price, long FairPrice, bool Maintained);
+
+    public sealed record MaterialStockView(string ItemId, int Available, int Reserved, int InProduction);
+    public sealed record BuyRequestView(string MaterialId, int TargetStock, long BidPrice, bool Enabled, int Deficit);
+    public sealed record MerchantView(string Id, Game.Domain.Supply.MerchantState State, long Cash, int LoadUnits, int CapacityUnits);
+    public sealed record ProductionJobView(long Id, string RecipeId, int StartMinute, int FinishMinute, string State);
 }

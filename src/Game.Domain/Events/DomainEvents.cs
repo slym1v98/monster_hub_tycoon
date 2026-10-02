@@ -28,4 +28,13 @@ namespace Game.Domain
 
     /// <summary>Sang ngày (IsNight = false) hoặc sang đêm (IsNight = true).</summary>
     public sealed record DayPhaseChanged(int Minute, bool IsNight) : IDomainEvent;
+
+    public sealed record SupplyStockChanged(int Minute, string ItemId, Game.Domain.Supply.InventoryBalance Balance) : IDomainEvent;
+    public sealed record BuyRequestChanged(int Minute, string MaterialId, int TargetStock, long BidPrice, bool Enabled) : IDomainEvent;
+    public sealed record MaterialTradeSettled(int Minute, int TrainerId, string MaterialId, string Channel,
+        int Units, long Gross, long Tax, long NetToSeller) : IDomainEvent;
+    public sealed record MerchantStateChanged(int Minute, string MerchantId, Game.Domain.Supply.MerchantState State,
+        long Cash, int LoadUnits) : IDomainEvent;
+    public sealed record ProductionJobChanged(int Minute, long JobId, string RecipeId, string State, int FinishMinute) : IDomainEvent;
+    public sealed record ProductionRestockDemandChanged(int Minute, string ItemId, int Quantity) : IDomainEvent;
 }

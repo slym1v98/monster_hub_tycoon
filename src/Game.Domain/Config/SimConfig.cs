@@ -1,4 +1,6 @@
 using System;
+using Game.Domain.Production;
+using Game.Domain.Supply;
 
 namespace Game.Domain
 {
@@ -61,6 +63,8 @@ namespace Game.Domain
         public long TeamHpMax = 300;
         public long MaterialPrice = 10;
         public double TaxRate = 0.20;
+        public MerchantConfig MerchantSettings = MerchantConfig.Prototype;
+        public ProductionConfig ProductionSettings = new ProductionConfig();
 
         // --- Dịch vụ ---
         public double ServiceCogs = 0.25;

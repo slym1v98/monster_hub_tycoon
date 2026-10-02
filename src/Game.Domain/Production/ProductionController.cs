@@ -12,13 +12,26 @@ namespace Game.Domain.Production
     public sealed class ProductionConfig
     {
         private readonly decimal[] refineryEfficiencyByLevel;
+        private readonly decimal[] jobDurationMultiplierByLevel;
         public int DefaultJobDurationMinutes { get; }
         public long DefaultOperatingCost { get; }
         public IReadOnlyList<decimal> RefineryEfficiencyByLevel => Array.AsReadOnly(refineryEfficiencyByLevel);
+        public IReadOnlyList<decimal> JobDurationMultiplierByLevel => Array.AsReadOnly(jobDurationMultiplierByLevel);
         public int DefaultConcurrentJobsPerProducer { get; }
 
         public ProductionConfig(int defaultJobDurationMinutes = 60, long defaultOperatingCost = 0,
             decimal[] refineryEfficiencyByLevel = null, int defaultConcurrentJobsPerProducer = 1)
+            : this(defaultJobDurationMinutes, defaultOperatingCost, refineryEfficiencyByLevel,
+                defaultConcurrentJobsPerProducer, null)
+        { }
+
+        public ProductionConfig(decimal[] jobDurationMultiplierByLevel)
+            : this(60, 0, null, 1, jobDurationMultiplierByLevel)
+        { }
+
+        public ProductionConfig(int defaultJobDurationMinutes, long defaultOperatingCost,
+            decimal[] refineryEfficiencyByLevel, int defaultConcurrentJobsPerProducer,
+            decimal[] jobDurationMultiplierByLevel)
         {
             if (defaultJobDurationMinutes <= 0) throw new ArgumentOutOfRangeException(nameof(defaultJobDurationMinutes));
             if (defaultOperatingCost < 0) throw new ArgumentOutOfRangeException(nameof(defaultOperatingCost));
@@ -28,6 +41,11 @@ namespace Game.Domain.Production
                 : (decimal[])refineryEfficiencyByLevel.Clone();
             if (this.refineryEfficiencyByLevel.Length != 5 || this.refineryEfficiencyByLevel.Any(x => x <= 0 || x > 1))
                 throw new ArgumentException("Hiệu suất Tinh chế cần đúng 5 giá trị trong khoảng (0..1].", nameof(refineryEfficiencyByLevel));
+            this.jobDurationMultiplierByLevel = jobDurationMultiplierByLevel == null
+                ? new[] { 1.0m, 0.9m, 0.8m, 0.7m, 0.6m }
+                : (decimal[])jobDurationMultiplierByLevel.Clone();
+            if (this.jobDurationMultiplierByLevel.Length != 5 || this.jobDurationMultiplierByLevel.Any(x => x <= 0 || x > 1))
+                throw new ArgumentException("Multiplier thời lượng cần đúng 5 giá trị trong khoảng (0..1].", nameof(jobDurationMultiplierByLevel));
             DefaultJobDurationMinutes = defaultJobDurationMinutes;
             DefaultOperatingCost = defaultOperatingCost;
             DefaultConcurrentJobsPerProducer = defaultConcurrentJobsPerProducer;
@@ -45,12 +63,14 @@ namespace Game.Domain.Production
         public ProductionJobState State { get; internal set; }
         public IReadOnlyList<InventoryItemQuantity> Inputs { get; }
         public IReadOnlyList<InventoryItemQuantity> BaseOutputs { get; }
+        public IReadOnlyList<InventoryItemQuantity> ActualOutputs { get; internal set; }
 
         internal ProductionJob(long id, Recipe recipe, int producerLevel, int startMinute, int finishMinute,
             IReadOnlyList<InventoryItemQuantity> inputs, IReadOnlyList<InventoryItemQuantity> outputs)
         {
             Id = id; Recipe = recipe; ProducerLevel = producerLevel; StartMinute = startMinute; FinishMinute = finishMinute;
             Inputs = Array.AsReadOnly(inputs.ToArray()); BaseOutputs = Array.AsReadOnly(outputs.ToArray());
+            ActualOutputs = Array.Empty<InventoryItemQuantity>();
             State = ProductionJobState.Running;
         }
     }
@@ -76,6 +96,7 @@ namespace Game.Domain.Production
         private readonly Inventory inventory;
         private readonly MoneyLedger ledger;
         private readonly ProductionConfig config;
+        private readonly TreasuryAccount treasury;
         private readonly List<ProductionJob> jobs = new List<ProductionJob>();
         private readonly Dictionary<string, decimal> yieldRemainders = new Dictionary<string, decimal>(StringComparer.Ordinal);
         private ProductionRestockDemand[] restockDemands = Array.Empty<ProductionRestockDemand>();
@@ -85,15 +106,22 @@ namespace Game.Domain.Production
         public IReadOnlyList<ProductionJob> Jobs => jobs.AsReadOnly();
         public IReadOnlyList<ProductionJob> ActiveJobs => jobs.Where(x => x.State == ProductionJobState.Running)
             .OrderBy(x => x.FinishMinute).ThenBy(x => x.Id).ToArray();
+        public Inventory Inventory => inventory;
         public IReadOnlyList<ProductionRestockDemand> RestockDemands => restockDemands;
         public IReadOnlyDictionary<ProductId, int> Targets => new Dictionary<ProductId, int>(targets);
 
         public ProductionController(MaterialCatalog catalog, Inventory inventory, MoneyLedger ledger, ProductionConfig config)
+            : this(catalog, inventory, ledger, config, null)
+        { }
+
+        public ProductionController(MaterialCatalog catalog, Inventory inventory, MoneyLedger ledger, ProductionConfig config,
+            TreasuryAccount treasury)
         {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             this.inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
             this.ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
             this.config = config ?? throw new ArgumentNullException(nameof(config));
+            this.treasury = treasury;
             recipes = catalog.Recipes.OrderBy(x => x.Id.Value, StringComparer.Ordinal).ToArray();
             knownProducts = new HashSet<ProductId>(catalog.Products.Select(x => x.Id));
             producers = catalog.Producers.ToDictionary(x => x.Id, x => new ProducerRuntime
@@ -144,12 +172,13 @@ namespace Game.Domain.Production
             var nextRemainders = new Dictionary<string, decimal>(StringComparer.Ordinal);
             var actualOutputs = CalculateOutputs(job, nextRemainders);
             inventory.ValidateProductionCompletion(job.Inputs, actualOutputs);
-            var cost = job.Recipe.OperatingCost ?? config.DefaultOperatingCost;
-            if (cost > 0)
+            if (treasury == null)
             {
-                ledger.Record("hub:treasury", "world:production-cost", "world:tax-sink", cost, 0, "production operating cost");
+                var cost = job.Recipe.OperatingCost ?? config.DefaultOperatingCost;
+                if (cost > 0) ledger.Record("hub:treasury", "world:production-cost", "world:tax-sink", cost, 0, "production operating cost");
             }
             inventory.CompleteProductionMany(job.Inputs, actualOutputs);
+            job.ActualOutputs = Array.AsReadOnly(actualOutputs.ToArray());
             foreach (var remainder in nextRemainders) yieldRemainders[remainder.Key] = remainder.Value;
             job.State = ProductionJobState.Completed;
         }
@@ -190,7 +219,7 @@ namespace Game.Domain.Production
                                 AddExpandedDemand(need.Item, Math.Max(0, need.Quantity - inventory.Get(need.Item).Available), demands, new HashSet<string>(StringComparer.Ordinal));
                             break;
                         }
-                        StartJob(recipe, runtime);
+                        if (!StartJob(recipe, runtime)) break;
                         madeProgress = true;
                     }
                 }
@@ -199,15 +228,25 @@ namespace Game.Domain.Production
                 .Select(x => new ProductionRestockDemand(x.Key, x.Value)).ToArray();
         }
 
-        private void StartJob(Recipe recipe, ProducerRuntime producer)
+        private bool StartJob(Recipe recipe, ProducerRuntime producer)
         {
+            var cost = recipe.OperatingCost ?? config.DefaultOperatingCost;
+            if (treasury != null && cost > treasury.Balance) return false;
             var inputs = recipe.Inputs.Select(ToInventoryQuantity).ToArray();
             var outputs = recipe.Outputs.Select(ToInventoryQuantity).ToArray();
-            var duration = recipe.DurationMinutes ?? config.DefaultJobDurationMinutes;
+            var baseDuration = recipe.DurationMinutes ?? config.DefaultJobDurationMinutes;
+            var scaledDuration = decimal.Ceiling(baseDuration * config.JobDurationMultiplierByLevel[producer.Level - 1]);
+            var duration = Math.Max(1, decimal.ToInt32(scaledDuration));
             var finish = checked(CurrentMinute + duration);
+            if (treasury != null && cost > 0)
+            {
+                if (!treasury.TrySpend(cost)) return false;
+                ledger.Record("hub:treasury", "world:production-cost", "world:tax-sink", cost, 0, "production operating cost");
+            }
             inventory.ReserveMany(inputs);
             inventory.BeginProductionMany(inputs);
             jobs.Add(new ProductionJob(nextJobId++, recipe, producer.Level, CurrentMinute, finish, inputs, outputs));
+            return true;
         }
 
         private decimal ProjectedOutput(ProductId product)

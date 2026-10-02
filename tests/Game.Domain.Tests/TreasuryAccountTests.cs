@@ -23,6 +23,14 @@ public class TreasuryAccountTests
     }
 
     [Fact]
+    public void AddRejectsOverflowWithoutChangingBalance()
+    {
+        var t = new TreasuryAccount(long.MaxValue);
+        Assert.Throws<OverflowException>(() => t.Add(1));
+        Assert.Equal(long.MaxValue, t.Balance);
+    }
+
+    [Fact]
     public void NegativeArgumentsAreProgrammingErrors()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new TreasuryAccount(-1));

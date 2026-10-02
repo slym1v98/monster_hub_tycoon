@@ -1,9 +1,14 @@
 using System;
+using Game.Domain.Materials;
 
 namespace Game.Domain
 {
     /// <summary>Kết quả một khúc farm.</summary>
-    public sealed record FarmResult(int MaterialUnits, long Gold, long HpLost);
+    /// <summary>
+    /// Một khúc farm. Material để null chỉ dành cho resolver cũ chưa cung cấp danh tính nguyên liệu;
+    /// HubWorld giữ lô đó dưới mã legacy_untyped và không gán nhầm thành nguyên liệu trong catalog.
+    /// </summary>
+    public sealed record FarmResult(int MaterialUnits, long Gold, long HpLost, MaterialId? Material = null);
 
     /// <summary>Điểm cắm cho chiến đấu thật (sub-project 3): tính kết quả farm của một Trainer trong <paramref name="minutes"/> phút.</summary>
     public interface IFarmResolver
@@ -32,7 +37,7 @@ namespace Game.Domain
             int units = (int)Math.Round(cfg.FarmMaterialsPerChunk * chunks * p.MaterialPickRate * p.LootMult * rarityScale * noise);
             long gold = (long)Math.Round(cfg.FarmGoldPerChunk * chunks * p.LootMult * rarityScale * noise);
             long hpLost = (long)Math.Round(cfg.FarmHpLostPerChunk * chunks * p.HpLossMult * rarityScale * noise);
-            return new FarmResult(units, gold, hpLost);
+            return new FarmResult(units, gold, hpLost, MaterialId.For(MaterialFamily.Ore, 1));
         }
     }
 

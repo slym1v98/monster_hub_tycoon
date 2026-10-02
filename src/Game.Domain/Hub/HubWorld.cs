@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Game.Domain.Materials;
+using Game.Domain.Production;
+using Game.Domain.Supply;
 
 namespace Game.Domain
 {
@@ -18,6 +21,17 @@ namespace Game.Domain
         readonly ServiceBuilding[] buildings = new ServiceBuilding[4];
         readonly IFarmResolver farm;
         readonly IMaterialMarket market;
+        readonly bool useSupplyChain;
+        readonly MoneyLedger supplyLedger;
+        readonly Station station;
+        readonly MerchantFleet merchantFleet;
+        readonly ProductionController production;
+        readonly SupplyChain supplyChain;
+        readonly Dictionary<MaterialId, BuyRequest> buyRequests = new Dictionary<MaterialId, BuyRequest>();
+        readonly Dictionary<string, int> reportedRestockDemands = new Dictionary<string, int>(StringComparer.Ordinal);
+        long marketReferencePrice;
+        double marketTaxRate;
+        int productionEventMinute = -1;
 
         int now;                 // phút in-game hiện tại
         int paydayIndex;         // số Payday đã xử lý
@@ -29,14 +43,26 @@ namespace Game.Domain
         public HubWorld(SimConfig config, int seed) : this(config, seed, null, null) { }
 
         /// <param name="farmResolver">Bộ giải farm; null thì dùng bản tạm <see cref="SimpleFarmResolver"/>.</param>
-        /// <param name="materialMarket">Chợ nguyên liệu; null thì dùng bản tạm <see cref="FixedPriceMarket"/>.</param>
+        /// <param name="materialMarket">Chợ tương thích cho caller cũ; để null dùng supply chain mặc định.</param>
         public HubWorld(SimConfig config, int seed, IFarmResolver farmResolver, IMaterialMarket materialMarket)
         {
             cfg = config ?? throw new ArgumentNullException(nameof(config));
+            marketReferencePrice = cfg.MaterialPrice;
+            marketTaxRate = cfg.TaxRate;
             rng = new SimRandom(seed);
             farm = farmResolver ?? new SimpleFarmResolver(cfg, rng);
-            market = materialMarket ?? new FixedPriceMarket(cfg);
+            useSupplyChain = materialMarket == null;
+            market = materialMarket;
             treasury = new TreasuryAccount(cfg.StartTreasury);
+            if (useSupplyChain)
+            {
+                supplyLedger = new MoneyLedger();
+                station = new Station(treasury, cfg.TaxRate, supplyLedger);
+                merchantFleet = new MerchantFleet(cfg.MerchantSettings ?? throw new ArgumentNullException(nameof(config), "Thiếu MerchantSettings."), supplyLedger);
+                production = new ProductionController(MaterialCatalog.Default, station.Stock, supplyLedger,
+                    cfg.ProductionSettings ?? throw new ArgumentNullException(nameof(config), "Thiếu ProductionSettings."), treasury);
+                supplyChain = new SupplyChain(supplyLedger, station, merchantFleet, production);
+            }
             now = cfg.StartMinute;
 
             foreach (BuildingSpec spec in cfg.Buildings)
@@ -63,6 +89,7 @@ namespace Game.Domain
             queue.Schedule(SimClock.NextMinuteOfDay(now, SimClock.DuskMinute), SimEventKind.Dusk);
             queue.Schedule(SimClock.NextMinuteOfDay(now, 0), SimEventKind.DayStart);
             queue.Schedule(SimClock.PaydayMinute(0), SimEventKind.PaydayDue);
+            if (useSupplyChain) queue.Schedule(now + Math.Max(1, cfg.MerchantSettings.RouteCycleMinutes / 2), SimEventKind.MerchantRouteStep);
             foreach (Trainer t in trainers) queue.Schedule(now, SimEventKind.TrainerDecide, t.Id, t.Token);
         }
 
@@ -129,6 +156,9 @@ namespace Game.Domain
                 case SimEventKind.Dusk: OnDusk(); break;
                 case SimEventKind.DayStart: OnDayStart(); break;
                 case SimEventKind.PaydayDue: OnPaydayDue(); break;
+                case SimEventKind.MerchantRouteStep: OnMerchantRouteStep(); break;
+                case SimEventKind.ProductionComplete: OnProductionComplete(); break;
+                case SimEventKind.MarketRetry: if (t != null) OnMarketRetry(t); break;
             }
         }
 

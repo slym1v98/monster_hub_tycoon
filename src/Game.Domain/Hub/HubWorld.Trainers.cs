@@ -1,4 +1,7 @@
 using System;
+using Game.Domain.Materials;
+using Game.Domain.Supply;
+using System.Linq;
 
 namespace Game.Domain
 {
@@ -85,9 +88,15 @@ namespace Game.Domain
             Settle(t);
             FarmResult r = farm.Resolve(t, cfg.FarmChunkMinutes);
             if (payroll.DebtMode)   // chế độ cấn nợ: farm ít hơn
-                r = new FarmResult((int)(r.MaterialUnits * cfg.DebtModeFarmMultiplier), (long)(r.Gold * cfg.DebtModeFarmMultiplier), r.HpLost);
+                r = new FarmResult((int)(r.MaterialUnits * cfg.DebtModeFarmMultiplier), (long)(r.Gold * cfg.DebtModeFarmMultiplier), r.HpLost, r.Material);
 
-            t.BackpackUnits = Math.Min(t.BackpackCapacity, t.BackpackUnits + r.MaterialUnits);
+            int gained = Math.Min(t.BackpackCapacity - t.BackpackUnits, r.MaterialUnits);
+            t.BackpackUnits += gained;
+            if (gained > 0)
+            {
+                MaterialId material = r.Material ?? new MaterialId("legacy_untyped");
+                t.BackpackMaterials[material] = checked(t.BackpackMaterials.TryGetValue(material, out int held) ? held + gained : gained);
+            }
             t.Gold += r.Gold;                                  // Gold quái rơi là nguồn tiền từ ngoài vào
             t.TeamHp = Math.Max(0, t.TeamHp - r.HpLost);
 
@@ -116,14 +125,63 @@ namespace Game.Domain
         {
             Settle(t);
             SetState(t, TrainerState.AtHub, "Arrived");
-            if (t.BackpackUnits > 0)
+            if (t.BackpackUnits > 0 && useSupplyChain)
+            {
+                if (SellBackpack(t)) { SetState(t, TrainerState.AtHub, "MarketSettled"); OnDecide(t); }
+                else { t.MarketWaitSinceMinute = now; SetState(t, TrainerState.WaitingForMarket, "MerchantRoute");
+                    ScheduleOrEndMarketWait(t); }
+                return;
+            }
+            else if (t.BackpackUnits > 0)
             {
                 SaleResult sale = market.Quote(t, t.BackpackUnits);
                 t.Gold += sale.GrossToTrainer - sale.Tax;
                 AddTreasury(sale.Tax, "TradeTax");
                 t.BackpackUnits = 0;
+                t.BackpackMaterials.Clear();
             }
             OnDecide(t);
+        }
+
+        bool SellBackpack(Trainer t)
+        {
+            foreach (var lot in t.BackpackMaterials.OrderBy(x => x.Key.Value, StringComparer.Ordinal).ToArray())
+            {
+                int remaining = lot.Value;
+                if (buyRequests.TryGetValue(lot.Key, out var request) && request.Enabled)
+                {
+                    long before = treasury.Balance;
+                    SaleBreakdown direct = station.BuyFromTrainer("trainer:" + t.Id, lot.Key, remaining, request);
+                    t.Gold = checked(t.Gold + direct.NetToSeller);
+                    remaining = direct.UnsoldUnits;
+                    if (direct.StationUnits > 0) Raise(new MaterialTradeSettled(now, t.Id, lot.Key.Value, "Station",
+                        direct.StationUnits, direct.Gross, direct.Tax, direct.NetToSeller));
+                    if (treasury.Balance != before) Raise(new TreasuryChanged(now, treasury.Balance - before, treasury.Balance, "TradeTax"));
+                    if (direct.StationUnits > 0) Raise(new SupplyStockChanged(now, "material:" + lot.Key.Value,
+                        station.Stock.Get(new InventoryItem(lot.Key))));
+                    if (direct.StationUnits > 0) ReconcileProduction();
+                }
+                if (remaining > 0 && merchantFleet.Current.State == MerchantState.AtTrainerRoute)
+                {
+                    SaleBreakdown merchantSale = merchantFleet.Current.BuyFromTrainer("trainer:" + t.Id, lot.Key, remaining,
+                        marketReferencePrice, marketTaxRate, long.MaxValue - treasury.Balance);
+                    t.Gold = checked(t.Gold + merchantSale.NetToSeller);
+                    if (merchantSale.MerchantUnits > 0) Raise(new MaterialTradeSettled(now, t.Id, lot.Key.Value, "Merchant",
+                        merchantSale.MerchantUnits, merchantSale.Gross, merchantSale.Tax, merchantSale.NetToSeller));
+                    if (merchantSale.Tax > 0)
+                    {
+                        treasury.Add(merchantSale.Tax);
+                        Raise(new TreasuryChanged(now, merchantSale.Tax, treasury.Balance, "TradeTax"));
+                    }
+                    remaining = merchantSale.UnsoldUnits;
+                }
+                if (remaining == 0) t.BackpackMaterials.Remove(lot.Key);
+                else t.BackpackMaterials[lot.Key] = remaining;
+            }
+            int total = 0;
+            checked { foreach (int units in t.BackpackMaterials.Values) total += units; }
+            t.BackpackUnits = total;
+            return total == 0;
         }
     }
 }

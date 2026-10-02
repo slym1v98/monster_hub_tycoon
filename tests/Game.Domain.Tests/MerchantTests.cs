@@ -56,6 +56,40 @@ namespace Game.Domain.Tests
         }
 
         [Fact]
+        public void MerchantLeavesGoodsUnsoldWhenStationMarkupCannotFitInLong()
+        {
+            var ledger = new MoneyLedger();
+            var merchant = new Merchant("m1", 1000,
+                new MerchantConfig(20, 0.05, 0.10, 20, operatingCostPerTrip: 0), ledger);
+            merchant.BuyFromTrainer("trainer:1", Ore, 1, 10, 0.20);
+            merchant.DepartForStation();
+            Assert.True(merchant.ArriveAtStation());
+            var station = new Station(long.MaxValue, 0.20, new MoneyLedger());
+            var before = ledger.Transactions.Count;
+
+            var result = merchant.SellToStation(station, Ore, new BuyRequest(Ore, 1, long.MaxValue));
+
+            Assert.Equal(1, result.UnsoldUnits);
+            Assert.Equal(1, merchant.LoadUnits);
+            Assert.Equal(0, station.Stock.Get(new InventoryItem(Ore)).Available);
+            Assert.Equal(before, ledger.Transactions.Count);
+        }
+
+        [Fact]
+        public void MerchantPurchaseRespectsTreasuryTaxHeadroomBeforeRecordingSale()
+        {
+            var ledger = new MoneyLedger();
+            var merchant = new Merchant("m1", long.MaxValue,
+                new MerchantConfig(10, 0.05, 0.10, 10, operatingCostPerTrip: 0), ledger);
+
+            var result = merchant.BuyFromTrainer("trainer:1", Ore, 1, 100, 1.0, maximumTax: 0);
+
+            Assert.Equal(1, result.UnsoldUnits);
+            Assert.Equal(0, merchant.LoadUnits);
+            Assert.Empty(ledger.Transactions);
+        }
+
+        [Fact]
         public void BankruptMerchantKeepsGoodsAndFleetReplacesItAfterDelay()
         {
             var ledger = new MoneyLedger();

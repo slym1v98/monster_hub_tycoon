@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
+using Game.Domain.Materials;
 
 namespace Game.Domain
 {
     /// <summary>Trạng thái hiện tại của Trainer trong FSM.</summary>
-    public enum TrainerState { AtHub, Traveling, Farming, Returning, Queued, InService, WaitingForMoney }
+    public enum TrainerState { AtHub, Traveling, Farming, Returning, Queued, InService, WaitingForMoney, WaitingForMarket }
 
     /// <summary>Lý do Trainer quyết định về HUB. <see cref="None"/> nghĩa là tiếp tục farm.</summary>
     public enum ReturnReason { None, Strike, Night, TeamDown, BackpackFull, Tired, Hungry, Thirsty }
@@ -45,6 +47,7 @@ namespace Game.Domain
         public long TeamHp;
         public long TeamHpMax;
         public int BackpackUnits;
+        public readonly Dictionary<MaterialId, int> BackpackMaterials = new Dictionary<MaterialId, int>();
         public int BackpackCapacity;
         /// <summary>Cờ tạm thay cho slot Kính (sub-project 4).</summary>
         public bool HasNightVision;
@@ -66,6 +69,7 @@ namespace Game.Domain
         /// <summary>Lần cuối trừ/cộng nhu cầu theo thời gian trôi.</summary>
         public int LastSettleMinute;
         public int WaitingSinceMinute;
+        public int MarketWaitSinceMinute;
         public BuildingKind PendingService;
 
         public bool IsOnStrike => StrikeDaysLeft > 0;
