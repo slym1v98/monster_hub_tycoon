@@ -45,3 +45,8 @@
     *   Một bậc Rarity tương đương 20 cấp độ: Monster cùng bậc luôn nghe lời; hơn 1 bậc vừa đủ; hơn 2 bậc cần thưởng Lãnh đạo. Xem [13_Balance_Parameters](13_Balance_Parameters.md) §13.
     *   *Hậu quả:* Bỏ đánh, ngủ gật, cắn diện rộng kéo aggro quái rừng. Khởi điểm: xác suất bỏ đánh mỗi trận tỉ lệ với mức thiếu điểm.
     *   *Giải pháp:* AI phải chạy về HUB mua "Bánh thưởng" cao cấp hoặc học Khóa Giao Tiếp Thú Cưng với giá đắt đỏ.
+
+## 4. TRẠNG THÁI TRIỂN KHAI DOMAIN (Sub-project 3)
+*   Đã mô phỏng trong `Game.Domain`: roster 1 Active + 2 Reserve, cấp Monster suy ra từ Rank/Lv Trainer, hệ số IV/Rarity, bảng 9 hệ, trận tất định theo seed (skill, hồi chiêu, Swap < 15%, ngất), Rebellion theo cấp quy đổi, Zone/encounter/loot (đêm ×2 khi có kính), bắt thú (cần Bóng), Bệnh Viện Thú Y (100 giường hồi phục + khu cấp cứu), Ngân Hàng Gene, giám định IV, phân giải ra Gene Fragments, tăng Rarity và Tiến hóa.
+*   Mọi tham số số học chưa chốt trong GDD là **Prototype** và nằm trong workbook `docs/balance/MonsterHUB_Balance.xlsx` (sheet `Monster Catalog`, `Combat & Capture`, `Zones & Loot`, `Monster Lifecycle`). Danh mục nhánh Tiến hóa mặc định rỗng (xem [99](../99_Open_Issues.md) O10).
+*   Phụ thuộc còn lại: thu phí/tịch thu Ngân Hàng Gene ở Payday → Sub-project 5; mở Zone và sự kiện → Sub-project 6; độ bền trang bị Monster → Sub-project 4.
