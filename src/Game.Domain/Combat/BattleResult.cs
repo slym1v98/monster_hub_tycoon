@@ -34,6 +34,7 @@ namespace Game.Domain.Combat
     {
         public BattleOutcome Outcome { get; }
         public MonsterId? ActiveId { get; }
+        /// <summary>True only when the team has exactly three Monsters and all three have fainted.</summary>
         public bool TeamDown { get; }
         public int CompletedRounds { get; }
         public IReadOnlyList<BattleAction> Actions { get; }
@@ -49,7 +50,7 @@ namespace Game.Domain.Combat
             Actions = Array.AsReadOnly(actions.ToArray());
             FinalMonsters = Array.AsReadOnly(finalMonsters.OrderBy(x => x.Id.Value, StringComparer.Ordinal).ToArray());
             ActiveId = activeId;
-            TeamDown = FinalMonsters.Any(x => x.Side == BattleSide.Team)
+            TeamDown = FinalMonsters.Count(x => x.Side == BattleSide.Team) == 3
                 && FinalMonsters.Where(x => x.Side == BattleSide.Team).All(x => x.Fainted);
             InitialRandomState = initialRandomState;
             FinalRandomState = finalRandomState;

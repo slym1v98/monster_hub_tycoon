@@ -250,6 +250,7 @@ namespace Game.Domain.Tests
         {
             var result = BattleResolver.Resolve(new BattleInput(Array.Empty<MonsterSnapshot>(), Array.Empty<MonsterSnapshot>()), Config(), new SimRandom(42));
             Assert.Equal(BattleOutcome.Draw, result.Outcome);
+            Assert.False(result.TeamDown);
             Assert.Empty(result.Actions);
             Assert.Empty(result.FinalMonsters);
             Assert.Equal(result.InitialRandomState, result.FinalRandomState);
@@ -370,6 +371,43 @@ namespace Game.Domain.Tests
             Assert.Equal(new MonsterId("z"), result.ActiveId);
             Assert.Equal(new MonsterId("z"), result.Actions.First(x => x.Kind == BattleActionKind.Skill).ActorId);
             Assert.DoesNotContain(result.Actions, x => x.Kind == BattleActionKind.Skill && (x.ActorId == active.Id || x.ActorId == new MonsterId("A")));
+            Assert.False(result.TeamDown);
+        }
+
+        [Theory]
+        [InlineData(0, false)]
+        [InlineData(1, false)]
+        [InlineData(2, false)]
+        [InlineData(3, true)]
+        public void InitiallyAllFaintedRosterLosesButTeamDownRequiresThreeMembers(int teamSize, bool expectedTeamDown)
+        {
+            var team = Enumerable.Range(0, teamSize).Select(i => Monster("team-" + i, currentHp: 0)).ToArray();
+            var result = BattleResolver.Resolve(new BattleInput(team, new[] { Monster("enemy") }), Config(), new SimRandom(42));
+
+            Assert.Equal(BattleOutcome.OpponentsWon, result.Outcome);
+            Assert.Equal(expectedTeamDown, result.TeamDown);
+            var finalTeam = result.FinalMonsters.Where(x => x.Side == BattleSide.Team).ToArray();
+            Assert.Equal(teamSize, finalTeam.Length);
+            Assert.All(finalTeam, x => Assert.True(x.Fainted));
+            Assert.Empty(result.Actions);
+            Assert.Equal(result.InitialRandomState, result.FinalRandomState);
+        }
+
+        [Theory]
+        [InlineData(1, false)]
+        [InlineData(2, false)]
+        [InlineData(3, true)]
+        public void RosterFaintingDuringCombatLosesButTeamDownRequiresThreeMembers(int teamSize, bool expectedTeamDown)
+        {
+            var team = Enumerable.Range(0, teamSize).Select(i => Monster("team-" + i, hp: 10, speed: 1)).ToArray();
+            var result = BattleResolver.Resolve(new BattleInput(team, new[] { Monster("enemy", speed: 100) }), Config(rounds: 10), new SimRandom(42));
+
+            Assert.Equal(BattleOutcome.OpponentsWon, result.Outcome);
+            Assert.Equal(expectedTeamDown, result.TeamDown);
+            var finalTeam = result.FinalMonsters.Where(x => x.Side == BattleSide.Team).ToArray();
+            Assert.Equal(teamSize, finalTeam.Length);
+            Assert.All(finalTeam, x => Assert.True(x.Fainted));
+            Assert.Equal(teamSize, result.Actions.Count(x => x.Fainted));
         }
 
         [Fact]
@@ -425,7 +463,8 @@ namespace Game.Domain.Tests
             var result = BattleResolver.Resolve(TeamInput(active, new[] { Monster("reserve", currentHp: 0) }, new[] { Monster("enemy") }), Config(rounds: 3), new SimRandom(42));
             Assert.DoesNotContain(result.Actions, x => x.Swap);
             Assert.Equal(2, result.Actions.Count(x => x.Kind == BattleActionKind.Skill && x.ActorId == active.Id));
-            Assert.True(result.TeamDown);
+            Assert.Equal(BattleOutcome.OpponentsWon, result.Outcome);
+            Assert.False(result.TeamDown);
         }
 
         [Fact]
@@ -594,10 +633,10 @@ namespace Game.Domain.Tests
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(1)]
-        [InlineData(2)]
-        public void TeamReplayReconstructsHpCooldownsActiveFaintAndRebellionIncludingEarlyAreaWin(int scenario)
+        [InlineData(0, false)]
+        [InlineData(1, false)]
+        [InlineData(2, true)]
+        public void TeamReplayReconstructsHpCooldownsActiveFaintAndRebellionIncludingEarlyAreaWin(int scenario, bool expectedTeamDown)
         {
             var active = Monster("active", hp: scenario == 2 ? 10 : 1000, currentHp: 10, speed: scenario == 1 ? 100 : 1);
             var reserves = scenario == 1 ? Array.Empty<MonsterSnapshot>()
@@ -645,7 +684,7 @@ namespace Game.Domain.Tests
                 }
             }
             Assert.Equal(activeId, result.ActiveId);
-            Assert.Equal(input.Team.All(x => hp[x.Id] == 0), result.TeamDown);
+            Assert.Equal(expectedTeamDown, result.TeamDown);
             Assert.Equal(result.CompletedRounds, result.Actions.Count(x => x.Kind == BattleActionKind.RoundCompleted));
             foreach (var monster in result.FinalMonsters)
             {
