@@ -98,7 +98,7 @@ namespace Game.Domain
                 t.BackpackMaterials[material] = checked(t.BackpackMaterials.TryGetValue(material, out int held) ? held + gained : gained);
             }
             t.Gold += r.Gold;                                  // Gold quái rơi là nguồn tiền từ ngoài vào
-            t.TeamHp = Math.Max(0, t.TeamHp - r.HpLost);
+            t.Roster.ApplyDamage(r.HpLost);
 
             ReturnReason reason = TrainerBrain.ShouldReturn(t, SimClock.IsNight(now));
             if (reason != ReturnReason.None) StartReturn(t, reason);

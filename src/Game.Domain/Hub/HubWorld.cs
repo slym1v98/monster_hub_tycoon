@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Game.Domain.Materials;
+using Game.Domain.Monsters;
 using Game.Domain.Production;
 using Game.Domain.Supply;
 
@@ -70,19 +72,24 @@ namespace Game.Domain
             for (int i = 0; i < buildings.Length; i++)
                 if (buildings[i] == null) throw new ArgumentException($"SimConfig.Buildings thiếu công trình {(BuildingKind)i}.");
 
+            var starterDefinition = MonsterCatalog.CreateDefault(cfg.TeamHpMax).Definitions[0];
             for (int i = 0; i < cfg.TrainerCount; i++)
             {
                 Personality personality = cfg.ForcedPersonality ?? (Personality)rng.NextInt(4);
-                trainers.Add(new Trainer
+                var trainer = new Trainer
                 {
                     Id = i, Rarity = Rarity.Common, Personality = personality,
                     Gold = cfg.StartTrainerGold,
-                    TeamHp = cfg.TeamHpMax, TeamHpMax = cfg.TeamHpMax,
                     BackpackCapacity = cfg.BackpackCapacity,
                     ContractWage = cfg.ContractWageFor(Rarity.Common, personality),
                     LastSettleMinute = now,
                     HasNightVision = cfg.StartWithNightVision,
-                });
+                };
+                // Trộn seed bằng số nguyên ổn định; không tiêu thụ chuỗi ngẫu nhiên của mô phỏng.
+                int monsterSeed = unchecked(seed ^ (i * (int)0x9E3779B9u));
+                trainer.Roster.Add(Monster.Create(new MonsterId("trainer_" + i.ToString(CultureInfo.InvariantCulture) + "_starter"),
+                    starterDefinition, trainer.Rarity, MonsterIvGrade.B, 1, monsterSeed, isSoulBound: true));
+                trainers.Add(trainer);
             }
 
             queue.Schedule(SimClock.NextMinuteOfDay(now, SimClock.DawnMinute), SimEventKind.Dawn);

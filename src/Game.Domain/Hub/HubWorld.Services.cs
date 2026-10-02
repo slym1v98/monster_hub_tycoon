@@ -76,7 +76,7 @@ namespace Game.Domain
                 case BuildingKind.Inn: t.Needs.Stamina = 100; break;
                 case BuildingKind.Restaurant: t.Needs.Satiety = 100; t.Needs.Hydration = 100; break;
                 case BuildingKind.Bar: t.Needs.Stress = cfg.BarStressTarget; break;
-                case BuildingKind.Hospital: t.TeamHp = t.TeamHpMax; break;
+                case BuildingKind.Hospital: t.Roster.RestoreAllHp(); break;
             }
             b.Leave(t.Id);
             SeatWaiting(b);

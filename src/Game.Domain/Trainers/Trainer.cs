@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Domain.Materials;
+using Game.Domain.Monsters;
 
 namespace Game.Domain
 {
@@ -33,7 +34,7 @@ namespace Game.Domain
 
     /// <summary>
     /// Dữ liệu phẳng của một Trainer. Chỉ chứa dữ liệu; logic nằm ở TrainerBrain và HubWorld.
-    /// Trainer không có HP riêng: <see cref="TeamHp"/> là HP gộp của 3 Monster (tạm, sub-project 3 thay).
+    /// Trainer không có HP riêng: <see cref="TeamHp"/> chỉ là tổng HP suy ra từ đội Monster đến tác vụ 9.
     /// </summary>
     public sealed class Trainer
     {
@@ -44,8 +45,9 @@ namespace Game.Domain
         public Personality Personality;
         public readonly Needs Needs = new Needs();
         public long Gold;
-        public long TeamHp;
-        public long TeamHpMax;
+        public MonsterRoster Roster { get; } = new MonsterRoster();
+        public long TeamHp => Roster.TotalHp;
+        public long TeamHpMax => Roster.TotalHpMax;
         public int BackpackUnits;
         public readonly Dictionary<MaterialId, int> BackpackMaterials = new Dictionary<MaterialId, int>();
         public int BackpackCapacity;
