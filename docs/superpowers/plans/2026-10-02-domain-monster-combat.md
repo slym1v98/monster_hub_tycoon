@@ -153,14 +153,14 @@
 
 **Interfaces:**
 - Extend battle input with Active/Reserve roster, Trainer Leadership, Monster management scores and synergy/item modifiers.
-- After an action that leaves Active HP strictly below 15% of max and above zero, `BattleResolver` swaps to the lowest stable-ID eligible living Reserve before the next action. At 0 HP it faints; a living Reserve may take over. All three faint means team loss and `BattleResult.TeamDown=true`.
+- After an action that leaves Active HP strictly below 15% of max and above zero, `BattleResolver` swaps to the lowest stable-ID eligible living Reserve before the next action. At 0 HP it faints; a living Reserve may take over. `BattleResult.TeamDown` is true only for a full three-Monster team with all three fainted. A one/two-Monster team with no living member loses the encounter (`OpponentsWon`), and Task 9 must return it to HUB based on the battle outcome/no living roster.
 - Rebellion outcome is a seeded action per Monster per encounter; allowed outcomes are obey, skip/sleep, or area aggro attack. Chance/formulas are explicit Prototype inputs.
 
-- [ ] **Step 1: Write failing tests** for HP 14.99% Swap, exactly 15% no Swap, 0 HP faint without death, subsequent Reserve participation, all-faint team loss, each Rebellion outcome and deterministic tie-break.
-- [ ] **Step 2: Run the focused test and confirm failures.**
-- [ ] **Step 3: Implement team-state transitions and action-log entries** without changing the GDD thresholds.
-- [ ] **Step 4: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~BattleResolverTests`, then full suite.**
-- [ ] **Step 5: Commit** as `feat(domain): add monster swaps fainting and rebellion actions`.
+- [x] **Step 1: Write failing tests** for HP 14.99% Swap, exactly 15% no Swap, 0 HP faint without death, subsequent Reserve participation, all-faint team loss, each Rebellion outcome and deterministic tie-break.
+- [x] **Step 2: Run the focused test and confirm failures.**
+- [x] **Step 3: Implement team-state transitions and action-log entries** without changing the GDD thresholds.
+- [x] **Step 4: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~BattleResolverTests`, then full suite.**
+- [x] **Step 5: Commit** as `feat(domain): add monster swaps fainting and rebellion actions`.
 
 ### Task 7: Zone catalog, unlock input and Zone selection
 
