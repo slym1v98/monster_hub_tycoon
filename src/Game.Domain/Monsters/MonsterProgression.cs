@@ -12,6 +12,7 @@ namespace Game.Domain.Monsters
             return 20 * (trainerRank - 1) + (trainerLevel + 4) / 5;
         }
 
+        /// <summary>Cấp Quản Lý giữ phần lẻ Lv/5 theo GDD, không làm tròn như cấp Monster.</summary>
         public static double TrainerManagementLevel(int trainerRank, int trainerLevel)
         {
             Validate(trainerRank, trainerLevel);

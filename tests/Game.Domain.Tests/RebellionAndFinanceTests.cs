@@ -3,6 +3,24 @@ using Game.Domain;
 
 public class RebellionTests
 {
+    [Fact] public void SameRankMonsterDoesNotRebelBecauseMonsterLevelRoundsUp()
+        => Assert.False(RebellionModel.IsRebellious(2, Rarity.Rare, 1, 6, Rarity.Rare));
+
+    [Fact] public void LeadershipUsesFractionalRankAwareTrainerManagementLevel()
+        => Assert.Equal(61.2, RebellionModel.LeadershipScore(2, 6, Rarity.Rare), 10);
+
+    [Fact] public void OneRarityGapIsWorthTwentyLeadershipPoints()
+    {
+        Assert.False(RebellionModel.IsRebellious(1, Rarity.Rare, 1, 5, Rarity.Common));
+        Assert.True(RebellionModel.IsRebellious(2, Rarity.Rare, 1, 5, Rarity.Common));
+    }
+
+    [Fact] public void TwoRarityGapsNeedTwentyBonusPointsToBeManaged()
+    {
+        Assert.True(RebellionModel.IsRebellious(1, Rarity.Epic, 1, 5, Rarity.Common, bonus: 19));
+        Assert.False(RebellionModel.IsRebellious(1, Rarity.Epic, 1, 5, Rarity.Common, bonus: 20));
+    }
+
     [Fact] public void SameRaritySameLevelIsControllable()
         => Assert.False(RebellionModel.IsRebellious(30, Rarity.Rare, 30, Rarity.Rare));
 
