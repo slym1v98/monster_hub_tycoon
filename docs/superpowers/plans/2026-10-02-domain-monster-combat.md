@@ -92,11 +92,11 @@
 - Add rank-aware overloads `LeadershipScore(int trainerRank, int trainerLevel, Rarity trainerRarity, double bonus = 0)` and `IsRebellious(int monsterLevel, Rarity monsterRarity, int trainerRank, int trainerLevel, Rarity trainerRarity, double bonus = 0)`.
 - Keep an obsolete compatibility overload only until all callers migrate; production callers use `MonsterProgression.TrainerManagementLevel`.
 
-- [ ] **Step 1: Add tests** proving equal-rarity same-rank Monsters do not rebel solely due to level rounding, and one/two Rarity gaps obey K=20 plus leadership bonus.
-- [ ] **Step 2: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~RebellionAndFinanceTests` and observe the new assertions fail.**
-- [ ] **Step 3: Implement rank-aware score calculation** using the existing `K=20`, leadership base 20 and explicit bonuses for Academy/communication lock.
-- [ ] **Step 4: Run focused and full Domain tests.**
-- [ ] **Step 5: Commit** as `fix(domain): calculate rebellion on converted trainer level`.
+- [x] **Step 1: Add tests** proving equal-rarity same-rank Monsters do not rebel solely due to level rounding, and one/two Rarity gaps obey K=20 plus leadership bonus.
+- [x] **Step 2: Run focused `RebellionTests` and verify the new API assertions fail against the Task 2 baseline.**
+- [x] **Step 3: Implement rank-aware score calculation** using the existing `K=20`, leadership base 20 and explicit bonuses for Academy/communication lock.
+- [x] **Step 4: Run focused and full Domain tests.**
+- [x] **Step 5: Commit** as `fix(domain): calculate rebellion on converted trainer level`.
 
 ### Task 4: Element chart and data-driven skill catalog
 
