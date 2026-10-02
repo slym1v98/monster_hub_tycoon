@@ -52,6 +52,63 @@ namespace Game.Domain
         public IReadOnlyList<MoneyTransaction> SupplyTransactions => supplyLedger == null
             ? Array.Empty<MoneyTransaction>() : supplyLedger.Transactions.ToArray();
 
+        public HubStockSnapshot ConsumableStock
+        {
+            get
+            {
+                var products = new Dictionary<ProductId, ProductStock>();
+                foreach (var entry in productStalls)
+                {
+                    long price = ProductPrice(entry.Key);
+                    products.Add(entry.Key, new ProductStock(entry.Value.Available(entry.Key), price));
+                }
+                return new HubStockSnapshot(products);
+            }
+        }
+
+        public CommandResult PurchaseProduct(int trainerId, string productId, int units)
+        {
+            if (trainerId < 0 || trainerId >= trainers.Count) return CommandResult.Rejected("Trainer không tồn tại.");
+            if (string.IsNullOrWhiteSpace(productId)) return CommandResult.Rejected("Thiếu mã sản phẩm.");
+            if (units <= 0) return CommandResult.Rejected("Số lượng phải lớn hơn 0.");
+            if (!useSupplyChain || supplyLedger == null) return CommandResult.Rejected("Quầy tiêu hao không khả dụng.");
+            var id = new ProductId(productId);
+            var definition = MaterialCatalog.Default.Products.FirstOrDefault(x => x.Id == id);
+            if (definition == null || !productStalls.TryGetValue(id, out var stall)) return CommandResult.Rejected("Sản phẩm không được bán tại quầy.");
+            var trainer = trainers[trainerId];
+            if (!trainer.Inventory.CanAdd(id, units)) return CommandResult.Rejected("Số lượng vượt giới hạn kho Trainer.");
+            long price;
+            try { price = ProductPrice(id); _ = checked(price * units); }
+            catch (Exception ex) when (ex is OverflowException || ex is KeyNotFoundException) { return CommandResult.Rejected("Giá hoặc tổng thanh toán không hợp lệ."); }
+            long total = checked(price * units);
+            if (trainer.Gold < total) return CommandResult.Rejected("Trainer không đủ Gold.");
+            if (treasury.Balance > long.MaxValue - total) return CommandResult.Rejected("Kho bạc đã đạt giới hạn số dư.");
+            if (!stall.TryPurchaseToTrainer("trainer:" + trainer.Id, id, units, price, trainer.Gold, out _))
+                return CommandResult.Rejected("Tồn kho không đủ.");
+            int beforeCount = trainer.Inventory.Count(id);
+            trainer.Inventory.Add(id, units);
+            trainer.Gold -= total;
+            treasury.Add(total);
+            Raise(new TreasuryChanged(now, total, treasury.Balance, "ConsumableSale"));
+            Raise(new SupplyStockChanged(now, "product:" + id.Value, station.Stock.Get(new InventoryItem(id))));
+            Raise(new TrainerProductChanged(now, trainer.Id, id.Value, units, trainer.Inventory.Count(id)));
+            Raise(new ProductPurchased(now, trainer.Id, id.Value, units, price, total));
+            return CommandResult.Success();
+        }
+
+        long ProductPrice(ProductId id)
+        {
+            var definition = MaterialCatalog.Default.Products.FirstOrDefault(x => x.Id == id);
+            if (definition == null) throw new KeyNotFoundException("Product is not in the catalog.");
+            if (definition.ReferencePrice.HasValue)
+            {
+                if (definition.ReferencePrice.Value > long.MaxValue) throw new OverflowException();
+                return decimal.ToInt64(decimal.Round(definition.ReferencePrice.Value, 0, MidpointRounding.AwayFromZero));
+            }
+            if (!(cfg.ConsumablePrices ?? ConsumablePriceConfig.Prototype).TryGetPrice(id, out var price)) throw new KeyNotFoundException("Product price is not configured.");
+            return price;
+        }
+
         public CommandResult SetBuyRequest(string materialId, int targetStock, long bidPrice, bool enabled = true)
         {
             if (!useSupplyChain) return CommandResult.Rejected("Supply chain không được bật cho HubWorld này.");

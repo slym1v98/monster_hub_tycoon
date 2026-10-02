@@ -61,6 +61,7 @@ namespace Game.Domain
         public readonly Needs Needs = new Needs();
         public long Gold;
         public MonsterRoster Roster { get; }
+        public TrainerInventory Inventory { get; } = new TrainerInventory();
         public int BackpackUnits;
         public readonly Dictionary<MaterialId, int> BackpackMaterials = new Dictionary<MaterialId, int>();
         public int BackpackCapacity;

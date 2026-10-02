@@ -29,6 +29,7 @@ namespace Game.Domain
         readonly MerchantFleet merchantFleet;
         readonly ProductionController production;
         readonly SupplyChain supplyChain;
+        readonly Dictionary<ProductId, ConsumableStall> productStalls = new Dictionary<ProductId, ConsumableStall>();
         readonly Dictionary<MaterialId, BuyRequest> buyRequests = new Dictionary<MaterialId, BuyRequest>();
         readonly Dictionary<string, int> reportedRestockDemands = new Dictionary<string, int>(StringComparer.Ordinal);
         long marketReferencePrice;
@@ -64,6 +65,11 @@ namespace Game.Domain
                 production = new ProductionController(MaterialCatalog.Default, station.Stock, supplyLedger,
                     cfg.ProductionSettings ?? throw new ArgumentNullException(nameof(config), "Thiếu ProductionSettings."), treasury);
                 supplyChain = new SupplyChain(supplyLedger, station, merchantFleet, production);
+                foreach (var definition in ConsumableStallCatalog.Default.Stalls)
+                {
+                    var stall = new ConsumableStall(definition, station.Stock, supplyLedger);
+                    foreach (var product in definition.Products) productStalls.Add(product, stall);
+                }
             }
             now = cfg.StartMinute;
 

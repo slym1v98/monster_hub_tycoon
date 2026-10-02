@@ -253,11 +253,11 @@
 - Add `HubWorld.PurchaseProduct(int trainerId, string productId, int units) -> CommandResult`; it validates Trainer, stall/catalog mapping, current available stock and cash, then atomically debits Trainer, credits HUB, decrements product stock and records money/stock events.
 - `ConsumablePolicy.DecidePurchases(TrainerSnapshot, HubStockSnapshot, CombatRiskSnapshot, ConsumablePolicyConfig) -> IReadOnlyList<ProductPurchase>` chooses finite stock quantities according to need/affordability/personality. No scripted free inventory.
 
-- [ ] **Step 1: Write failing tests** for exact cash/stock/ledger changes, invalid product, no stock, unaffordable/partial quantity, duplicate item stack and overflow-safe counts.
-- [ ] **Step 2: Run focused tests and observe the failures.**
-- [ ] **Step 3: Implement inventory and atomic purchase** so a rejected purchase changes none of money, stock, inventory or ledger.
-- [ ] **Step 4: Run focused tests and full Domain suite.**
-- [ ] **Step 5: Commit** as `feat(domain): add trainer consumable inventory and purchase`.
+- [x] **Step 1: Write failing tests** for exact cash/stock/ledger changes, invalid product, no stock, unaffordable/partial quantity, duplicate item stack and overflow-safe counts.
+- [x] **Step 2: Run focused tests and observe the failures.**
+- [x] **Step 3: Implement inventory and atomic purchase** so a rejected purchase changes none of money, stock, inventory or ledger.
+- [x] **Step 4: Run focused tests and full Domain suite.**
+- [x] **Step 5: Commit** as `feat(domain): add trainer consumable inventory and purchase`.
 
 ### Task 11: Monster item behavior and AI use policy
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Domain.Monsters;
+using Game.Domain.Materials;
 
 namespace Game.Domain
 {
@@ -17,9 +18,12 @@ namespace Game.Domain
         public IReadOnlyList<MonsterSnapshot> Team { get; }
         public MonsterId? ActiveMonsterId { get; }
         public SimTime Time { get; }
+        public long Gold { get; }
+        public IReadOnlyDictionary<ProductId, int> Products { get; }
 
         public TrainerSnapshot(int id, int rank, int level, Rarity rarity, Personality personality, TrainerAttributes attributes, bool hasNightVision = false,
-            IEnumerable<MonsterSnapshot> team = null, MonsterId? activeMonsterId = null, SimTime? time = null)
+            IEnumerable<MonsterSnapshot> team = null, MonsterId? activeMonsterId = null, SimTime? time = null, long gold = 0,
+            IEnumerable<KeyValuePair<ProductId, int>> products = null)
         {
             if (id < 0) throw new ArgumentOutOfRangeException(nameof(id));
             if (rank < 1 || rank > 5) throw new ArgumentOutOfRangeException(nameof(rank));
@@ -36,6 +40,16 @@ namespace Game.Domain
             Team = Array.AsReadOnly(teamCopy.OrderBy(x => x.Id.Value, StringComparer.Ordinal).ToArray());
             ActiveMonsterId = activeMonsterId ?? Team.FirstOrDefault()?.Id;
             Time = time ?? new SimTime(0);
+            if (gold < 0) throw new ArgumentOutOfRangeException(nameof(gold));
+            Gold = gold;
+            var productCopy = new Dictionary<ProductId, int>();
+            foreach (var product in products ?? Array.Empty<KeyValuePair<ProductId, int>>())
+            {
+                if (string.IsNullOrWhiteSpace(product.Key.Value) || product.Value <= 0 || productCopy.ContainsKey(product.Key))
+                    throw new ArgumentException("Trainer snapshot product stacks must have valid positive counts and unique IDs.", nameof(products));
+                productCopy.Add(product.Key, product.Value);
+            }
+            Products = new System.Collections.ObjectModel.ReadOnlyDictionary<ProductId, int>(productCopy);
         }
         public static TrainerSnapshot FromTrainer(Trainer trainer, int totalMinutes = 0)
         {
@@ -43,7 +57,8 @@ namespace Game.Domain
             var a = trainer.Attributes;
             var team = trainer.Roster.Members.Select(m => MonsterSnapshot.FromMonster(m, new[] { m.Element.ToString().ToLowerInvariant() + "_strike" }));
             return new TrainerSnapshot(trainer.Id, trainer.Rank, trainer.Level, trainer.Rarity, trainer.Personality,
-                new TrainerAttributes(a.Dexterity, a.Luck, a.Endurance, a.Leadership), trainer.HasNightVision, team, trainer.Roster.Active?.Id, new SimTime(totalMinutes));
+                new TrainerAttributes(a.Dexterity, a.Luck, a.Endurance, a.Leadership), trainer.HasNightVision, team, trainer.Roster.Active?.Id,
+                new SimTime(totalMinutes), trainer.Gold, trainer.Inventory.Products);
         }
     }
 }

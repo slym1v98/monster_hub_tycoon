@@ -49,6 +49,8 @@ namespace Game.Domain
         public ZoneSelectionConfig ZoneSelectionSettings = ZoneSelectionConfig.Prototype;
         public LootConfig LootSettings = LootConfig.Prototype;
         public ExpeditionConfig ExpeditionSettings = ExpeditionConfig.Prototype;
+        public ConsumablePriceConfig ConsumablePrices = ConsumablePriceConfig.Prototype;
+        public ConsumablePolicyConfig ConsumablePolicySettings = ConsumablePolicyConfig.Prototype;
         /// <summary>Progression unlock is owned by Sub-project 6; default campaign begins in Zone 1.</summary>
         public string[] UnlockedZoneIds = { "zone_1" };
 

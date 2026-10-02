@@ -17,7 +17,8 @@ namespace Game.Domain
                         t.Needs.Stamina, t.Needs.Satiety, t.Needs.Hydration, t.Needs.Stress,
                         t.BackpackUnits, t.ContractWage, t.WageOwed, t.StrikeDaysLeft,
                         System.Array.AsReadOnly(t.Roster.Members.Select(m => new MonsterView(m.Id.Value, m.SpeciesId, m.Element,
-                            m.Level, m.CurrentHp, m.MaxHp, m.LifeState, m == t.Roster.Active)).ToArray()), t.CurrentZoneId, t.Rank, t.Level));
+                            m.Level, m.CurrentHp, m.MaxHp, m.LifeState, m == t.Roster.Active)).ToArray()), t.CurrentZoneId, t.Rank, t.Level,
+                        t.Inventory.Products));
                 return list;
             }
         }

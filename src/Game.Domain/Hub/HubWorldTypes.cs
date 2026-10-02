@@ -20,7 +20,8 @@ namespace Game.Domain
         int Id, Rarity Rarity, Personality Personality, TrainerState State, string StateReason, long Gold,
         double Stamina, double Satiety, double Hydration, double Stress,
         int BackpackUnits, long ContractWage, long WageOwed, int StrikeDaysLeft,
-        System.Collections.Generic.IReadOnlyList<MonsterView> Monsters, string CurrentZoneId, int Rank, int Level);
+        System.Collections.Generic.IReadOnlyList<MonsterView> Monsters, string CurrentZoneId, int Rank, int Level,
+        System.Collections.Generic.IReadOnlyDictionary<Game.Domain.Materials.ProductId, int> Products);
 
     public sealed record MonsterView(string Id, string SpeciesId, Game.Domain.Monsters.MonsterElement Element,
         int Level, long CurrentHp, long MaxHp, Game.Domain.Monsters.MonsterLifeState LifeState, bool IsActive);
@@ -34,4 +35,6 @@ namespace Game.Domain
     public sealed record BuyRequestView(string MaterialId, int TargetStock, long BidPrice, bool Enabled, int Deficit);
     public sealed record MerchantView(string Id, Game.Domain.Supply.MerchantState State, long Cash, int LoadUnits, int CapacityUnits);
     public sealed record ProductionJobView(long Id, string RecipeId, int StartMinute, int FinishMinute, string State);
+    public sealed record TrainerProductChanged(int Minute, int TrainerId, string ProductId, int Quantity, int NewCount) : IDomainEvent;
+    public sealed record ProductPurchased(int Minute, int TrainerId, string ProductId, int Units, long UnitPrice, long TotalPaid) : IDomainEvent;
 }
