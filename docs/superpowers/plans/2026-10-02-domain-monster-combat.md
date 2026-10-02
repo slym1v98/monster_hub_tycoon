@@ -169,6 +169,7 @@
 - Create: `src/Game.Domain/World/ZoneCatalog.cs`
 - Create: `src/Game.Domain/World/ZoneSelector.cs`
 - Create: `src/Game.Domain/World/EncounterProfile.cs`
+- Create: `src/Game.Domain/Trainers/TrainerSnapshot.cs`
 - Modify: `src/Game.Domain/Config/SimConfig.cs`
 - Test: `tests/Game.Domain.Tests/ZoneCatalogTests.cs`
 - Test: `tests/Game.Domain.Tests/ZoneSelectorTests.cs`
@@ -188,6 +189,7 @@
 
 **Files:**
 - Create: `src/Game.Domain/Combat/EncounterGenerator.cs`
+- Create: `src/Game.Domain/Combat/EncounterDefinition.cs`
 - Create: `src/Game.Domain/World/ExpeditionResult.cs`
 - Create: `src/Game.Domain/World/LootResolver.cs`
 - Modify: `src/Game.Domain/Materials/MaterialCatalog.cs`
