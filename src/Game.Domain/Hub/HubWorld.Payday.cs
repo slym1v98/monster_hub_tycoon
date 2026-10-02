@@ -36,6 +36,11 @@ namespace Game.Domain
             queue.Schedule(SimClock.PaydayMinute(paydayIndex), SimEventKind.PaydayDue);
             if (outcome.TotalPaid > 0) Raise(new TreasuryChanged(now, -outcome.TotalPaid, treasury.Balance, "Payday"));
             Raise(new PaydayResolved(now, outcome));
+            foreach (var trainer in trainers)
+            {
+                var fee = geneBank.CalculatePaydayFee(trainer.Id);
+                if (fee.Amount > 0) Raise(new GeneBankFeeAssessed(now, trainer.Id, fee.MonsterCount, fee.Days, fee.Amount));
+            }
 
             if (outcome.StrikeStarted)   // đình công: Trainer đang ở ngoài phải về HUB
             {

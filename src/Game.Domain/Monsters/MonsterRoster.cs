@@ -31,7 +31,7 @@ namespace Game.Domain.Monsters
             if (monster == null) throw new ArgumentNullException(nameof(monster));
             if (members.Any(x => x.Id == monster.Id) || storage.Any(x => x.Id == monster.Id))
                 throw new InvalidOperationException("Monster đã thuộc đội hoặc kho.");
-            if (monster.Owner != null) throw new InvalidOperationException("Monster đã có chủ sở hữu.");
+            if (monster.Owner != null || monster.Custody != MonsterCustody.Unassigned) throw new InvalidOperationException("Monster đã có chủ sở hữu hoặc đang được giữ bởi một dịch vụ khác.");
             EnsureCapacity();
             if (trainer != null)
             {
@@ -41,7 +41,43 @@ namespace Game.Domain.Monsters
             members.Add(monster);
             Sort(members);
             monster.Owner = this;
+            monster.Custody = MonsterCustody.Trainer;
             if (Active == null) Active = monster;
+        }
+
+        public void AddToStorage(Monster monster)
+        {
+            if (monster == null) throw new ArgumentNullException(nameof(monster));
+            if (members.Any(x => x.Id == monster.Id) || storage.Any(x => x.Id == monster.Id))
+                throw new InvalidOperationException("Monster đã thuộc đội hoặc kho.");
+            if (monster.Owner != null || monster.Custody != MonsterCustody.Unassigned) throw new InvalidOperationException("Monster đã có chủ sở hữu hoặc đang được giữ bởi một dịch vụ khác.");
+            storage.Add(monster);
+            Sort(storage);
+            monster.Owner = this;
+            monster.Custody = MonsterCustody.Trainer;
+            monster.IsStored = true;
+        }
+
+        public Monster RemoveForTransfer(MonsterId id)
+        {
+            var monster = members.FirstOrDefault(x => x.Id == id);
+            if (monster != null)
+            {
+                if (monster.Custody != MonsterCustody.Trainer) throw new InvalidOperationException("Monster đang được giữ bởi một dịch vụ khác.");
+                members.Remove(monster);
+                if (Active == monster) Active = members.FirstOrDefault(x => x.CurrentHp > 0) ?? members.FirstOrDefault();
+            }
+            else
+            {
+                monster = storage.FirstOrDefault(x => x.Id == id);
+                if (monster == null) throw new InvalidOperationException("Monster không thuộc đội hoặc kho Trainer.");
+                if (monster.Custody != MonsterCustody.Trainer) throw new InvalidOperationException("Monster đang được giữ bởi một dịch vụ khác.");
+                storage.Remove(monster);
+                monster.IsStored = false;
+            }
+            monster.Owner = null;
+            monster.Custody = MonsterCustody.Unassigned;
+            return monster;
         }
 
         public void SetActive(MonsterId id)
@@ -54,6 +90,7 @@ namespace Game.Domain.Monsters
         public void MoveToStorage(MonsterId id)
         {
             var monster = Find(members, id);
+            if (monster.Custody != MonsterCustody.Trainer) throw new InvalidOperationException("Monster đang được giữ bởi một dịch vụ khác.");
             members.Remove(monster);
             storage.Add(monster);
             Sort(storage);

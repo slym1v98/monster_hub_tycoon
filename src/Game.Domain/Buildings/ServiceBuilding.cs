@@ -69,28 +69,33 @@ namespace Game.Domain
         /// Giá một lượt cho Trainer này, đã trừ giảm giá tính cách (làm tròn lên).
         /// Bệnh Viện tính theo mỗi 10 HP còn thiếu (làm tròn lên số đơn vị).
         /// </summary>
-        public long PriceFor(PersonalityProfile profile, long missingHp)
+        public long PriceFor(PersonalityProfile profile, long missingHp, int faintedCount = 0, long faintedSurcharge = 0)
         {
+            if (faintedCount < 0 || faintedSurcharge < 0) throw new ArgumentOutOfRangeException(nameof(faintedCount));
             double raw = Price;
             if (Kind == BuildingKind.Hospital)
             {
                 if (missingHp <= 0) return 0;
                 raw = Price * ((missingHp + 9) / 10);
             }
-            return (long)Math.Ceiling(raw * (1.0 - profile.PriceDiscount));
+            long discounted = (long)Math.Ceiling(raw * (1.0 - profile.PriceDiscount));
+            return Kind == BuildingKind.Hospital ? checked(discounted + (long)faintedCount * faintedSurcharge) : discounted;
         }
 
         /// <summary>
         /// Thời gian phục vụ một lượt. Nhà Trọ ban đêm ngủ tới sáng (tối đa 360 phút, tối thiểu 30 phút).
         /// </summary>
-        public int ServiceMinutesFor(int nowMinute)
+        public int ServiceMinutesFor(int nowMinute, int durationMultiplier = 1)
         {
+            if (durationMultiplier <= 0) throw new ArgumentOutOfRangeException(nameof(durationMultiplier));
+            int duration;
             if (Kind == BuildingKind.Inn && SimClock.IsNight(nowMinute))
             {
                 int untilDawn = SimClock.NextMinuteOfDay(nowMinute, SimClock.DawnMinute) - nowMinute;
-                return Math.Max(30, Math.Min(BaseServiceMinutes, untilDawn));
+                duration = Math.Max(30, Math.Min(BaseServiceMinutes, untilDawn));
             }
-            return BaseServiceMinutes;
+            else duration = BaseServiceMinutes;
+            return checked(duration * durationMultiplier);
         }
     }
 }

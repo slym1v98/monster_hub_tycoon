@@ -61,7 +61,7 @@ namespace Game.Domain
         void WakeIfWaitingForMoney(Trainer t)
         {
             if (t.State != TrainerState.WaitingForMoney) return;
-            long needed = buildings[(int)t.PendingService].PriceFor(PersonalityProfile.Of(t.Personality), t.Roster.TotalMissingHp);
+            long needed = PriceForTrainer(t, buildings[(int)t.PendingService]);
             if (t.Gold < needed) return;
             Settle(t);
             LeaveWait(t);

@@ -138,7 +138,9 @@ namespace Game.Domain.Tests
                 .Concat(ExpeditionConfig.Prototype.BalanceParameters).Concat(LootConfig.Prototype.BalanceParameters)
                 .Concat(ConsumablePriceConfig.Prototype.BalanceParameters).Concat(ConsumablePolicyConfig.Prototype.BalanceParameters)
                 .Concat(Game.Domain.Combat.MonsterItemConfig.Prototype.BalanceParameters)
-                .Concat(Game.Domain.Combat.CaptureConfig.Prototype.BalanceParameters).ToArray();
+                .Concat(Game.Domain.Combat.CaptureConfig.Prototype.BalanceParameters)
+                .Concat(VeterinaryHospitalConfig.Prototype.BalanceParameters)
+                .Concat(GeneBankConfig.Prototype.BalanceParameters).ToArray();
             Assert.Equal(parameters.Length, parameters.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count());
             Assert.All(parameters, x => {
                 Assert.False(string.IsNullOrWhiteSpace(x.Id));

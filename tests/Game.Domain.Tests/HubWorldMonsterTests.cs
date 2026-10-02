@@ -71,6 +71,45 @@ public sealed class HubWorldMonsterTests
     }
 
     [Fact]
+    public void CapturedMonsterRecoveryUsesWorldEventQueueAndTransfersToTrainerOnce()
+    {
+        var config = new SimConfig { TrainerCount = 1, StartMinute = 100,
+            VeterinaryHospitalSettings = new VeterinaryHospitalConfig(recoveryBeds: 1, firstCaptureRecoveryMinutes: 5) };
+        var world = new HubWorld(config, 12);
+        var events = new List<IDomainEvent>();
+        world.EventRaised += events.Add;
+        var definition = MonsterCatalog.Default.Definitions[0];
+        var captured = Monster.Create(new MonsterId("world_capture"), definition, Rarity.Rare,
+            MonsterIvGrade.B, 1, 3);
+        var admission = world.AdmitCapturedMonster(0, captured);
+        Assert.True(admission.Accepted);
+        Assert.Equal(MonsterCustody.Hospital, captured.Custody);
+        world.RunFor(5);
+        Assert.Equal(MonsterCustody.Trainer, captured.Custody);
+        Assert.Contains(world.Trainers[0].Monsters, x => x.Id == captured.Id.Value);
+        Assert.Contains(events, x => x is MonsterRecoveryStarted);
+        Assert.Contains(events, x => x is MonsterRecoveryCompleted);
+        Assert.Equal(0, world.VeterinaryHospital.OccupiedRecoveryBeds);
+    }
+
+    [Fact]
+    public void GeneBankFeeAssessmentIsEmittedAfterPaydayWageSettlement()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTreasury = 10000, StartTrainerGold = 500 }, 19);
+        var events = new List<IDomainEvent>();
+        world.EventRaised += events.Add;
+        var starter = Assert.Single(world.Trainers[0].Monsters);
+        Assert.True(world.StoreMonsterInGeneBank(0, new MonsterId(starter.Id)));
+        world.RunUntilPayday();
+        events.Clear();
+        world.ResolvePayday();
+        int resolved = events.FindIndex(x => x is PaydayResolved);
+        int assessed = events.FindIndex(x => x is GeneBankFeeAssessed fee && fee.TrainerId == 0 && fee.Amount == 600);
+        Assert.True(resolved >= 0);
+        Assert.True(assessed > resolved);
+    }
+
+    [Fact]
     public void NoVisionTrainerReturnsAtDuskAndNightVisionTrainerCanRemainOutside()
     {
         HubWorld Create(bool vision)

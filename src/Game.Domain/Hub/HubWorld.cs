@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Game.Domain.Materials;
 using Game.Domain.Monsters;
 using Game.Domain.Production;
@@ -20,6 +21,8 @@ namespace Game.Domain
         readonly TreasuryAccount treasury;
         readonly Payroll payroll = new Payroll();
         readonly List<Trainer> trainers = new List<Trainer>();
+        readonly VeterinaryHospital veterinaryHospital;
+        readonly GeneBank geneBank;
         readonly ServiceBuilding[] buildings = new ServiceBuilding[4];
         readonly IExpeditionResolver expeditions;
         readonly IMaterialMarket market;
@@ -103,6 +106,9 @@ namespace Game.Domain
                 trainers.Add(trainer);
             }
 
+            veterinaryHospital = new VeterinaryHospital(trainers, cfg.VeterinaryHospitalSettings ?? VeterinaryHospitalConfig.Prototype);
+            geneBank = new GeneBank(trainers, cfg.GeneBankSettings ?? GeneBankConfig.Prototype);
+
             queue.Schedule(SimClock.NextMinuteOfDay(now, SimClock.DawnMinute), SimEventKind.Dawn);
             queue.Schedule(SimClock.NextMinuteOfDay(now, SimClock.DuskMinute), SimEventKind.Dusk);
             queue.Schedule(SimClock.NextMinuteOfDay(now, 0), SimEventKind.DayStart);
@@ -113,6 +119,93 @@ namespace Game.Domain
 
         /// <summary>Phút in-game hiện tại.</summary>
         public SimTime Now => new SimTime(now);
+        public VeterinaryHospital VeterinaryHospital => veterinaryHospital;
+        public GeneBank GeneBank => geneBank;
+
+        public AdmissionResult AdmitCapturedMonster(int trainerId, Monster monster)
+        {
+            if (trainerId < 0 || trainerId >= trainers.Count) return new AdmissionResult(AdmissionStatus.UnknownTrainer);
+            if (monster != null && geneBank.Contains(monster.Id)) return new AdmissionResult(AdmissionStatus.AlreadyOwned);
+            var result = veterinaryHospital.AdmitCaptured(monster, trainerId, now);
+            if (result.Accepted)
+            {
+                queue.Schedule(result.CompleteAtMinute, SimEventKind.MonsterRecoveryDone, arg: result.RecoveryId);
+                Raise(new MonsterRecoveryStarted(now, trainerId, result.MonsterId.Value, result.RecoveryId,
+                    result.CompleteAtMinute, result.Fee, true));
+            }
+            return result;
+        }
+
+        public AdmissionResult RequestMonsterEmergencyCare(MonsterId monsterId)
+        {
+            var result = veterinaryHospital.RequestEmergencyCare(monsterId, now);
+            if (result.Accepted)
+            {
+                var trainer = trainers[result.TrainerId];
+                if (trainer.Gold < result.Fee)
+                {
+                    veterinaryHospital.CancelRecovery(result.RecoveryId);
+                    return new AdmissionResult(AdmissionStatus.InsufficientFunds, fee: result.Fee);
+                }
+                long cogs = (long)Math.Round(result.Fee * cfg.ServiceCogs);
+                long hubShare = result.Fee - cogs;
+                if (treasury.Balance > long.MaxValue - hubShare)
+                {
+                    veterinaryHospital.CancelRecovery(result.RecoveryId);
+                    return new AdmissionResult(AdmissionStatus.InsufficientFunds, fee: result.Fee);
+                }
+                trainer.Gold -= result.Fee;
+                AddTreasury(hubShare, "EmergencyHospital");
+                queue.Schedule(result.CompleteAtMinute, SimEventKind.MonsterRecoveryDone, arg: result.RecoveryId);
+                Raise(new MonsterRecoveryStarted(now, result.TrainerId, result.MonsterId.Value, result.RecoveryId,
+                    result.CompleteAtMinute, result.Fee, false));
+                Raise(new ServiceUsed(now, result.TrainerId, BuildingKind.Hospital, result.Fee, result.Fee,
+                    result.Fee, 0));
+            }
+            return result;
+        }
+
+        public bool StoreMonsterInGeneBank(int trainerId, MonsterId monsterId)
+        {
+            if (trainerId < 0 || trainerId >= trainers.Count || !geneBank.Store(trainerId, monsterId)) return false;
+            Raise(new GeneBankOwnershipChanged(now, trainerId, monsterId.Value, MonsterCustody.Trainer, MonsterCustody.GeneBank));
+            return true;
+        }
+
+        public bool StoreUnassignedMonsterInGeneBank(int trainerId, Monster monster)
+        {
+            if (trainerId < 0 || trainerId >= trainers.Count || monster == null ||
+                trainers.Any(x => x.Roster.Members.Any(m => m.Id == monster.Id) || x.Roster.Storage.Any(m => m.Id == monster.Id)) ||
+                !geneBank.StoreUnassignedMonster(trainerId, monster)) return false;
+            Raise(new GeneBankOwnershipChanged(now, trainerId, monster.Id.Value, MonsterCustody.Unassigned, MonsterCustody.GeneBank));
+            return true;
+        }
+
+        public bool WithdrawMonsterFromGeneBank(int trainerId, MonsterId monsterId)
+        {
+            if (trainerId < 0 || trainerId >= trainers.Count || !geneBank.Withdraw(trainerId, monsterId)) return false;
+            Raise(new GeneBankOwnershipChanged(now, trainerId, monsterId.Value, MonsterCustody.GeneBank, MonsterCustody.Trainer));
+            return true;
+        }
+
+        public Monster ConfiscateForUnpaidGeneBankFee(int trainerId)
+        {
+            var monster = geneBank.ConfiscateForUnpaidFee(trainerId);
+            if (monster != null) Raise(new MonsterConfiscated(now, trainerId, monster.Id.Value));
+            return monster;
+        }
+
+        public bool ResellConfiscatedMonster(int buyerId, MonsterId monsterId)
+        {
+            long price = (cfg.GeneBankSettings ?? GeneBankConfig.Prototype).ResalePrice;
+            if (buyerId < 0 || buyerId >= trainers.Count || trainers[buyerId].Gold < price || treasury.Balance > long.MaxValue - price) return false;
+            if (!geneBank.ResellToTrainer(buyerId, monsterId)) return false;
+            treasury.Add(price);
+            if (price > 0) Raise(new TreasuryChanged(now, price, treasury.Balance, "GeneBankMonsterSale"));
+            Raise(new GeneBankOwnershipChanged(now, buyerId, monsterId.Value, MonsterCustody.Hub, MonsterCustody.Trainer));
+            Raise(new GeneBankMonsterResold(now, buyerId, monsterId.Value, price));
+            return true;
+        }
 
         /// <summary>Số dư Kho bạc.</summary>
         public long Treasury => treasury.Balance;
@@ -177,7 +270,16 @@ namespace Game.Domain
                 case SimEventKind.MerchantRouteStep: OnMerchantRouteStep(); break;
                 case SimEventKind.ProductionComplete: OnProductionComplete(); break;
                 case SimEventKind.MarketRetry: if (t != null) OnMarketRetry(t); break;
+                case SimEventKind.MonsterRecoveryDone: OnMonsterRecoveryDone(e.Arg); break;
             }
+        }
+
+        void OnMonsterRecoveryDone(int recoveryId)
+        {
+            var result = veterinaryHospital.CompleteRecovery(recoveryId);
+            if (result.Accepted)
+                Raise(new MonsterRecoveryCompleted(now, result.TrainerId, result.MonsterId.Value,
+                    result.IsCapturedMonster, result.IsCapturedMonster && trainers[result.TrainerId].Roster.Storage.Any(x => x.Id == result.MonsterId)));
         }
 
         void Raise(IDomainEvent e) => EventRaised?.Invoke(e);

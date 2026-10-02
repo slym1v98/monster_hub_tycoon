@@ -322,11 +322,11 @@
 - `GeneBank.Store(trainerId, MonsterId)`, `Withdraw`, `CalculatePaydayFee(trainerId, days)`, `ConfiscateForUnpaidFee(trainerId) -> Monster?`, `ResellToTrainer(buyerId, MonsterId)`, and `Dismantle` transfer one owner at a time. Fee is 20 Gold/Monster/day × 30 days at Payday as the GDD prototype; shortage confiscates exactly one selected Monster. Bank capacity/selection rule/resale price are explicit Prototype settings.
 - Sub-project 3 adds fee quote/confiscation events and a `HubWorld` fee-assessment hook after wages; it does not settle the fee or create a second payroll. Sub-project 5 owns cash settlement/debt priority and calls this hook.
 
-- [ ] **Step 1: Write failing tests** for 100th/101st recovery admission, full-bed wait/store decision, emergency healing/faint surcharge, first-capture recovery duration, bank storage/withdraw/resale ownership, fee assessment after wages, fee calculation and one-only confiscation.
-- [ ] **Step 2: Run focused tests and verify the specified missing behavior.**
-- [ ] **Step 3: Implement hospital, bank ownership transitions and timestamped events**; schedule recovery completions through `EventQueue` with Trainer token rules.
-- [ ] **Step 4: Run focused tests and the full Domain suite.**
-- [ ] **Step 5: Commit** as `feat(domain): model veterinary and gene bank lifecycle`.
+- [x] **Step 1: Add tests** for 100th/101st recovery admission, full-bed bank routing, emergency healing/faint surcharge, first-capture recovery duration, bank storage/withdraw/resale ownership, fee assessment after wages, fee calculation and one-only confiscation. (Tests were added while implementation proceeded; not all were observed failing against a pre-change baseline.)
+- [x] **Step 2: Run focused tests** and fix ownership/roster expectation errors before broad verification.
+- [x] **Step 3: Implement hospital, bank ownership transitions and timestamped events**; recovery events use the event queue without Trainer tokens so unrelated Trainer state changes cannot cancel ownership recovery.
+- [x] **Step 4: Run focused tests and the full Domain suite.**
+- [x] **Step 5: Commit** as `feat(domain): model veterinary and gene bank lifecycle`.
 
 ### Task 14: Appraisal, dismantling, rarity upgrade and evolution
 

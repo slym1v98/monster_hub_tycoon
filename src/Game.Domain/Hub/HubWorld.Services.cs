@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using Game.Domain.Monsters;
 
 namespace Game.Domain
 {
@@ -8,8 +10,7 @@ namespace Game.Domain
         void RequestService(Trainer t, BuildingKind kind)
         {
             ServiceBuilding b = buildings[(int)kind];
-            PersonalityProfile profile = PersonalityProfile.Of(t.Personality);
-            long price = b.PriceFor(profile, t.Roster.TotalMissingHp);
+            long price = PriceForTrainer(t, b);
             bool freeInDebtMode = payroll.DebtMode && kind == BuildingKind.Restaurant && t.WageOwed > 0;
             if (!freeInDebtMode && t.Gold < price) { BeginWaitForMoney(t, kind); return; }
 
@@ -35,7 +36,7 @@ namespace Game.Domain
         {
             Settle(t);   // cộng nốt Stress xếp hàng
             PersonalityProfile profile = PersonalityProfile.Of(t.Personality);
-            long normalPrice = b.PriceFor(profile, t.Roster.TotalMissingHp);
+            long normalPrice = PriceForTrainer(t, b);
             bool free = payroll.DebtMode && b.Kind == BuildingKind.Restaurant && t.WageOwed > 0;
             long paid = free ? 0 : normalPrice;
 
@@ -63,8 +64,18 @@ namespace Game.Domain
             t.Needs.Clamp();
 
             SetState(t, TrainerState.InService, b.Kind.ToString());
-            queue.Schedule(now + b.ServiceMinutesFor(now), SimEventKind.ServiceDone, t.Id, t.Token, (int)b.Kind);
+            int fainted = b.Kind == BuildingKind.Hospital ? t.Roster.Members.Count(x => x.CurrentHp == 0) : 0;
+            int multiplier = fainted > 0 ? (cfg.VeterinaryHospitalSettings ?? VeterinaryHospitalConfig.Prototype).FaintedRecoveryMultiplier : 1;
+            queue.Schedule(now + b.ServiceMinutesFor(now, multiplier), SimEventKind.ServiceDone, t.Id, t.Token, (int)b.Kind);
             Raise(new ServiceUsed(now, t.Id, b.Kind, paid, b.Price, b.FairPrice, stressAdded));
+        }
+
+        long PriceForTrainer(Trainer t, ServiceBuilding building)
+        {
+            int fainted = building.Kind == BuildingKind.Hospital ? t.Roster.Members.Count(x => x.CurrentHp == 0) : 0;
+            long surcharge = building.Kind == BuildingKind.Hospital
+                ? (cfg.VeterinaryHospitalSettings ?? VeterinaryHospitalConfig.Prototype).FaintedSurcharge : 0;
+            return building.PriceFor(PersonalityProfile.Of(t.Personality), t.Roster.TotalMissingHp, fainted, surcharge);
         }
 
         /// <summary>Dùng xong dịch vụ: hồi nhu cầu tương ứng, nhả chỗ, gọi người kế tiếp.</summary>
@@ -108,7 +119,7 @@ namespace Game.Domain
         {
             Settle(t);
             ServiceBuilding b = buildings[(int)t.PendingService];
-            long needed = b.PriceFor(PersonalityProfile.Of(t.Personality), t.Roster.TotalMissingHp);
+            long needed = PriceForTrainer(t, b);
 
             if (t.Gold >= needed)
             {

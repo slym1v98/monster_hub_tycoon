@@ -16,12 +16,13 @@ namespace Game.Domain.Monsters
         public MonsterIvGrade Iv { get; }
         public int Level { get; private set; }
         public bool IsSoulBound { get; }
+        public MonsterCustody Custody { get; internal set; } = MonsterCustody.Unassigned;
         /// <summary>Năm giá trị gen cố định theo thứ tự HP, ATK, DEF, ASPD, CRIT trong [0, 1).</summary>
         public IReadOnlyList<double> Genes { get; }
         public MonsterStats Stats { get; private set; }
         public long CurrentHp { get; private set; }
         public long MaxHp => Stats.Hp;
-        public MonsterLifeState LifeState => IsStored ? MonsterLifeState.Stored :
+        public MonsterLifeState LifeState => Custody == MonsterCustody.Hospital ? MonsterLifeState.Recovering : IsStored ? MonsterLifeState.Stored :
             CurrentHp == 0 ? MonsterLifeState.Fainted : MonsterLifeState.Ready;
 
         internal MonsterRoster Owner { get; set; }

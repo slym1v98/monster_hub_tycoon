@@ -37,4 +37,7 @@ namespace Game.Domain
         long Cash, int LoadUnits) : IDomainEvent;
     public sealed record ProductionJobChanged(int Minute, long JobId, string RecipeId, string State, int FinishMinute) : IDomainEvent;
     public sealed record ProductionRestockDemandChanged(int Minute, string ItemId, int Quantity) : IDomainEvent;
+
+    public sealed record GeneBankFeeAssessed(int Minute, int TrainerId, int MonsterCount, int Days, long Amount) : IDomainEvent;
+    public sealed record MonsterConfiscated(int Minute, int TrainerId, string MonsterId) : IDomainEvent;
 }
