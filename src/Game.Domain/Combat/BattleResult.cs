@@ -15,13 +15,16 @@ namespace Game.Domain.Combat
         public MonsterId Id { get; }
         public BattleSide Side { get; }
         public long CurrentHp { get; }
+        public bool Fainted => CurrentHp == 0;
+        public RebellionOutcome Rebellion { get; }
         public IReadOnlyDictionary<string, int> Cooldowns { get; }
 
-        internal BattleMonsterState(MonsterId id, BattleSide side, long currentHp, IDictionary<string, int> cooldowns)
+        internal BattleMonsterState(MonsterId id, BattleSide side, long currentHp, IDictionary<string, int> cooldowns, RebellionOutcome rebellion = RebellionOutcome.None)
         {
             Id = id;
             Side = side;
             CurrentHp = currentHp;
+            Rebellion = rebellion;
             Cooldowns = new ReadOnlyDictionary<string, int>(new SortedDictionary<string, int>(cooldowns, StringComparer.Ordinal));
         }
     }
@@ -30,6 +33,8 @@ namespace Game.Domain.Combat
     public sealed class BattleResult
     {
         public BattleOutcome Outcome { get; }
+        public MonsterId? ActiveId { get; }
+        public bool TeamDown { get; }
         public int CompletedRounds { get; }
         public IReadOnlyList<BattleAction> Actions { get; }
         public IReadOnlyList<BattleMonsterState> FinalMonsters { get; }
@@ -37,12 +42,15 @@ namespace Game.Domain.Combat
         public ulong FinalRandomState { get; }
 
         internal BattleResult(BattleOutcome outcome, int completedRounds, IEnumerable<BattleAction> actions,
-            IEnumerable<BattleMonsterState> finalMonsters, ulong initialRandomState, ulong finalRandomState)
+            IEnumerable<BattleMonsterState> finalMonsters, ulong initialRandomState, ulong finalRandomState, MonsterId? activeId)
         {
             Outcome = outcome;
             CompletedRounds = completedRounds;
             Actions = Array.AsReadOnly(actions.ToArray());
             FinalMonsters = Array.AsReadOnly(finalMonsters.OrderBy(x => x.Id.Value, StringComparer.Ordinal).ToArray());
+            ActiveId = activeId;
+            TeamDown = FinalMonsters.Any(x => x.Side == BattleSide.Team)
+                && FinalMonsters.Where(x => x.Side == BattleSide.Team).All(x => x.Fainted);
             InitialRandomState = initialRandomState;
             FinalRandomState = finalRandomState;
         }
