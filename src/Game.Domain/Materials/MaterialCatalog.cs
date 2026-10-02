@@ -118,6 +118,7 @@ namespace Game.Domain.Materials
                 Product("capture_ball", "Bóng bắt thú", "tool_workshop"), Product("trap", "Bẫy", "tool_workshop"),
                 Product("tactics_book", "Sách Chiến Thuật", "tool_workshop"), Product("monster_buff_bottle", "Bình nước buff", "soda_factory", ProductEffectKind.TemporaryMonsterStatBuff),
                 Product("pet_communication_lock", "Khóa Giao Tiếp Thú Cưng", "academy"),
+                Product("protection_charm", "Bùa Bảo Hộ", null),
                 Product("overclock_coffee", "Cà phê ép xung", "inn"),
                 Product("monster_gear", "Trang bị Monster", "monster_forge"),
                 Product("trainer_utility_gear", "Trang bị Tiện ích Trainer", "trainer_textile_workshop"),

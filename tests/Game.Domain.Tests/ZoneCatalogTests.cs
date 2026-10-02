@@ -140,7 +140,10 @@ namespace Game.Domain.Tests
                 .Concat(Game.Domain.Combat.MonsterItemConfig.Prototype.BalanceParameters)
                 .Concat(Game.Domain.Combat.CaptureConfig.Prototype.BalanceParameters)
                 .Concat(VeterinaryHospitalConfig.Prototype.BalanceParameters)
-                .Concat(GeneBankConfig.Prototype.BalanceParameters).ToArray();
+                .Concat(GeneBankConfig.Prototype.BalanceParameters)
+                .Concat(GeneticLabConfig.Prototype.BalanceParameters)
+                .Concat(UpgradeConfig.Prototype.BalanceParameters)
+                .Concat(EvolutionCatalog.Empty.BalanceParameters).ToArray();
             Assert.Equal(parameters.Length, parameters.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count());
             Assert.All(parameters, x => {
                 Assert.False(string.IsNullOrWhiteSpace(x.Id));

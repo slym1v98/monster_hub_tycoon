@@ -78,6 +78,33 @@ namespace Game.Domain.Supply
             return new SaleBreakdown(accepted, 0, unsold, gross, tax, net);
         }
 
+        public SaleBreakdown BuyFromTrainer(string sellerAccount, ProductId product, int offeredUnits, ProductBuyRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(sellerAccount)) throw new ArgumentException("Thiếu tài khoản người bán.", nameof(sellerAccount));
+            if (offeredUnits < 0) throw new ArgumentOutOfRangeException(nameof(offeredUnits));
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request.Product != product) throw new ArgumentException("Lệnh mua áp dụng cho sản phẩm khác.", nameof(request));
+            if (offeredUnits == 0) return new SaleBreakdown(0, 0, 0, 0, 0, 0);
+            var item = new InventoryItem(product);
+            var balance = Stock.Get(item);
+            int accepted = (int)Math.Min(Math.Min((long)offeredUnits, request.Deficit(CoveredUnits(balance))),
+                Math.Min(request.BidPrice == 0 ? int.MaxValue : Treasury / request.BidPrice, int.MaxValue));
+            int unsold = offeredUnits - accepted;
+            if (accepted == 0) return new SaleBreakdown(0, 0, unsold, 0, 0, 0);
+            long gross = checked((long)accepted * request.BidPrice);
+            long tax = decimal.ToInt64(decimal.Round((decimal)gross * (decimal)TaxRate, 0, MidpointRounding.AwayFromZero));
+            long net = checked(gross - tax);
+            if (balance.Available > int.MaxValue - accepted) throw new OverflowException("Tồn kho sản phẩm Trạm vượt giới hạn.");
+            ledger.Record(TreasuryAccount, sellerAccount, TaxAccount, gross, tax, "station product buyback");
+            if (!ledgerBackedTreasury)
+            {
+                if (!treasury.TrySpend(gross)) throw new InvalidOperationException("Kho bạc thay đổi trong lúc thanh toán.");
+                treasury.Add(tax);
+            }
+            Stock.Add(item, accepted);
+            return new SaleBreakdown(accepted, 0, unsold, gross, tax, net);
+        }
+
         public SaleBreakdown BuyFromMerchant(string merchantAccount, MaterialId material, int offeredUnits,
             BuyRequest request, double markupRate)
         {

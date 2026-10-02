@@ -349,11 +349,11 @@
 - `EvolutionCatalog` declares species-specific 0–2 steps and branches. `Evolve(MonsterId, branchId, protectionCharm, rng)` consumes Stone/Core/partial Gene Fragments; success preserves rarity/level/IV/gear references and changes form/role/skills; failure follows protection rules.
 - No Monster, material or item changes on rejected/insufficient-input commands. Evolution probabilities/costs/branches not specified in GDD are Prototype/TBD.
 
-- [ ] **Step 1: Write failing tests** for hidden/revealed IV, duplicate appraisal, D/C dismantle yield, level 39/40 eligibility, all four rarity rates, charm-preserved costs, 0/1/2 evolution limits, branch selection and preserved identity fields.
-- [ ] **Step 2: Run focused tests and confirm failures.**
-- [ ] **Step 3: Implement genetic lab transactions** with validated inventory/stock/cost operations and deterministic randomness.
-- [ ] **Step 4: Run focused and full Domain tests.**
-- [ ] **Step 5: Commit** as `feat(domain): simulate monster appraisal and evolution`.
+- [x] **Step 1: Write failing tests** for hidden/revealed IV, duplicate appraisal, D/C dismantle yield, level 39/40 eligibility, all four rarity rates, charm-preserved costs, 0/1/2 evolution limits, branch selection and preserved identity fields.
+- [x] **Step 2: Run focused tests and confirm missing catalog/lab contracts fail compilation.**
+- [x] **Step 3: Implement genetic lab transactions** with validated inventory/stock/cost operations and deterministic randomness, plus explicit Station product buyback requests for Gene Fragments.
+- [x] **Step 4: Run focused and full Domain tests.**
+- [x] **Step 5: Commit** as `feat(domain): simulate monster appraisal and evolution`.
 
 ### Task 15: Hub commands, views, invariants and end-to-end scenarios
 

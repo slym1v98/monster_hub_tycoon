@@ -9,7 +9,7 @@ namespace Game.Domain.Monsters
 
     /// <summary>Trạng thái sinh tồn độc lập với vị trí Active/Reserve trong đội.</summary>
     public enum MonsterLifeState { Ready, Fainted, Recovering, Stored }
-    public enum MonsterCustody { Unassigned, Trainer, Hospital, GeneBank, Hub }
+    public enum MonsterCustody { Unassigned, Trainer, Hospital, GeneBank, Hub, Consumed }
 
     /// <summary>Danh tính ổn định, so sánh theo chuỗi ordinal, không dùng hash để sinh seed.</summary>
     public readonly struct MonsterId : IEquatable<MonsterId>

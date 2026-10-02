@@ -34,6 +34,12 @@ namespace Game.Domain
                 x.Deficit(station == null ? 0 : TotalStock(station.Stock.Get(new InventoryItem(x.Material))))))
             .ToArray();
 
+        public IReadOnlyList<ProductBuyRequestView> ProductBuyRequests => productBuyRequests.Values
+            .OrderBy(x => x.Product.Value, StringComparer.Ordinal)
+            .Select(x => new ProductBuyRequestView(x.Product.Value, x.TargetStock, x.BidPrice, x.Enabled,
+                x.Deficit(station == null ? 0 : TotalStock(station.Stock.Get(new InventoryItem(x.Product))))))
+            .ToArray();
+
         static int TotalStock(InventoryBalance balance)
             => (int)Math.Min(int.MaxValue, (long)balance.Available + balance.Reserved + balance.InProduction);
 
@@ -107,6 +113,55 @@ namespace Game.Domain
             }
             if (!(cfg.ConsumablePrices ?? ConsumablePriceConfig.Prototype).TryGetPrice(id, out var price)) throw new KeyNotFoundException("Product price is not configured.");
             return price;
+        }
+
+        public CommandResult SetProductBuyRequest(string productId, int targetStock, long bidPrice, bool enabled = true)
+        {
+            if (!useSupplyChain) return CommandResult.Rejected("Supply chain không được bật cho HubWorld này.");
+            if (string.IsNullOrWhiteSpace(productId) || !MaterialCatalog.Default.Products.Any(x => x.Id.Value == productId))
+                return CommandResult.Rejected("Mã sản phẩm không tồn tại trong catalog.");
+            if (targetStock < 0 || bidPrice < 0) return CommandResult.Rejected("Mức tồn và giá mua không được âm.");
+            var id = new ProductId(productId);
+            productBuyRequests[id] = new ProductBuyRequest(id, targetStock, bidPrice, enabled);
+            return CommandResult.Success();
+        }
+
+        public CommandResult SellProductToStation(int trainerId, string productId, int units)
+        {
+            if (!useSupplyChain || station == null || supplyLedger == null) return CommandResult.Rejected("Supply chain không được bật cho HubWorld này.");
+            if (trainerId < 0 || trainerId >= trainers.Count) return CommandResult.Rejected("Trainer không tồn tại.");
+            if (string.IsNullOrWhiteSpace(productId) || units <= 0) return CommandResult.Rejected("Sản phẩm và số lượng hợp lệ là bắt buộc.");
+            var id = new ProductId(productId);
+            var trainer = trainers[trainerId];
+            if (trainer.Inventory.Count(id) < units) return CommandResult.Rejected("Trainer không sở hữu đủ số lượng.");
+            if (!productBuyRequests.TryGetValue(id, out var request) || !request.Enabled) return CommandResult.Rejected("Trạm chưa có lệnh mua cho sản phẩm này.");
+            int deficit = request.Deficit(TotalStock(station.Stock.Get(new InventoryItem(id))));
+            int maximum = (int)Math.Min(Math.Min(units, deficit), request.BidPrice == 0 ? int.MaxValue : station.Treasury / request.BidPrice);
+            if (maximum <= 0) return CommandResult.Rejected("Trạm không cần thêm hàng hoặc không đủ tiền.");
+            long gross;
+            long tax;
+            long net;
+            try
+            {
+                gross = checked((long)maximum * request.BidPrice);
+                tax = decimal.ToInt64(decimal.Round((decimal)gross * (decimal)marketTaxRate, 0, MidpointRounding.AwayFromZero));
+                net = checked(gross - tax);
+            }
+            catch (OverflowException) { return CommandResult.Rejected("Giá trị giao dịch vượt giới hạn."); }
+            if (trainer.Gold > long.MaxValue - net) return CommandResult.Rejected("Số dư Trainer đã đạt giới hạn.");
+            long treasuryBefore = treasury.Balance;
+            SaleBreakdown sale;
+            try { sale = station.BuyFromTrainer("trainer:" + trainer.Id, id, units, request); }
+            catch (Exception ex) when (ex is OverflowException || ex is InvalidOperationException) { return CommandResult.Rejected(ex.Message); }
+            if (sale.StationUnits <= 0 || !trainer.Inventory.TryConsume(id, sale.StationUnits)) return CommandResult.Rejected("Không thể hoàn tất giao dịch.");
+            trainer.Gold = checked(trainer.Gold + sale.NetToSeller);
+            Raise(new ProductTradeSettled(now, trainer.Id, id.Value, sale.StationUnits, sale.Gross, sale.Tax, sale.NetToSeller));
+            Raise(new TrainerProductChanged(now, trainer.Id, id.Value, -sale.StationUnits, trainer.Inventory.Count(id)));
+            Raise(new SupplyStockChanged(now, "product:" + id.Value, station.Stock.Get(new InventoryItem(id))));
+            if (treasury.Balance != treasuryBefore) Raise(new TreasuryChanged(now, treasury.Balance - treasuryBefore, treasury.Balance, "ProductBuyback"));
+            ReconcileProduction();
+            EmitRestockDemandChanges();
+            return CommandResult.Success();
         }
 
         public CommandResult SetBuyRequest(string materialId, int targetStock, long bidPrice, bool enabled = true)

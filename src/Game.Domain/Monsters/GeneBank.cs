@@ -100,6 +100,22 @@ namespace Game.Domain.Monsters
             return true;
         }
 
+        public Monster GetStoredMonster(int trainerId, MonsterId monsterId)
+        {
+            FindTrainer(trainerId);
+            return stored.FirstOrDefault(x => x.DepositorId == trainerId && x.Monster.Id == monsterId)?.Monster;
+        }
+
+        public Monster DismantleForTrainer(int trainerId, MonsterId monsterId)
+        {
+            FindTrainer(trainerId);
+            var entry = stored.FirstOrDefault(x => x.DepositorId == trainerId && x.Monster.Id == monsterId);
+            if (entry == null) return null;
+            stored.Remove(entry);
+            entry.Monster.Custody = MonsterCustody.Unassigned;
+            return entry.Monster;
+        }
+
         public BankFeeAssessment CalculatePaydayFee(int trainerId, int days = -1)
         {
             FindTrainer(trainerId);
@@ -147,10 +163,10 @@ namespace Game.Domain.Monsters
                 var seized = confiscated.FirstOrDefault(x => x.Id == monsterId);
                 if (seized == null) return null;
                 confiscated.Remove(seized);
-                seized.Custody = MonsterCustody.Unassigned;
+                seized.Custody = MonsterCustody.Consumed;
                 return seized;
             }
-            entry.Monster.Custody = MonsterCustody.Unassigned;
+            entry.Monster.Custody = MonsterCustody.Consumed;
             return entry.Monster;
         }
 

@@ -33,6 +33,7 @@ namespace Game.Domain
 
     public sealed record MaterialStockView(string ItemId, int Available, int Reserved, int InProduction);
     public sealed record BuyRequestView(string MaterialId, int TargetStock, long BidPrice, bool Enabled, int Deficit);
+    public sealed record ProductBuyRequestView(string ProductId, int TargetStock, long BidPrice, bool Enabled, int Deficit);
     public sealed record MerchantView(string Id, Game.Domain.Supply.MerchantState State, long Cash, int LoadUnits, int CapacityUnits);
     public sealed record ProductionJobView(long Id, string RecipeId, int StartMinute, int FinishMinute, string State);
     public sealed record TrainerProductChanged(int Minute, int TrainerId, string ProductId, int Quantity, int NewCount) : IDomainEvent;

@@ -34,6 +34,7 @@ namespace Game.Domain
         readonly SupplyChain supplyChain;
         readonly Dictionary<ProductId, ConsumableStall> productStalls = new Dictionary<ProductId, ConsumableStall>();
         readonly Dictionary<MaterialId, BuyRequest> buyRequests = new Dictionary<MaterialId, BuyRequest>();
+        readonly Dictionary<ProductId, ProductBuyRequest> productBuyRequests = new Dictionary<ProductId, ProductBuyRequest>();
         readonly Dictionary<string, int> reportedRestockDemands = new Dictionary<string, int>(StringComparer.Ordinal);
         long marketReferencePrice;
         double marketTaxRate;

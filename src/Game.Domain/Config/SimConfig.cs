@@ -56,6 +56,9 @@ namespace Game.Domain
         public MonsterItemConfig MonsterItemSettings = MonsterItemConfig.Prototype;
         public VeterinaryHospitalConfig VeterinaryHospitalSettings = VeterinaryHospitalConfig.Prototype;
         public GeneBankConfig GeneBankSettings = GeneBankConfig.Prototype;
+        public GeneticLabConfig GeneticLabSettings = GeneticLabConfig.Prototype;
+        public UpgradeConfig RarityUpgradeSettings = UpgradeConfig.Prototype;
+        public EvolutionCatalog EvolutionCatalogSettings = EvolutionCatalog.Empty;
         /// <summary>Progression unlock is owned by Sub-project 6; default campaign begins in Zone 1.</summary>
         public string[] UnlockedZoneIds = { "zone_1" };
 

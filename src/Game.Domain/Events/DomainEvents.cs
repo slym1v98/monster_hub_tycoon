@@ -40,4 +40,6 @@ namespace Game.Domain
 
     public sealed record GeneBankFeeAssessed(int Minute, int TrainerId, int MonsterCount, int Days, long Amount) : IDomainEvent;
     public sealed record MonsterConfiscated(int Minute, int TrainerId, string MonsterId) : IDomainEvent;
+    public sealed record ProductTradeSettled(int Minute, int TrainerId, string ProductId, int Units,
+        long Gross, long Tax, long NetToSeller) : IDomainEvent;
 }

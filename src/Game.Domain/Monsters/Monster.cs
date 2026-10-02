@@ -8,17 +8,20 @@ namespace Game.Domain.Monsters
     public sealed class Monster
     {
         public MonsterId Id { get; }
-        public MonsterDefinition Definition { get; }
+        public MonsterDefinition Definition { get; private set; }
         public string SpeciesId => Definition.Id;
         public MonsterElement Element => Definition.Element;
         public MonsterRole Role => Definition.Role;
-        public Rarity Rarity { get; }
+        public Rarity Rarity { get; private set; }
         public MonsterIvGrade Iv { get; }
+        public bool IsIvAppraised { get; private set; }
+        public MonsterIvGrade? KnownIv => IsIvAppraised ? Iv : (MonsterIvGrade?)null;
         public int Level { get; private set; }
         public bool IsSoulBound { get; }
         public MonsterCustody Custody { get; internal set; } = MonsterCustody.Unassigned;
         /// <summary>Năm giá trị gen cố định theo thứ tự HP, ATK, DEF, ASPD, CRIT trong [0, 1).</summary>
         public IReadOnlyList<double> Genes { get; }
+        public IReadOnlyList<string> CombatSkillIds { get; private set; }
         public MonsterStats Stats { get; private set; }
         public long CurrentHp { get; private set; }
         public long MaxHp => Stats.Hp;
@@ -46,6 +49,7 @@ namespace Game.Domain.Monsters
                 random.NextDouble(), random.NextDouble() });
             this.statConfig = statConfig;
             Stats = MonsterStatsCalculator.Calculate(definition, rarity, iv, level, statConfig);
+            CombatSkillIds = Array.AsReadOnly(new[] { definition.Element.ToString().ToLowerInvariant() + "_strike" });
             CurrentHp = MaxHp;
         }
 
@@ -71,6 +75,34 @@ namespace Game.Domain.Monsters
             Level = targetLevel;
             Stats = stats;
             CurrentHp = Math.Min(CurrentHp, MaxHp);
+        }
+
+        internal void RevealIv() => IsIvAppraised = true;
+
+        internal void ApplyRarity(Rarity rarity)
+        {
+            if ((int)rarity != (int)Rarity + 1 || !Enum.IsDefined(typeof(Rarity), rarity))
+                throw new ArgumentOutOfRangeException(nameof(rarity));
+            double hpFraction = (double)CurrentHp / MaxHp;
+            var updated = MonsterStatsCalculator.Calculate(Definition, rarity, Iv, Level, statConfig);
+            Rarity = rarity;
+            Stats = updated;
+            CurrentHp = Math.Min(MaxHp, (long)Math.Floor(MaxHp * hpFraction));
+        }
+
+        internal void ApplyEvolution(MonsterDefinition definition, IEnumerable<string> skillIds)
+        {
+            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            definition.Validate();
+            var skills = (skillIds ?? throw new ArgumentNullException(nameof(skillIds))).ToArray();
+            if (skills.Length == 0 || skills.Any(string.IsNullOrWhiteSpace) || skills.Distinct(StringComparer.Ordinal).Count() != skills.Length)
+                throw new ArgumentException("Evolution must provide unique skills.", nameof(skillIds));
+            double hpFraction = (double)CurrentHp / MaxHp;
+            var updated = MonsterStatsCalculator.Calculate(definition, Rarity, Iv, Level, statConfig);
+            Definition = definition;
+            Stats = updated;
+            CombatSkillIds = Array.AsReadOnly(skills);
+            CurrentHp = Math.Min(MaxHp, (long)Math.Floor(MaxHp * hpFraction));
         }
 
         public long RestoreHp(long amount)

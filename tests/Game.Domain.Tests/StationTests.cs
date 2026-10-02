@@ -50,6 +50,24 @@ namespace Game.Domain.Tests
         }
 
         [Fact]
+        public void StationBuysGeneFragmentsThroughExplicitProductRequestAndPostsTax()
+        {
+            var fragment = new ProductId("gene_fragment");
+            var ledger = new MoneyLedger();
+            var station = new Station(1000, 0.2, ledger);
+            var sale = station.BuyFromTrainer("trainer:3", fragment, 8,
+                new ProductBuyRequest(fragment, targetStock: 5, bidPrice: 20));
+            Assert.Equal(5, sale.StationUnits);
+            Assert.Equal(3, sale.UnsoldUnits);
+            Assert.Equal(100, sale.Gross);
+            Assert.Equal(20, sale.Tax);
+            Assert.Equal(80, sale.NetToSeller);
+            Assert.Equal(5, station.Stock.Get(new InventoryItem(fragment)).Available);
+            Assert.Equal(-80, ledger.BalanceOf("hub:treasury"));
+            Assert.Equal(80, ledger.BalanceOf("trainer:3"));
+        }
+
+        [Fact]
         public void MerchantMarkupOverflowLeavesGoodsUnsoldInsteadOfThrowing()
         {
             var ledger = new MoneyLedger();
