@@ -20,6 +20,7 @@ namespace Game.Domain.Supply
 
     /// <summary>Số lượng có thể dùng, đã giữ chỗ và đang được sản xuất.</summary>
     public sealed record InventoryBalance(int Available, int Reserved, int InProduction);
+    public sealed record InventoryItemQuantity(InventoryItem Item, int Quantity);
 
     /// <summary>Tồn kho có kiểm tra số lượng và giữ chỗ nguyên tử.</summary>
     public sealed class Inventory
@@ -73,6 +74,19 @@ namespace Game.Domain.Supply
             b.Reserved = checked(b.Reserved + quantity);
         }
 
+        public void ReserveMany(System.Collections.Generic.IReadOnlyList<InventoryItemQuantity> quantities)
+        {
+            var grouped = Normalize(quantities);
+            foreach (var pair in grouped)
+                if (Get(pair.Key).Available < pair.Value) throw new InvalidOperationException("Không đủ tồn kho để giữ toàn bộ đầu vào.");
+            foreach (var pair in grouped)
+            {
+                var b = GetMutable(pair.Key);
+                b.Available -= pair.Value;
+                b.Reserved = checked(b.Reserved + pair.Value);
+            }
+        }
+
         public void Release(InventoryItem item, int quantity)
         {
             RequireItem(item); RequirePositive(quantity);
@@ -93,6 +107,20 @@ namespace Game.Domain.Supply
             b.InProduction = inProduction;
         }
 
+        public void BeginProductionMany(System.Collections.Generic.IReadOnlyList<InventoryItemQuantity> quantities)
+        {
+            var grouped = Normalize(quantities);
+            foreach (var pair in grouped)
+                if (Get(pair.Key).Reserved < pair.Value) throw new InvalidOperationException("Không đủ nguyên liệu đã giữ chỗ để bắt đầu toàn bộ công thức.");
+            foreach (var pair in grouped)
+            {
+                var b = GetMutable(pair.Key);
+                var inProduction = checked(b.InProduction + pair.Value);
+                b.Reserved -= pair.Value;
+                b.InProduction = inProduction;
+            }
+        }
+
         public void CompleteProduction(InventoryItem input, int inputQuantity, InventoryItem output, int outputQuantity)
         {
             RequireItem(input); RequireItem(output); RequirePositive(inputQuantity); RequirePositive(outputQuantity);
@@ -102,6 +130,34 @@ namespace Game.Domain.Supply
             var available = checked(destination.Available + outputQuantity);
             source.InProduction -= inputQuantity;
             destination.Available = available;
+        }
+
+        public void CompleteProductionMany(System.Collections.Generic.IReadOnlyList<InventoryItemQuantity> inputs,
+            System.Collections.Generic.IReadOnlyList<InventoryItemQuantity> outputs)
+        {
+            var consumed = Normalize(inputs);
+            var produced = Normalize(outputs, allowEmpty: true);
+            var newAvailable = ValidateProductionCompletion(consumed, produced);
+            foreach (var pair in consumed) GetMutable(pair.Key).InProduction -= pair.Value;
+            foreach (var pair in newAvailable) GetMutable(pair.Key).Available = pair.Value;
+        }
+
+        internal void ValidateProductionCompletion(System.Collections.Generic.IReadOnlyList<InventoryItemQuantity> inputs,
+            System.Collections.Generic.IReadOnlyList<InventoryItemQuantity> outputs)
+        {
+            ValidateProductionCompletion(Normalize(inputs), Normalize(outputs, allowEmpty: true));
+        }
+
+        private System.Collections.Generic.Dictionary<InventoryItem, int> ValidateProductionCompletion(
+            System.Collections.Generic.Dictionary<InventoryItem, int> consumed,
+            System.Collections.Generic.Dictionary<InventoryItem, int> produced)
+        {
+            foreach (var pair in consumed)
+                if (Get(pair.Key).InProduction < pair.Value) throw new InvalidOperationException("Không đủ đầu vào đang sản xuất để hoàn tất toàn bộ công thức.");
+            var newAvailable = new System.Collections.Generic.Dictionary<InventoryItem, int>();
+            foreach (var pair in produced)
+                newAvailable.Add(pair.Key, checked(Get(pair.Key).Available + pair.Value));
+            return newAvailable;
         }
 
         public void CancelProduction(InventoryItem item, int quantity, bool returnInputs)
@@ -114,6 +170,23 @@ namespace Game.Domain.Supply
             b.Available = available;
         }
 
+        public void CancelProductionMany(System.Collections.Generic.IReadOnlyList<InventoryItemQuantity> quantities, bool returnInputs)
+        {
+            var grouped = Normalize(quantities);
+            foreach (var pair in grouped)
+            {
+                var balance = Get(pair.Key);
+                if (balance.InProduction < pair.Value) throw new InvalidOperationException("Không đủ đầu vào đang sản xuất để hủy toàn bộ công thức.");
+                if (returnInputs) checked { _ = balance.Available + pair.Value; }
+            }
+            foreach (var pair in grouped)
+            {
+                var b = GetMutable(pair.Key);
+                b.InProduction -= pair.Value;
+                if (returnInputs) b.Available += pair.Value;
+            }
+        }
+
         private MutableBalance GetMutable(InventoryItem item)
         {
             if (!balances.TryGetValue(item, out var b)) balances.Add(item, b = new MutableBalance());
@@ -123,5 +196,19 @@ namespace Game.Domain.Supply
         { if (quantity <= 0) throw new ArgumentOutOfRangeException(nameof(quantity), "Số lượng phải lớn hơn 0."); }
         private static void RequireItem(InventoryItem item)
         { if (string.IsNullOrWhiteSpace(item.Value)) throw new ArgumentException("Mã vật phẩm không hợp lệ.", nameof(item)); }
+
+        private static Dictionary<InventoryItem, int> Normalize(System.Collections.Generic.IReadOnlyList<InventoryItemQuantity> quantities, bool allowEmpty = false)
+        {
+            if (quantities == null) throw new ArgumentNullException(nameof(quantities));
+            if (quantities.Count == 0 && !allowEmpty) throw new ArgumentException("Danh sách vật phẩm không được rỗng.", nameof(quantities));
+            var grouped = new Dictionary<InventoryItem, int>();
+            foreach (var entry in quantities)
+            {
+                if (entry == null) throw new ArgumentException("Dòng tồn kho không được null.", nameof(quantities));
+                RequireItem(entry.Item); RequirePositive(entry.Quantity);
+                grouped[entry.Item] = grouped.TryGetValue(entry.Item, out var count) ? checked(count + entry.Quantity) : entry.Quantity;
+            }
+            return grouped;
+        }
     }
 }

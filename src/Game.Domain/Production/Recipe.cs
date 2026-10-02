@@ -36,6 +36,13 @@ namespace Game.Domain.Production
             System.Collections.Generic.IReadOnlyList<RecipeInput> inputs,
             System.Collections.Generic.IReadOnlyList<RecipeOutput> outputs,
             int? durationMinutes = null, long? operatingCost = null)
-        { Id = id; Name = name; Producer = producer; Inputs = inputs; Outputs = outputs; DurationMinutes = durationMinutes; OperatingCost = operatingCost; }
+        {
+            if (durationMinutes.HasValue && durationMinutes.Value <= 0) throw new System.ArgumentOutOfRangeException(nameof(durationMinutes));
+            if (operatingCost.HasValue && operatingCost.Value < 0) throw new System.ArgumentOutOfRangeException(nameof(operatingCost));
+            Id = id; Name = name; Producer = producer;
+            Inputs = inputs == null ? null : System.Array.AsReadOnly(new System.Collections.Generic.List<RecipeInput>(inputs).ToArray());
+            Outputs = outputs == null ? null : System.Array.AsReadOnly(new System.Collections.Generic.List<RecipeOutput>(outputs).ToArray());
+            DurationMinutes = durationMinutes; OperatingCost = operatingCost;
+        }
     }
 }

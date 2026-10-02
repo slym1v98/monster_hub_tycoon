@@ -10,6 +10,10 @@ namespace Game.Domain.Production
         public string Name { get; }
         public int? MaximumConcurrentJobs { get; }
         public ProducerDefinition(ProducerId id, string name, int? maximumConcurrentJobs = null)
-        { Id = id; Name = name; MaximumConcurrentJobs = maximumConcurrentJobs; }
+        {
+            if (maximumConcurrentJobs.HasValue && maximumConcurrentJobs.Value <= 0)
+                throw new System.ArgumentOutOfRangeException(nameof(maximumConcurrentJobs));
+            Id = id; Name = name; MaximumConcurrentJobs = maximumConcurrentJobs;
+        }
     }
 }

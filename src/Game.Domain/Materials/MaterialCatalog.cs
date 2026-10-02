@@ -33,6 +33,8 @@ namespace Game.Domain.Materials
 
         private void Validate()
         {
+            if (materials.Any(x => x == null) || products.Any(x => x == null) || recipes.Any(x => x == null) || producers.Any(x => x == null))
+                throw new ArgumentException("Danh mục không được chứa định nghĩa null.");
             EnsureUnique(materials.Select(x => x.Id.Value), "material");
             EnsureUnique(products.Select(x => x.Id.Value), "product");
             EnsureUnique(recipes.Select(x => x.Id.Value), "recipe");
@@ -47,12 +49,18 @@ namespace Game.Domain.Materials
             foreach (var product in products)
             {
                 if (string.IsNullOrWhiteSpace(product.Name)) throw new ArgumentException("Thiếu tên sản phẩm.");
+                if (string.IsNullOrWhiteSpace(product.Unit)) throw new ArgumentException("Thiếu đơn vị sản phẩm.");
                 if (product.Producer.HasValue && !producers.Any(x => x.Id == product.Producer.Value)) throw new ArgumentException("Xưởng của sản phẩm không tồn tại.");
             }
+            foreach (var producer in producers)
+                if (string.IsNullOrWhiteSpace(producer.Name)) throw new ArgumentException("Thiếu tên xưởng.");
             foreach (var recipe in recipes)
             {
+                if (string.IsNullOrWhiteSpace(recipe.Name)) throw new ArgumentException("Thiếu tên công thức.");
                 if (recipe.Inputs == null || recipe.Inputs.Count == 0) throw new ArgumentException("Công thức phải có đầu vào.");
                 if (recipe.Outputs == null || recipe.Outputs.Count == 0) throw new ArgumentException("Công thức phải có đầu ra.");
+                if (recipe.DurationMinutes.HasValue && recipe.DurationMinutes.Value <= 0) throw new ArgumentException("Thời lượng recipe phải lớn hơn 0.");
+                if (recipe.OperatingCost.HasValue && recipe.OperatingCost.Value < 0) throw new ArgumentException("Chi phí recipe không được âm.");
                 if (!producers.Any(x => x.Id == recipe.Producer)) throw new ArgumentException("Xưởng của công thức không tồn tại.");
                 foreach (var input in recipe.Inputs) ValidateItem(input.Material, input.Product, input.Quantity);
                 foreach (var output in recipe.Outputs) ValidateItem(output.Material, output.Product, output.Quantity);
@@ -99,9 +107,9 @@ namespace Game.Domain.Materials
                 new ProducerDefinition(new ProducerId("academy"), "Học Viện"),
                 new ProducerDefinition(new ProducerId("evolution_lab"), "Phòng Thí Nghiệm Tiến Hóa")
             };
-            var products = new[]
+            var products = new List<ProductDefinition>
             {
-                Product("blank", "Phôi liệu", "refinery"), Product("enhancement_stone", "Đá Cường hóa", "reactor"),
+                Product("enhancement_stone", "Đá Cường hóa", "reactor"),
                 Product("distilled_water", "Nước Cất", "reactor"), Product("evolution_stone", "Đá Tiến Hóa", "reactor"),
                 Product("potion", "Thuốc", "hospital"), Product("vaccine", "Vắc-xin", "hospital"),
                 Product("tranquilizer", "Thuốc An Thần", "hospital"), Product("food_drink", "Đồ ăn, nước uống", "restaurant"),
@@ -117,7 +125,30 @@ namespace Game.Domain.Materials
                 Product("mutation_core", "Lõi Đột Biến", null), Product("gene_fragment", "Gene Fragments", null),
                 Product("world_boss_crystal", "Tinh Thể Boss Thế Giới", null), Product("broken_relic", "Cổ vật vỡ", null)
             };
-            return new MaterialCatalog(list, products, producers: producers);
+            var blanks = new List<ProductDefinition>();
+            var recipes = new List<Recipe>();
+            foreach (var material in list.Where(x => x.Family == MaterialFamily.Ore || x.Family == MaterialFamily.ClothLeather || x.Family == MaterialFamily.Gem))
+            {
+                var blankId = new ProductId($"blank_{MaterialId.FamilyKey(material.Family)}_tier_{material.Tier}");
+                var name = $"Phôi {familyNames[(int)material.Family]} Tier {material.Tier}";
+                blanks.Add(new ProductDefinition(blankId, name, new ProducerId("refinery")));
+                recipes.Add(new Recipe(new RecipeId($"refine_{material.Id.Value}_to_{blankId.Value}"),
+                    $"Tinh chế {material.Name} thành {name}", new ProducerId("refinery"),
+                    new[] { new RecipeInput(material.Id, 1) }, new[] { new RecipeOutput(blankId, 1) }));
+            }
+            products.AddRange(blanks);
+            var reactorOutputs = new[]
+            {
+                (new ProductId("enhancement_stone"), "Đá Cường hóa"),
+                (new ProductId("distilled_water"), "Nước Cất"),
+                (new ProductId("evolution_stone"), "Đá Tiến Hóa")
+            };
+            foreach (var blank in blanks)
+                foreach (var output in reactorOutputs)
+                    recipes.Add(new Recipe(new RecipeId($"reactor_{blank.Id.Value}_to_{output.Item1.Value}"),
+                        $"Chế {output.Item2} từ {blank.Name}", new ProducerId("reactor"),
+                        new[] { new RecipeInput(blank.Id, 1) }, new[] { new RecipeOutput(output.Item1, 1) }));
+            return new MaterialCatalog(list, products, recipes, producers);
         }
 
         private static ProductDefinition Product(string id, string name, string producer)

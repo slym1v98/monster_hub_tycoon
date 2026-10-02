@@ -52,6 +52,20 @@ namespace Game.Domain.Tests
         }
 
         [Fact]
+        public void MultiInputReservationIsAtomicWhenOneIngredientIsMissing()
+        {
+            var wood = new InventoryItem(MaterialId.For(MaterialFamily.Wood, 1));
+            var inventory = new Inventory();
+            inventory.Add(Ore, 3);
+            Assert.Throws<InvalidOperationException>(() => inventory.ReserveMany(new[]
+            {
+                new InventoryItemQuantity(Ore, 2), new InventoryItemQuantity(wood, 1)
+            }));
+            Assert.Equal(3, inventory.Get(Ore).Available);
+            Assert.Equal(0, inventory.Get(Ore).Reserved);
+        }
+
+        [Fact]
         public void MoneyLedgerReconcilesGrossTaxAndNetAndRejectsInvalidEntries()
         {
             var ledger = new MoneyLedger();
