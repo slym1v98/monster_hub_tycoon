@@ -47,7 +47,7 @@
 **Interfaces:**
 - Produces `MonsterElement`, `MonsterRole`, `MonsterIvGrade`, `MonsterLifeState`, immutable `MonsterStats`, data-only `MonsterDefinition`, deterministic `Monster.Create(id, definition, rarity, iv, level, seed)`, and `MonsterRoster.Add`, `SetActive`, `MoveToStorage`, `RestoreFromStorage`.
 - `MonsterRoster` has capacity 3 and at most one Active; existing HubWorld-created Trainers start with one Soul-bound Monster of matching Trainer Rarity.
-- `Trainer.Roster` becomes the owner of Monster state. Preserve `TeamHp`/`TeamHpMax` only as computed compatibility properties until Task 8 removes all mutable aggregate uses.
+- `Trainer.Roster` becomes the owner of Monster state. Preserve `TeamHp`/`TeamHpMax` only as computed compatibility properties until Task 9 removes all mutable aggregate uses.
 
 - [ ] **Step 1: Write failing tests** for adding a starter Monster, assigning Active/Reserve, refusing duplicate IDs/fourth member, and preserving Monster identity when moved to storage.
 - [ ] **Step 2: Run focused tests and confirm expected failure:** `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~MonsterRosterTests --no-restore`.
