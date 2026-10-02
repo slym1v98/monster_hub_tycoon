@@ -36,16 +36,18 @@ namespace Game.Domain.Supply
             RequireAccount(taxAccount, nameof(taxAccount)); RequireAccount(reason, nameof(reason));
             if (gross < 0) throw new ArgumentOutOfRangeException(nameof(gross));
             if (tax < 0 || tax > gross) throw new ArgumentOutOfRangeException(nameof(tax));
-            if (payer == payee || payer == taxAccount || (tax > 0 && payee == taxAccount))
+            if (payer == payee || (tax > 0 && payee == taxAccount))
                 throw new ArgumentException("Các tài khoản trong giao dịch phải phân biệt.");
 
             var net = checked(gross - tax);
-            var payerBalance = checked(BalanceOf(payer) - gross);
-            var payeeBalance = checked(BalanceOf(payee) + net);
-            var taxBalance = checked(BalanceOf(taxAccount) + tax);
-            balances[payer] = payerBalance;
-            balances[payee] = payeeBalance;
-            balances[taxAccount] = taxBalance;
+            var changes = new Dictionary<string, long>(StringComparer.Ordinal);
+            AddDelta(changes, payer, checked(-gross));
+            AddDelta(changes, payee, net);
+            AddDelta(changes, taxAccount, tax);
+            var updated = new Dictionary<string, long>(StringComparer.Ordinal);
+            foreach (var change in changes)
+                updated.Add(change.Key, checked(BalanceOf(change.Key) + change.Value));
+            foreach (var balance in updated) balances[balance.Key] = balance.Value;
             var transaction = new MoneyTransaction(transactions.Count + 1L, payer, payee, taxAccount, gross, tax, reason);
             transactions.Add(transaction);
             return transaction;
@@ -53,5 +55,8 @@ namespace Game.Domain.Supply
 
         private static void RequireAccount(string value, string parameter)
         { if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Tài khoản/lý do không được rỗng.", parameter); }
+
+        private static void AddDelta(Dictionary<string, long> changes, string account, long amount)
+        { changes[account] = changes.TryGetValue(account, out var current) ? checked(current + amount) : amount; }
     }
 }
