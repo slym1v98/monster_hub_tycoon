@@ -136,7 +136,8 @@ namespace Game.Domain.Tests
             var parameters = ZoneCatalog.Default.Definitions.SelectMany(x => x.BalanceParameters)
                 .Concat(ZoneSelectionConfig.Prototype.BalanceParameters)
                 .Concat(ExpeditionConfig.Prototype.BalanceParameters).Concat(LootConfig.Prototype.BalanceParameters)
-                .Concat(ConsumablePriceConfig.Prototype.BalanceParameters).Concat(ConsumablePolicyConfig.Prototype.BalanceParameters).ToArray();
+                .Concat(ConsumablePriceConfig.Prototype.BalanceParameters).Concat(ConsumablePolicyConfig.Prototype.BalanceParameters)
+                .Concat(Game.Domain.Combat.MonsterItemConfig.Prototype.BalanceParameters).ToArray();
             Assert.Equal(parameters.Length, parameters.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count());
             Assert.All(parameters, x => {
                 Assert.False(string.IsNullOrWhiteSpace(x.Id));

@@ -77,8 +77,17 @@ namespace Game.Domain
         public int InjuredMonsterCount { get; }
         public bool NightmareStress { get; }
         public bool CaptureOpportunity { get; }
-        public CombatRiskSnapshot(int injuredMonsterCount, bool nightmareStress = false, bool captureOpportunity = false)
-        { if (injuredMonsterCount < 0) throw new ArgumentOutOfRangeException(nameof(injuredMonsterCount)); InjuredMonsterCount = injuredMonsterCount; NightmareStress = nightmareStress; CaptureOpportunity = captureOpportunity; }
+        public int RebelliousMonsterCount { get; }
+        public bool HasEligibleReserve { get; }
+        public double ExpectedCombatRisk { get; }
+        public CombatRiskSnapshot(int injuredMonsterCount, bool nightmareStress = false, bool captureOpportunity = false,
+            int rebelliousMonsterCount = 0, bool hasEligibleReserve = false, double expectedCombatRisk = 0)
+        {
+            if (injuredMonsterCount < 0 || rebelliousMonsterCount < 0) throw new ArgumentOutOfRangeException(nameof(injuredMonsterCount));
+            ZoneDefinition.ValidateNonNegativeFinite(expectedCombatRisk, nameof(expectedCombatRisk));
+            InjuredMonsterCount = injuredMonsterCount; NightmareStress = nightmareStress; CaptureOpportunity = captureOpportunity;
+            RebelliousMonsterCount = rebelliousMonsterCount; HasEligibleReserve = hasEligibleReserve; ExpectedCombatRisk = expectedCombatRisk;
+        }
     }
     public sealed class ProductPurchase
     {
@@ -92,15 +101,18 @@ namespace Game.Domain
         public static ConsumablePolicyConfig Prototype { get; } = new ConsumablePolicyConfig();
         public int MaximumUnitsPerNeed { get; }
         public double PriceSensitivityBudgetDivisor { get; }
+        public double MinimumExpectedCombatRisk { get; }
         public IReadOnlyList<BalanceParameter> BalanceParameters { get; }
-        public ConsumablePolicyConfig(int maximumUnitsPerNeed = 2, double priceSensitivityBudgetDivisor = 1)
+        public ConsumablePolicyConfig(int maximumUnitsPerNeed = 2, double priceSensitivityBudgetDivisor = 1, double minimumExpectedCombatRisk = 0.25)
         {
             if (maximumUnitsPerNeed < 1) throw new ArgumentOutOfRangeException(nameof(maximumUnitsPerNeed));
             ZoneDefinition.ValidatePositiveFinite(priceSensitivityBudgetDivisor, nameof(priceSensitivityBudgetDivisor));
-            MaximumUnitsPerNeed = maximumUnitsPerNeed; PriceSensitivityBudgetDivisor = priceSensitivityBudgetDivisor;
+            ZoneDefinition.ValidateNonNegativeFinite(minimumExpectedCombatRisk, nameof(minimumExpectedCombatRisk));
+            MaximumUnitsPerNeed = maximumUnitsPerNeed; PriceSensitivityBudgetDivisor = priceSensitivityBudgetDivisor; MinimumExpectedCombatRisk = minimumExpectedCombatRisk;
             BalanceParameters = Array.AsReadOnly(new[] {
                 new BalanceParameter("consumable_policy.max_units_per_need", maximumUnitsPerNeed, "units", "Prototype", "Prototype per-visit quantity cap."),
-                new BalanceParameter("consumable_policy.price_sensitivity_budget_divisor", priceSensitivityBudgetDivisor, "multiplier", "Prototype", "Prototype personality price-sensitivity influence.")
+                new BalanceParameter("consumable_policy.price_sensitivity_budget_divisor", priceSensitivityBudgetDivisor, "multiplier", "Prototype", "Prototype personality price-sensitivity influence."),
+                new BalanceParameter("consumable_policy.minimum_expected_combat_risk", minimumExpectedCombatRisk, "risk_score", "Prototype", "Prototype decision threshold to carry one Potion into a planned expedition.")
             });
         }
     }
@@ -114,12 +126,18 @@ namespace Game.Domain
             var wanted = new List<(ProductId product, int units)>();
             int Owned(ProductId id) => trainer.Products.TryGetValue(id, out var count) ? count : 0;
             var potion = new ProductId("potion");
-            int potionNeed = Math.Max(0, Math.Min(risk.InjuredMonsterCount, config.MaximumUnitsPerNeed) - Owned(potion));
+            int potionDemand = risk.InjuredMonsterCount > 0 ? Math.Min(risk.InjuredMonsterCount, config.MaximumUnitsPerNeed)
+                : risk.ExpectedCombatRisk >= config.MinimumExpectedCombatRisk ? 1 : 0;
+            int potionNeed = Math.Max(0, potionDemand - Owned(potion));
             if (potionNeed > 0) wanted.Add((potion, potionNeed));
             var tranquilizer = new ProductId("tranquilizer");
             if (risk.NightmareStress && Owned(tranquilizer) == 0) wanted.Add((tranquilizer, 1));
             var captureBall = new ProductId("capture_ball");
             if (risk.CaptureOpportunity && Owned(captureBall) == 0) wanted.Add((captureBall, 1));
+            var cake = new ProductId("reward_cake");
+            if (risk.RebelliousMonsterCount > 0 && Owned(cake) == 0) wanted.Add((cake, Math.Min(risk.RebelliousMonsterCount, config.MaximumUnitsPerNeed)));
+            var tactics = new ProductId("tactics_book");
+            if (risk.HasEligibleReserve && Owned(tactics) == 0) wanted.Add((tactics, 1));
             double budgetValue = Math.Floor(trainer.Gold / (PersonalityProfile.Of(trainer.Personality).PriceSensitivity * config.PriceSensitivityBudgetDivisor));
             long budget = budgetValue >= trainer.Gold ? trainer.Gold : (long)budgetValue;
             var result = new List<ProductPurchase>();

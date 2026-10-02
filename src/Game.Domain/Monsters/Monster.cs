@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Game.Domain.Monsters
 {
@@ -27,6 +28,8 @@ namespace Game.Domain.Monsters
         internal bool IsStored { get; set; }
 
         readonly MonsterStatConfig statConfig;
+        readonly List<(double attack, double defense, double critical, double rebellionReduction, int expiresAt)> temporaryEffects
+            = new List<(double, double, double, double, int)>();
 
         Monster(MonsterId id, MonsterDefinition definition, Rarity rarity, MonsterIvGrade iv, int level,
             int seed, bool isSoulBound, MonsterStatConfig statConfig)
@@ -68,6 +71,36 @@ namespace Game.Domain.Monsters
             Stats = stats;
             CurrentHp = Math.Min(CurrentHp, MaxHp);
         }
+
+        public long RestoreHp(long amount)
+        {
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
+            long restored = Math.Min(amount, MaxHp - CurrentHp);
+            CurrentHp += restored;
+            return restored;
+        }
+
+        public void ApplyTemporaryCombatEffects(double attackMultiplier, double defenseMultiplier,
+            double criticalBonus, double managementReduction, int expiresAtMinute)
+        {
+            if (double.IsNaN(attackMultiplier) || double.IsInfinity(attackMultiplier) || attackMultiplier < 1) throw new ArgumentOutOfRangeException(nameof(attackMultiplier));
+            if (double.IsNaN(defenseMultiplier) || double.IsInfinity(defenseMultiplier) || defenseMultiplier < 1) throw new ArgumentOutOfRangeException(nameof(defenseMultiplier));
+            if (double.IsNaN(criticalBonus) || double.IsInfinity(criticalBonus) || criticalBonus < 0) throw new ArgumentOutOfRangeException(nameof(criticalBonus));
+            if (double.IsNaN(managementReduction) || double.IsInfinity(managementReduction) || managementReduction < 0) throw new ArgumentOutOfRangeException(nameof(managementReduction));
+            temporaryEffects.Add((attackMultiplier, defenseMultiplier, criticalBonus, managementReduction, expiresAtMinute));
+        }
+
+        internal MonsterStats CombatStatsAt(int minute)
+        {
+            var active = temporaryEffects.Where(x => x.expiresAt > minute).ToArray();
+            if (active.Length == 0) return Stats;
+            return new MonsterStats(Stats.Hp, Stats.Attack * active.Aggregate(1d, (n, x) => n * x.attack),
+                Stats.Defense * active.Aggregate(1d, (n, x) => n * x.defense), Stats.AttackSpeed,
+                Math.Min(1, Stats.CriticalChance + active.Sum(x => x.critical)));
+        }
+        internal double RebellionReductionAt(int minute) => temporaryEffects.Where(x => x.expiresAt > minute).Sum(x => x.rebellionReduction);
+        internal bool HasCombatEffectAt(int minute) => temporaryEffects.Any(x => x.expiresAt > minute);
+        internal bool HasRebellionEffectAt(int minute) => temporaryEffects.Any(x => x.expiresAt > minute && x.rebellionReduction > 0);
 
         /// <summary>Cập nhật HP của chính Monster; HP bằng 0 là ngất, không mất danh tính.</summary>
         public void SetCurrentHp(long hp)

@@ -82,6 +82,7 @@ namespace Game.Domain
                 queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
                 return;
             }
+            BuyExpeditionSupplies(t, zone);
             t.CurrentZoneId = zone.Id;
             SetState(t, TrainerState.Traveling, "Farm");
             queue.Schedule(now + zone.WalkMinutes, SimEventKind.TrainerArriveZone, t.Id, t.Token);
@@ -100,6 +101,7 @@ namespace Game.Domain
             Settle(t);
             var zone = cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == t.CurrentZoneId)
                 ?? throw new InvalidOperationException("Trainer đang farm nhưng Zone hiện tại không còn trong catalog.");
+            UseAvailableExpeditionItems(t);
             ExpeditionResult result = expeditions.Resolve(TrainerSnapshot.FromTrainer(t, now), zone, cfg.FarmChunkMinutes, rng);
             var loot = result.Loot;
             foreach (var battle in result.Battles)
@@ -126,6 +128,51 @@ namespace Game.Domain
             ReturnReason reason = TrainerBrain.ShouldReturn(t, SimClock.IsNight(now));
             if (reason != ReturnReason.None) StartReturn(t, reason);
             else queue.Schedule(now + cfg.FarmChunkMinutes, SimEventKind.FarmChunk, t.Id, t.Token);
+        }
+
+        void BuyExpeditionSupplies(Trainer t, ZoneDefinition zone)
+        {
+            if (!useSupplyChain || cfg.ConsumablePolicySettings == null || t.Roster.Members.Count == 0) return;
+            var rebellion = t.Roster.Members.Count(m => RebellionModel.IsRebellious(m.Level, m.Rarity,
+                t.Rank, t.Level, t.Rarity, t.LeadershipItemBonus));
+            var risk = new CombatRiskSnapshot(t.Roster.Members.Count(m => m.CurrentHp < m.MaxHp),
+                rebelliousMonsterCount: rebellion, hasEligibleReserve: t.Roster.Members.Count > 1,
+                expectedCombatRisk: zone.EncounterProfile.ExpectedEncountersPerHour * cfg.FarmChunkMinutes / 60.0);
+            var plan = ConsumablePolicy.DecidePurchases(TrainerSnapshot.FromTrainer(t, now), ConsumableStock,
+                risk, cfg.ConsumablePolicySettings);
+            foreach (var purchase in plan) PurchaseProduct(t.Id, purchase.Product.Value, purchase.Units);
+        }
+
+        void UseAvailableExpeditionItems(Trainer t)
+        {
+            var active = t.Roster.Active;
+            if (active == null) return;
+            var config = cfg.MonsterItemSettings ?? MonsterItemConfig.Prototype;
+            void TryUse(string id, Monster target, double management = 0, double leadership = 0,
+                bool reserve = false, bool hasLock = false)
+            {
+                var product = new ProductId(id);
+                if (target == null || t.Inventory.Count(product) == 0) return;
+                var result = MonsterItemEffects.Apply(product, target, config, now, management, leadership, reserve, hasLock);
+                if (!result.Applied || result.ConsumedUnits == 0 || !t.Inventory.TryConsume(product, result.ConsumedUnits)) return;
+                if (result.LeadershipBonus > 0) t.LeadershipItemBonus += result.LeadershipBonus;
+                if (result.BagSynergyEnabled) t.BagSynergyExpiresAtMinute = result.ExpiresAtMinute;
+                Raise(new TrainerProductChanged(now, t.Id, id, -result.ConsumedUnits, t.Inventory.Count(product)));
+            }
+
+            foreach (var monster in t.Roster.Members.Where(m => m.CurrentHp < m.MaxHp).OrderBy(m => m.Id.Value, StringComparer.Ordinal))
+                TryUse("potion", monster);
+            TryUse("monster_buff_bottle", active);
+            double leadership = RebellionModel.LeadershipScore(t.Rank, t.Level, t.Rarity, t.LeadershipItemBonus);
+            foreach (var monster in t.Roster.Members.Where(m =>
+                RebellionModel.ManagementScore(m.Level, m.Rarity) - m.RebellionReductionAt(now) > leadership)
+                .OrderBy(m => m.Id.Value, StringComparer.Ordinal))
+                TryUse("reward_cake", monster, RebellionModel.ManagementScore(monster.Level, monster.Rarity), leadership);
+            bool stillRebellious = t.Roster.Members.Any(m =>
+                RebellionModel.ManagementScore(m.Level, m.Rarity) - m.RebellionReductionAt(now) > leadership);
+            if (stillRebellious) TryUse("pet_communication_lock", active, hasLock: t.LeadershipItemBonus > 0);
+            bool synergyActive = t.BagSynergyExpiresAtMinute > now;
+            if (!synergyActive) TryUse("tactics_book", active, reserve: t.Roster.Members.Count > 1);
         }
 
         /// <summary>Bắt đầu đường về HUB. Gọi sau <see cref="Settle"/>.</summary>

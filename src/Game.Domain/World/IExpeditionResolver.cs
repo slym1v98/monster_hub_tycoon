@@ -67,14 +67,31 @@ namespace Game.Domain
                 var foe = new MonsterSnapshot(new MonsterId(zone.Id + ".wild." + i), encounter.Element,
                     new MonsterStats(foeHp, combat.OpponentAttack, combat.OpponentDefense, combat.OpponentAttackSpeed, 0), foeHp,
                     new[] { encounter.Element.ToString().ToLowerInvariant() + "_strike" });
-                var battle = BattleResolver.Resolve(new BattleInput(currentTeam, new[] { foe }, activeId), CombatConfig.Prototype, random);
+                var battleTeam = ApplyBagSynergy(currentTeam, activeId, trainer.BagSynergyEnabled, config.MonsterItemSettings ?? MonsterItemConfig.Prototype);
+                var leadership = new TrainerCombatContext(trainer.Rank, trainer.Level, trainer.Rarity, itemLeadershipBonus: trainer.LeadershipBonus);
+                var management = currentTeam.ToDictionary(x => x.Id,
+                    x => Math.Max(0, RebellionModel.ManagementScore(x.Level, x.Rarity) - x.ManagementScoreReduction));
+                var battle = BattleResolver.Resolve(new BattleInput(battleTeam, new[] { foe }, activeId, leadership, management), CombatConfig.Prototype, random);
                 battles.Add(battle);
                 activeId = battle.ActiveId;
                 currentTeam = battle.FinalMonsters.Where(x => x.Side == BattleSide.Team)
                     .Select(state => {
                         var old = currentTeam.First(x => x.Id == state.Id);
-                        return new MonsterSnapshot(old.Id, old.Element, old.Stats, state.CurrentHp, old.SkillIds, state.Cooldowns);
+                        return new MonsterSnapshot(old.Id, old.Element, old.Stats, state.CurrentHp, old.SkillIds, state.Cooldowns,
+                            old.Level, old.Rarity, old.ManagementScoreReduction, old.Role);
                     }).ToArray();
+                var support = trainer.BagSynergyEnabled && currentTeam.Any(x => x.Id != activeId && x.Role == MonsterRole.Support);
+                if (support && activeId.HasValue)
+                {
+                    var member = currentTeam.FirstOrDefault(x => x.Id == activeId.Value);
+                    if (member != null && member.CurrentHp > 0)
+                    {
+                        long hp = Math.Min(member.Stats.Hp, checked(member.CurrentHp + (config.MonsterItemSettings ?? MonsterItemConfig.Prototype).SynergySupportHeal));
+                        currentTeam = currentTeam.Select(x => x.Id == member.Id
+                            ? new MonsterSnapshot(x.Id, x.Element, x.Stats, hp, x.SkillIds, x.Cooldowns, x.Level, x.Rarity, x.ManagementScoreReduction, x.Role)
+                            : x).ToArray();
+                    }
+                }
                 var lootSettings = config.LootSettings ?? LootConfig.Prototype;
                 var reward = lootResolver.Resolve(battle, zone, trainer, time,
                     new LootConfig(lootSettings.LuckGoldPerPoint, lootSettings.MaterialPickupChance, int.MaxValue), random);
@@ -88,6 +105,23 @@ namespace Game.Domain
             var loot = new ExpeditionLoot(collected, Array.Empty<MaterialQuantity>(), totalGold, totalExperience);
             var finalHp = currentTeam.ToDictionary(x => x.Id, x => x.CurrentHp);
             return new ExpeditionResult(battles, loot, totalExperience, finalHp);
+        }
+
+        static MonsterSnapshot[] ApplyBagSynergy(MonsterSnapshot[] team, MonsterId? activeId, bool enabled, MonsterItemConfig settings)
+        {
+            if (!enabled || !activeId.HasValue) return team;
+            var active = team.FirstOrDefault(x => x.Id == activeId.Value);
+            if (active == null) return team;
+            bool tank = team.Any(x => x.Id != active.Id && x.Role == MonsterRole.Tank);
+            bool dps = team.Any(x => x.Id != active.Id && x.Role == MonsterRole.Dps);
+            if (!tank && !dps) return team;
+            var stats = new MonsterStats(active.Stats.Hp, active.Stats.Attack,
+                active.Stats.Defense * (tank ? settings.SynergyTankDefenseMultiplier : 1), active.Stats.AttackSpeed,
+                Math.Min(1, active.Stats.CriticalChance + (dps ? settings.SynergyDpsCriticalBonus : 0)));
+            return team.Select(x => x.Id == active.Id
+                ? new MonsterSnapshot(x.Id, x.Element, stats, x.CurrentHp, x.SkillIds, x.Cooldowns,
+                    x.Level, x.Rarity, x.ManagementScoreReduction, x.Role)
+                : x).ToArray();
         }
     }
 }

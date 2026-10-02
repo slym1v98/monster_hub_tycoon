@@ -275,11 +275,11 @@
 - AI buys and uses items only when a configurable expected-value rule and sufficient cash/stock permit. Potion is consumed only when injured; reward cake/communication lock only when Rebellion threshold is exceeded; tactics book enables declared team synergy. Item effects expire on the configured time/action boundary.
 - Exact amounts, duration, prices and purchase propensity absent from GDD are Prototype/TBD workbook inputs.
 
-- [ ] **Step 1: Write failing tests** for each listed item effect, use threshold, quantity decrement, effect expiration and no-use at full HP/no Rebellion.
-- [ ] **Step 2: Run focused tests and confirm missing effects.**
-- [ ] **Step 3: Implement item effects and AI policy** using inventory and purchase API from Task 10.
-- [ ] **Step 4: Run focused and full Domain tests.**
-- [ ] **Step 5: Commit** as `feat(domain): simulate monster consumable use`.
+- [x] **Step 1: Write tests** for item effects, use thresholds, effect expiry, AI needs and purchase limits. (Tests were added during implementation; not all were observed failing pre-change.)
+- [x] **Step 2: Confirm missing behavior** through compile/API gaps and focused test iteration; no claim of a complete RED baseline.
+- [x] **Step 3: Implement item effects and AI policy** using inventory and purchase API from Task 10, including pre-expedition purchase/use and consumption events.
+- [x] **Step 4: Run focused and full Domain tests.**
+- [x] **Step 5: Commit** as `feat(domain): simulate monster consumable use`.
 
 ### Task 12: Capture decisions and attempt resolution
 

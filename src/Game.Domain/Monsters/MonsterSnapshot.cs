@@ -14,14 +14,23 @@ namespace Game.Domain.Monsters
         public long CurrentHp { get; }
         public IReadOnlyList<string> SkillIds { get; }
         public IReadOnlyDictionary<string, int> Cooldowns { get; }
+        public int Level { get; }
+        public Rarity Rarity { get; }
+        public double ManagementScoreReduction { get; }
+        public MonsterRole Role { get; }
 
         public MonsterSnapshot(MonsterId id, MonsterElement element, MonsterStats stats, long currentHp,
-            IEnumerable<string> skillIds, IReadOnlyDictionary<string, int> cooldowns = null)
+            IEnumerable<string> skillIds, IReadOnlyDictionary<string, int> cooldowns = null, int level = 1,
+            Rarity rarity = Rarity.Common, double managementScoreReduction = 0, MonsterRole role = MonsterRole.Support)
         {
             if (string.IsNullOrWhiteSpace(id.Value)) throw new ArgumentException("Mã Monster không được rỗng.", nameof(id));
             if (!Enum.IsDefined(typeof(MonsterElement), element)) throw new ArgumentOutOfRangeException(nameof(element));
             if (stats == null) throw new ArgumentNullException(nameof(stats));
             if (stats.Hp <= 0) throw new ArgumentOutOfRangeException(nameof(stats));
+            if (level < 1 || level > 100) throw new ArgumentOutOfRangeException(nameof(level));
+            if (!Enum.IsDefined(typeof(Rarity), rarity)) throw new ArgumentOutOfRangeException(nameof(rarity));
+            if (!Enum.IsDefined(typeof(MonsterRole), role)) throw new ArgumentOutOfRangeException(nameof(role));
+            if (double.IsNaN(managementScoreReduction) || double.IsInfinity(managementScoreReduction) || managementScoreReduction < 0) throw new ArgumentOutOfRangeException(nameof(managementScoreReduction));
             if (currentHp < 0 || currentHp > stats.Hp) throw new ArgumentOutOfRangeException(nameof(currentHp));
             var ids = (skillIds ?? throw new ArgumentNullException(nameof(skillIds))).ToArray();
             if (ids.Length == 0 || ids.Any(string.IsNullOrWhiteSpace) || ids.Distinct(StringComparer.Ordinal).Count() != ids.Length)
@@ -40,14 +49,16 @@ namespace Game.Domain.Monsters
             CurrentHp = currentHp;
             SkillIds = Array.AsReadOnly(ids);
             Cooldowns = new ReadOnlyDictionary<string, int>(copiedCooldowns);
+            Level = level; Rarity = rarity; ManagementScoreReduction = managementScoreReduction; Role = role;
         }
 
         /// <summary>Chụp dữ liệu hiện tại; thay đổi thực thể sau đó không tác động ảnh chụp.</summary>
         public static MonsterSnapshot FromMonster(Monster monster, IEnumerable<string> skillIds,
-            IReadOnlyDictionary<string, int> cooldowns = null)
+            IReadOnlyDictionary<string, int> cooldowns = null, int totalMinutes = 0)
         {
             if (monster == null) throw new ArgumentNullException(nameof(monster));
-            return new MonsterSnapshot(monster.Id, monster.Element, monster.Stats, monster.CurrentHp, skillIds, cooldowns);
+            return new MonsterSnapshot(monster.Id, monster.Element, monster.CombatStatsAt(totalMinutes), monster.CurrentHp,
+                skillIds, cooldowns, monster.Level, monster.Rarity, monster.RebellionReductionAt(totalMinutes), monster.Role);
         }
     }
 }

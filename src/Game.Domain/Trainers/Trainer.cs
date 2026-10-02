@@ -68,6 +68,8 @@ namespace Game.Domain
         /// <summary>Cờ tạm thay cho slot Kính (sub-project 4).</summary>
         public bool HasNightVision;
         public string CurrentZoneId;
+        public double LeadershipItemBonus;
+        public int BagSynergyExpiresAtMinute = -1;
 
         // --- Lương ---
         public long ContractWage;

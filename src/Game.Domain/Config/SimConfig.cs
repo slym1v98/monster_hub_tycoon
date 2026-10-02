@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Game.Domain.Combat;
 using Game.Domain.Production;
 using Game.Domain.Supply;
 
@@ -51,6 +52,7 @@ namespace Game.Domain
         public ExpeditionConfig ExpeditionSettings = ExpeditionConfig.Prototype;
         public ConsumablePriceConfig ConsumablePrices = ConsumablePriceConfig.Prototype;
         public ConsumablePolicyConfig ConsumablePolicySettings = ConsumablePolicyConfig.Prototype;
+        public MonsterItemConfig MonsterItemSettings = MonsterItemConfig.Prototype;
         /// <summary>Progression unlock is owned by Sub-project 6; default campaign begins in Zone 1.</summary>
         public string[] UnlockedZoneIds = { "zone_1" };
 
