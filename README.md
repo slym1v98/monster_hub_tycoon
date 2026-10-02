@@ -2,7 +2,7 @@
 
 Game **Management Simulation / Idle RPG / Dark-Capitalist Tycoon** với phong cách Chibi Pixel Art 2.5D (môi trường 3D low-poly, nhân vật là sprite 2D pixel art, camera isometric). Người chơi vào vai Giám đốc HUB giữa vùng hoang dã. Game chạy tự động: bạn không điều khiển nhân vật đánh quái mà điều khiển **dòng tiền**. Bạn chiêu mộ Trainer, cung cấp dịch vụ độc quyền và thu lại tài sản của họ qua chuỗi cung ứng, chứng khoán và các dịch vụ rủi ro cao.
 
-> Trạng thái: giai đoạn thiết kế, đang dựng lõi mô phỏng `Game.Domain` bằng C# thuần theo 6 sub-project (xem [Tiến độ Domain](#tiến-độ-domain)). Chưa có project Unity.
+> Trạng thái: giai đoạn thiết kế, đang dựng lõi mô phỏng `Game.Domain` bằng C# thuần theo 6 sub-project (xem [Tiến độ Domain](#tiến-độ-domain)). Sub-project 1 đã hoàn tất; sub-project 2 hiện có prototype chuỗi cung ứng để tiếp tục xác minh. Chưa có project Unity.
 
 ## Vòng lặp cốt lõi
 
@@ -28,12 +28,13 @@ Cần **.NET 8 SDK**. Repo không có file solution, nên build và test từng 
 
 ```
 dotnet test tests/Game.Domain.Tests                 # unit test Domain
-dotnet run --project tools/Game.Sim                 # kịch bản core: 10 Trainer, 3 tháng, dòng tiền và cách Trainer dùng thời gian
+dotnet run --project tools/Game.Sim                 # core: 10 Trainer, 3 tháng, dòng tiền, thời gian và chuỗi cung ứng
+dotnet run --project tools/Game.Sim -- market        # thị trường: 10/30 Trainer x 30/90 ngày
 dotnet run --project tools/Game.Sim -- ladders      # chi phí kỳ vọng Nâng Sao, Tinh Luyện, tăng tư chất
 dotnet run --project tools/Game.Sim -- stock        # tần suất sự kiện cổ phiếu
 ```
 
-Các tham số kinh tế hiện là **giá trị khởi điểm chưa cân bằng** (kịch bản `core` cho thấy HUB đang quá dư dả). Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).
+Các tham số kinh tế trong `core` và `market` là **Prototype/TBD, chưa cân bằng**. `market` chạy bốn quy mô/thời lượng cố định; mục tiêu mua và sản xuất trong kịch bản được suy ra từ tổng sức chứa balo, còn giá lấy từ `SimConfig`. Đây là phép thử luồng và đối soát, không phải mục tiêu lợi nhuận. Các con số trước đây của mô hình kinh tế gộp theo ngày không đại diện cho chuỗi cung ứng mới. Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).
 
 Workbook tham số gồm số trong GDD, giá trị runtime và backlog TBD: [MonsterHUB_Balance.xlsx](docs/balance/MonsterHUB_Balance.xlsx). Chỉnh số trong workbook sau khi mô phỏng đủ hành vi; không coi các giá trị Prototype là cân bằng cuối.
 
@@ -44,7 +45,7 @@ Mỗi sub-project có spec ([docs/superpowers/specs](docs/superpowers/specs)) v�
 | # | Sub-project | Trạng thái |
 |---|---|---|
 | 1 | Lõi thời gian và Trainer: đồng hồ sự kiện, FSM, 4 nhu cầu, công trình dịch vụ, Payday, đình công, `RunUntilPayday` | Xong |
-| 2 | Chuỗi cung ứng: Trạm Giao Thương, Thương nhân, kho, các xưởng chế tạo | Chưa làm |
+| 2 | Chuỗi cung ứng: Trạm Giao Thương, Thương nhân, kho, các xưởng chế tạo | Prototype Domain; còn TBD về loot theo Zone, tiêu dùng AI và cân bằng |
 | 3 | Monster và chiến đấu | Chưa làm |
 | 4 | Trang bị và các thang nâng cấp | Chưa làm |
 | 5 | Tài chính: hợp đồng lương, vay nợ, chứng khoán | Chưa làm |
@@ -76,3 +77,5 @@ Các mô hình độc lập đã có sẵn và có test: Cường hóa, Gacha, t
 | [docs/superpowers/specs](docs/superpowers/specs) | Spec thiết kế từng sub-project Domain |
 | [docs/superpowers/plans](docs/superpowers/plans) | Kế hoạch triển khai từng sub-project Domain |
 | [Workbook cân bằng](docs/balance/MonsterHUB_Balance.xlsx) | Tham số GDD, runtime và backlog cân bằng |
+
+Prototype sub-project 2 mô phỏng tồn kho typed, yêu cầu mua của Trạm, Thương nhân hữu hạn, thuế, job sản xuất và demand nguyên liệu thiếu. `SimpleFarmResolver` hiện gán loot tạm vào Quặng tier 1 để nối thử luồng; bảng loot thật theo Zone thuộc phần farm/chiến đấu và chưa được chốt. Trainer chưa tự mua hàng tại các quầy trong mô phỏng này.

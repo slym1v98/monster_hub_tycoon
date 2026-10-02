@@ -47,3 +47,9 @@ Danh mục các vật phẩm tiêu hao và nguyên liệu được nhắc trong 
 | Cổ vật vỡ (Broken Relics) | Farm ngẫu nhiên | Ghép tại Bảo Tàng Khảo Cổ (sau Early Access) | 08 |
 
 *Các giá trị tác dụng ở trên là mô tả khởi điểm lấy từ các tài liệu khác, cần xác nhận khi cân bằng.*
+
+## 3. Trạng thái catalog trong Domain
+
+Prototype `Game.Domain` có ID ổn định cho 30 nguyên liệu (6 nhóm × 5 tier), các nhóm sản phẩm, công thức Tinh chế/Lò Phản Ứng và công thức tiêu hao dùng thử. Công thức và số lượng đầu vào/đầu ra trong [workbook cân bằng](../balance/MonsterHUB_Balance.xlsx) là dữ liệu Prototype/TBD, chưa phải định mức sản xuất đã chốt. Các công thức trang bị được biểu diễn theo nhóm slot; chỉ mapping xưởng và quầy, chưa có crafting/equipment economy hoàn chỉnh.
+
+**Loot chưa được đặc tả theo từng material ID:** farm prototype hiện trả Quặng tier 1 cho mọi lượt để kiểm tra luồng `Trainer → Trạm/Thương nhân → sản xuất`. GDD hiện chỉ nêu nhóm nguyên liệu và tier chủ yếu theo Zone, chưa có bảng xác suất/số lượng theo Zone, encounter hay loại quái. Vì vậy phép ánh xạ này là tạm; không suy ra rằng các Zone chỉ rơi Quặng. Chi tiết loot sẽ được chốt cùng mô hình farm/chiến đấu. Hiệu ứng vật phẩm và hành vi Trainer mua từ quầy cũng chưa được mô phỏng.

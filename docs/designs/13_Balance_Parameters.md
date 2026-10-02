@@ -165,3 +165,19 @@ Thứ tự lợi nhuận HUB khớp mô tả thiết kế (Háo chiến "tốn v
 **Rebellion** (`RebellionModel`, có test): một bậc Rarity bằng 20 cấp độ. Monster cùng bậc quản lý được tới Cấp độ Trainer + 20; Monster hơn Trainer một bậc chỉ quản lý được nếu cấp độ không cao hơn Trainer; Monster hơn hai bậc cần thưởng Lãnh đạo (Khóa Giao Tiếp, Học Viện). Quy tắc dễ hiểu cho người chơi và cho UI ("cần Lãnh đạo X").
 
 **Tài chính** (`FinanceModel`, có test): cổ tức 10% doanh thu 15 ngày; Thuế Tự Do Tài Chính 30% trên lãi đã chốt; số cổ phiếu IPO tính theo tỉ suất mục tiêu (8%/năm) để cổ tức hấp dẫn nhưng không lấn át biến động giá.
+
+## 14. Chuỗi cung ứng Domain (Prototype/TBD, chưa cân bằng)
+
+Chạy bằng `dotnet run --project tools/Game.Sim -- core` hoặc `-- market`. `market` chạy seed cố định với 10/30 Trainer trong 30/90 ngày; `core` dùng 10 Trainer trong 3 tháng và vẫn in bảng Payday, thời gian Trainer, công trình như trước. Cả hai cấu hình bật yêu cầu mua Quặng tier 1, đặt bid theo `SimConfig.MaterialPrice`, và đặt target Quặng/phôi bằng tổng sức chứa balo của đội. Đây là tải mô phỏng lấy từ dữ liệu Prototype hiện có, không phải khuyến nghị target kinh tế.
+
+| Chỉ số | Cách tính/giới hạn |
+|---|---|
+| Gold ngoài vào | Farm Gold được suy ra bằng đối soát thay đổi Gold của Trainer, sau khi trừ donate, net từ bán nguyên liệu, lương nhận và cộng chi dịch vụ; báo cáo riêng phần donate. Chưa có bảng loot thật theo Zone. |
+| Kênh bán và thuế | Gross/net tách cho Trainer bán Trạm và bán Merchant; thuế cộng từ giao dịch supply. HUB không giả lập bán nguyên liệu ra ngoài. |
+| Tồn kho | Tổng available/reserved/in-production và số nguyên liệu còn trong balo tại cuối kỳ. |
+| Thiếu hàng | Báo số ngày lấy mẫu có tồn nguyên liệu dưới target, không đồng nghĩa quầy tiêu hao đã hết hàng. Bổ sung thời lượng `ProductionRestockDemand` để chỉ ra thiếu đầu vào và khoảng chờ tới job phụ thuộc. |
+| Merchant | Cash/hàng cuối kỳ, số lần phát trạng thái phá sản, và tổng/thời lượng chờ `WaitingForMarket`; phần chưa bán vẫn nằm trong balo. |
+| Sản xuất | Tổng input theo các job hoàn tất, output thực tế quan sát qua biến động tồn kho sau hiệu suất, job start→finish và demand→job-start. Thời lượng job lấy duration recipe hoặc mặc định rồi nhân multiplier theo cấp Producer (Prototype 1.0/0.9/0.8/0.7/0.6), làm tròn lên phút; curve nằm trong workbook. Domain chưa có hàng đợi job độc lập nên hai thời lượng này không phải thời gian xếp hàng của một xưởng. |
+| Đối soát và runtime | Chênh giữa delta Kho bạc phát sự kiện và delta suy ra từ sổ giao dịch supply; thời gian chạy trên máy hiện tại. |
+
+Kết quả chạy hiện tại đối soát Kho bạc supply khớp sổ giao dịch (chênh 0 ở cả `core` và bốn run `market`). Runtime và kết quả số đầy đủ được in ở mỗi lần chạy; chúng là quan sát theo prototype, không dùng làm mục tiêu cân bằng. Hạn mức chờ, vốn/sức chứa Merchant, giá, thuế runtime, target tồn, hiệu suất và thời lượng job vẫn cần được xác nhận/cân bằng trong [workbook](../balance/MonsterHUB_Balance.xlsx). Loot Quặng tier 1 hiện chỉ là ánh xạ tạm của `SimpleFarmResolver`; chưa có dữ liệu để cân bằng nhiều nhóm nguyên liệu hay nhu cầu AI mua hàng.

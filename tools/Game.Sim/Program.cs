@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Game.Domain;
+using Game.Domain.Materials;
+using Game.Domain.Production;
 
-// Console runner mô phỏng cân bằng. Chạy: dotnet run --project tools/Game.Sim [core|ladders|stock]
+// Console runner mô phỏng cân bằng. Chạy: dotnet run --project tools/Game.Sim [core|market|ladders|stock]
 static class Program
 {
     static double[] Geo(double a, double r, int n) => Enumerable.Range(0, n).Select(i => a * Math.Pow(r, i)).ToArray();
@@ -73,6 +75,8 @@ static class Program
         var sw = Stopwatch.StartNew();
         var config = new SimConfig { TrainerCount = trainerCount };
         var world = new HubWorld(config, 2026);
+        ConfigureSupplyScenario(world, config, trainerCount);
+        var supply = new SupplyRunMetrics(world, config);
 
         // Thời gian Trainer ở từng trạng thái: cộng dồn khi trạng thái đổi.
         var minutesInState = new Dictionary<TrainerState, long>();
@@ -86,15 +90,21 @@ static class Program
             else if (e is DonationReceived d && d.Source == "Patron") donations++;
         };
 
-        Console.WriteLine("# Core: 10 Trainer Common, 3 tháng in-game");
+        Console.WriteLine("# Core: 10 Trainer Common, 3 tháng in-game (tham số chuỗi cung ứng Prototype/TBD)");
         Console.WriteLine("Tháng  Kho bạc trước Payday  Lợi nhuận tháng  Quỹ lương   Trả được  Đình công  Gold TB Trainer");
         long afterPrevious = config.StartTreasury;   // Kho bạc sau Payday trước (tháng 1: số vốn khởi điểm)
         for (int m = 1; m <= months; m++)
         {
-            world.RunUntilPayday();
+            PaydayOutcome o = null;
             long before = world.Treasury;
+            for (int day = 0; day < SimClock.DaysPerMonth; day++)
+            {
+                PaydayOutcome resolved = AdvanceAcrossPaydays(world, SimClock.MinutesPerDay, balance => before = balance);
+                if (resolved != null) o = resolved;
+                supply.SampleStockoutDay(world);
+            }
             long profit = before - afterPrevious;   // lợi nhuận HUB trong tháng, trước khi trả lương
-            PaydayOutcome o = world.ResolvePayday();
+            if (o == null) throw new InvalidOperationException("Kịch bản core không đi qua Payday trong tháng mô phỏng.");
             afterPrevious = world.Treasury;
             double avgGold = 0;
             foreach (TrainerView t in world.Trainers) avgGold += t.Gold;
@@ -110,23 +120,251 @@ static class Program
         Console.WriteLine("\n# Thời gian của Trainer");
         Console.WriteLine($"Farm {Share(TrainerState.Farming):P1} | Đi lại {Share(TrainerState.Traveling, TrainerState.Returning):P1} | " +
                           $"Xếp hàng {Share(TrainerState.Queued):P1} | Dịch vụ {Share(TrainerState.InService):P1} | " +
-                          $"Chờ tiền {Share(TrainerState.WaitingForMoney):P1} | Rảnh ở HUB {Share(TrainerState.AtHub):P1}");
+                          $"Chờ tiền {Share(TrainerState.WaitingForMoney):P1} | Chờ Merchant {Share(TrainerState.WaitingForMarket):P1} | " +
+                          $"Rảnh ở HUB {Share(TrainerState.AtHub):P1}");
 
         Console.WriteLine("\n# Công trình");
         foreach (BuildingView b in world.Buildings)
             Console.WriteLine($"{b.Kind,-11} cấp {b.Level} {b.Slots,2} chỗ, hàng đợi dài nhất {b.MaxQueueLength}");
         Console.WriteLine($"\nTổng tài donate {donations} lần; chờ tiền dài nhất {world.MaxMoneyWaitMinutes / 60.0:F1} giờ in-game.");
+        supply.Print(world, config, "Core", sw.ElapsedMilliseconds);
         world.ValidateInvariants();
         sw.Stop();
         Console.WriteLine($"Thời gian chạy: {sw.ElapsedMilliseconds} ms (mục tiêu dưới 1000 ms)");
+    }
+
+    static void ConfigureSupplyScenario(HubWorld world, SimConfig config, int trainerCount)
+    {
+        // FarmResult hiện chỉ sinh ore_tier_1. Mục tiêu lấy từ tổng sức chứa balo để
+        // không đưa thêm một ngưỡng cân bằng ngoài các tham số prototype hiện có.
+        int target = checked(config.BackpackCapacity * trainerCount);
+        var buy = world.SetBuyRequest(MaterialId.For(MaterialFamily.Ore, 1).Value, target, config.MaterialPrice);
+        var production = world.SetProductionTarget("blank_ore_tier_1", target);
+        var tax = world.SetMarketTaxRate(config.TaxRate);
+        if (!buy.Ok || !production.Ok || !tax.Ok)
+            throw new InvalidOperationException("Không cấu hình được kịch bản chuỗi cung ứng: " + buy.Reason + " " + production.Reason + " " + tax.Reason);
+    }
+
+    static void Market()
+    {
+        Console.WriteLine("# Kịch bản thị trường (mọi mục tiêu/giá là Prototype/TBD, không cân bằng)");
+        Console.WriteLine("Trainer | Ngày | Gold ngoài vào | Bán trực tiếp Trạm (gross/net) | Bán Merchant (gross/net) | Thuế | Tồn kho | Merchant cash | Phá sản | SX input/output | Thiếu đầu vào ngày | Lead time job | Lệch đối soát | Runtime");
+        foreach (int trainers in new[] { 10, 30 })
+        foreach (int days in new[] { 30, 90 })
+            RunMarketScenario(trainers, days);
+    }
+
+    static void RunMarketScenario(int trainerCount, int days)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var config = new SimConfig { TrainerCount = trainerCount };
+        var world = new HubWorld(config, 2026);
+        ConfigureSupplyScenario(world, config, trainerCount);
+        var metrics = new SupplyRunMetrics(world, config);
+        int minutes = checked(days * SimClock.MinutesPerDay);
+        while (minutes > 0)
+        {
+            int step = Math.Min(minutes, SimClock.MinutesPerDay);
+            AdvanceAcrossPaydays(world, step);
+            minutes -= step;
+            metrics.SampleStockoutDay(world);
+        }
+        stopwatch.Stop();
+        metrics.Print(world, config, $"Market {trainerCount}T/{days}d", stopwatch.ElapsedMilliseconds);
+        world.ValidateInvariants();
+    }
+
+    static PaydayOutcome AdvanceAcrossPaydays(HubWorld world, int minutes, Action<long> beforePayday = null)
+    {
+        int remaining = minutes;
+        PaydayOutcome resolved = null;
+        while (remaining > 0)
+        {
+            RunResult result = world.RunFor(remaining);
+            remaining = result.RemainingMinutes;
+            if (result.Stop == StopReason.PaydayDue)
+            {
+                beforePayday?.Invoke(world.Treasury);
+                resolved = world.ResolvePayday();
+            }
+            else break;
+        }
+        return resolved;
+    }
+
+    sealed class SupplyRunMetrics
+    {
+        readonly Dictionary<int, long> trainerStartGold;
+        readonly Dictionary<long, int> jobStarts = new Dictionary<long, int>();
+        readonly Dictionary<string, int> demandSince = new Dictionary<string, int>(StringComparer.Ordinal);
+        readonly Dictionary<string, int> closedDemandSinceJob = new Dictionary<string, int>(StringComparer.Ordinal);
+        readonly Dictionary<string, int> priorStock = new Dictionary<string, int>(StringComparer.Ordinal);
+        readonly Dictionary<string, long> productionOutput = new Dictionary<string, long>(StringComparer.Ordinal);
+        readonly Dictionary<string, long> productionInput = new Dictionary<string, long>(StringComparer.Ordinal);
+        long stationGross, stationNet, merchantGross, merchantNet, tax;
+        long donations, servicesPaid, wagesPaid;
+        long tradeTreasuryEvents;
+        int bankruptcies, completedJobs;
+        long totalJobLeadMinutes;
+        int stockoutMaterialDays, productionInputShortageDays;
+        long totalMarketWaitMinutes, maximumMarketWaitMinutes, restockDemandMinutes, demandToJobMinutes;
+        int marketWaitEpisodes, dependentJobsAfterRestock;
+        readonly Dictionary<int, int> marketWaitSince = new Dictionary<int, int>();
+
+        public SupplyRunMetrics(HubWorld world, SimConfig config)
+        {
+            trainerStartGold = world.Trainers.ToDictionary(x => x.Id, x => x.Gold);
+            foreach (var demand in world.ProductionRestockDemands)
+                demandSince[demand.Item.Value] = world.Now.TotalMinutes;
+            world.EventRaised += OnEvent;
+        }
+
+        void OnEvent(IDomainEvent e)
+        {
+            if (e is MaterialTradeSettled trade)
+            {
+                tax = checked(tax + trade.Tax);
+                if (trade.TrainerId >= 0 && trade.Channel == "Station")
+                { stationGross = checked(stationGross + trade.Gross); stationNet = checked(stationNet + trade.NetToSeller); }
+                if (trade.TrainerId >= 0 && trade.Channel == "Merchant")
+                { merchantGross = checked(merchantGross + trade.Gross); merchantNet = checked(merchantNet + trade.NetToSeller); }
+            }
+            else if (e is DonationReceived donation) donations = checked(donations + donation.Gold);
+            else if (e is ServiceUsed service) servicesPaid = checked(servicesPaid + service.Paid);
+            else if (e is TrainerStateChanged state)
+            {
+                if (state.To == TrainerState.WaitingForMarket) marketWaitSince[state.TrainerId] = state.Minute;
+                if (state.From == TrainerState.WaitingForMarket && marketWaitSince.TryGetValue(state.TrainerId, out int entered))
+                {
+                    long waited = state.Minute - entered;
+                    totalMarketWaitMinutes += waited;
+                    maximumMarketWaitMinutes = Math.Max(maximumMarketWaitMinutes, waited);
+                    marketWaitEpisodes++;
+                    marketWaitSince.Remove(state.TrainerId);
+                }
+            }
+            else if (e is TreasuryChanged treasuryChange &&
+                     (treasuryChange.Reason == "TradeTax" || treasuryChange.Reason == "MerchantPurchase" ||
+                      treasuryChange.Reason == "ProductionCost"))
+                tradeTreasuryEvents = checked(tradeTreasuryEvents + treasuryChange.Delta);
+            else if (e is MerchantStateChanged merchant && merchant.State == Game.Domain.Supply.MerchantState.Bankrupt)
+                bankruptcies++;
+            else if (e is ProductionJobChanged job)
+            {
+                if (job.State == "Running") jobStarts[job.JobId] = e.Minute;
+                else if (job.State == "Completed")
+                {
+                    completedJobs++;
+                    if (jobStarts.TryGetValue(job.JobId, out int start)) totalJobLeadMinutes += e.Minute - start;
+                    var recipe = MaterialCatalog.Default.Recipes.FirstOrDefault(x => x.Id.Value == job.RecipeId);
+                    if (recipe != null)
+                    {
+                        foreach (var input in recipe.Inputs)
+                        {
+                            string id = input.Material.HasValue ? "material:" + input.Material.Value.Value : "product:" + input.Product.Value.Value;
+                            productionInput[id] = productionInput.TryGetValue(id, out long amount) ? amount + input.Quantity : input.Quantity;
+                        }
+                    }
+                }
+                if (job.State == "Running")
+                {
+                    var recipe = MaterialCatalog.Default.Recipes.FirstOrDefault(x => x.Id.Value == job.RecipeId);
+                    if (recipe != null)
+                    foreach (var input in recipe.Inputs)
+                    {
+                        string id = input.Material.HasValue ? "material:" + input.Material.Value.Value : "product:" + input.Product.Value.Value;
+                        if (closedDemandSinceJob.TryGetValue(id, out int since))
+                        {
+                            demandToJobMinutes += e.Minute - since;
+                            dependentJobsAfterRestock++;
+                            closedDemandSinceJob.Remove(id);
+                        }
+                    }
+                }
+            }
+            else if (e is ProductionRestockDemandChanged demand)
+            {
+                if (demand.Quantity > 0)
+                {
+                    if (!demandSince.ContainsKey(demand.ItemId)) demandSince[demand.ItemId] = e.Minute;
+                }
+                else if (demandSince.TryGetValue(demand.ItemId, out int since))
+                {
+                    restockDemandMinutes += e.Minute - since;
+                    closedDemandSinceJob[demand.ItemId] = since;
+                    demandSince.Remove(demand.ItemId);
+                }
+            }
+            else if (e is SupplyStockChanged stock && stock.ItemId.StartsWith("product:", StringComparison.Ordinal))
+            {
+                int current = stock.Balance.Available;
+                priorStock.TryGetValue(stock.ItemId, out int previous);
+                if (current > previous)
+                    productionOutput[stock.ItemId] = productionOutput.TryGetValue(stock.ItemId, out long amount)
+                        ? amount + current - previous : current - previous;
+                priorStock[stock.ItemId] = current;
+            }
+            else if (e is PaydayResolved payday) wagesPaid = checked(wagesPaid + payday.Outcome.TotalPaid);
+        }
+
+        public void SampleStockoutDay(HubWorld world)
+        {
+            foreach (var request in world.BuyRequests.Where(x => x.Enabled && x.TargetStock > 0))
+            {
+                string id = "material:" + request.MaterialId;
+                var stock = world.SupplyStocks.FirstOrDefault(x => x.ItemId == id);
+                long covered = stock == null ? 0 : (long)stock.Available + stock.Reserved + stock.InProduction;
+                if (covered < request.TargetStock) stockoutMaterialDays++;
+            }
+            if (world.ProductionRestockDemands.Count > 0) productionInputShortageDays++;
+        }
+
+        public void Print(HubWorld world, SimConfig config, string name, long? measuredRuntimeMs = null)
+        {
+            long finalTrainerGold = world.Trainers.Sum(x => x.Gold);
+            long initialGold = trainerStartGold.Values.Sum();
+            long trainerSalesNet = checked(stationNet + merchantNet);
+            // Wallet reconciliation isolates the Gold created by farm and Patron from internal transfers.
+            long farmGold = checked(finalTrainerGold - initialGold - donations - trainerSalesNet - wagesPaid + servicesPaid);
+            long externalGold = checked(farmGold + donations);
+            long treasuryMovementFromLedger = 0;
+            foreach (var tx in world.SupplyTransactions)
+            {
+                if (tx.Payer == "hub:treasury") treasuryMovementFromLedger = checked(treasuryMovementFromLedger - tx.Gross);
+                if (tx.Payee == "hub:treasury") treasuryMovementFromLedger = checked(treasuryMovementFromLedger + tx.Gross - tx.Tax);
+                if (tx.TaxAccount == "hub:treasury") treasuryMovementFromLedger = checked(treasuryMovementFromLedger + tx.Tax);
+            }
+            long treasuryDifference = tradeTreasuryEvents - treasuryMovementFromLedger;
+            long available = world.SupplyStocks.Sum(x => (long)x.Available);
+            long reserved = world.SupplyStocks.Sum(x => (long)x.Reserved);
+            long inProduction = world.SupplyStocks.Sum(x => (long)x.InProduction);
+            long inputs = productionInput.Values.Sum();
+            long outputs = productionOutput.Values.Sum();
+            long runtime = measuredRuntimeMs ?? 0;
+            long outstandingRestockMinutes = demandSince.Values.Sum(since => Math.Max(0, world.Now.TotalMinutes - since));
+            long outstandingMarketWait = marketWaitSince.Values.Sum(since => Math.Max(0, world.Now.TotalMinutes - since));
+            maximumMarketWaitMinutes = Math.Max(maximumMarketWaitMinutes,
+                marketWaitSince.Values.Select(since => (long)Math.Max(0, world.Now.TotalMinutes - since)).DefaultIfEmpty(0).Max());
+
+            Console.WriteLine($"\n## {name}: {world.Trainers.Count} Trainer, ngày {world.Now.Day}");
+            Console.WriteLine($"Gold ngoài vào: {externalGold} (farm suy ra từ đối soát {farmGold}; donate {donations}); bán Trainer gross/net: Trạm {stationGross}/{stationNet}, Merchant {merchantGross}/{merchantNet}; thuế supply {tax}.");
+            int backpackUnits = world.Trainers.Sum(x => x.BackpackUnits);
+            Console.WriteLine($"Kho cuối: available {available}, reserved {reserved}, in-production {inProduction}; balo còn {backpackUnits} units; {stockoutMaterialDays} ngày-nguyên-liệu có tồn dưới target (proxy, không khẳng định quầy tiêu hao hết); ngày có demand thiếu đầu vào {productionInputShortageDays}, tổng demand-item thiếu {restockDemandMinutes + outstandingRestockMinutes} phút.");
+            Console.WriteLine($"Merchant cuối: cash {world.Merchant?.Cash ?? 0}, hàng {world.Merchant?.LoadUnits ?? 0}/{world.Merchant?.CapacityUnits ?? 0}, phá sản {bankruptcies}; jobs xong {completedJobs}, input tiêu thụ {inputs}, output tăng ròng qua tồn kho {outputs}.");
+            Console.WriteLine($"WaitingForMarket: {marketWaitEpisodes} lượt kết thúc, {marketWaitSince.Count} lượt còn chờ cuối kỳ, tổng {totalMarketWaitMinutes + outstandingMarketWait} Trainer-phút, tối đa quan sát {maximumMarketWaitMinutes} phút; luật chờ có giới hạn từ MerchantConfig (giá trị Prototype/TBD). Job start→finish TB: {(completedJobs == 0 ? "n/a" : (totalJobLeadMinutes / (double)completedJobs).ToString("F1") + " phút")}; demand→job bắt đầu TB: {(dependentJobsAfterRestock == 0 ? "n/a" : (demandToJobMinutes / (double)dependentJobsAfterRestock).ToString("F1") + " phút")} ({dependentJobsAfterRestock} đầu vào); đây là proxy, chưa có hàng đợi job riêng.");
+            Console.WriteLine($"Supply treasury reconciliation: event delta {tradeTreasuryEvents}, ledger-derived delta {treasuryMovementFromLedger}, chênh {treasuryDifference}; runtime {runtime} ms.");
+            if (measuredRuntimeMs.HasValue)
+                Console.WriteLine($"CSV,{name},{world.Trainers.Count},{world.Now.Day},{externalGold},{stationGross},{stationNet},{merchantGross},{merchantNet},{tax},{available},{reserved},{inProduction},{world.Merchant?.Cash ?? 0},{bankruptcies},{inputs},{outputs},{stockoutMaterialDays},{productionInputShortageDays},{(completedJobs == 0 ? -1 : totalJobLeadMinutes / (double)completedJobs):F1},{treasuryDifference},{runtime}");
+        }
     }
 
     static void Main(string[] args)
     {
         string mode = args.Length > 0 ? args[0] : "core";
         if (mode == "core") { Core(); return; }
+        if (mode == "market") { Market(); return; }
         if (mode == "ladders") { Ladders(); return; }
         if (mode == "stock") { Stock(); return; }
-        Console.WriteLine("Dùng: dotnet run --project tools/Game.Sim [core|ladders|stock]");
+        Console.WriteLine("Dùng: dotnet run --project tools/Game.Sim [core|market|ladders|stock]");
     }
 }
