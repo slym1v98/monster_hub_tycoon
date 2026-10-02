@@ -179,11 +179,11 @@
 - `ZoneSelector.Select(TrainerSnapshot trainer, IReadOnlyList<ZoneDefinition> unlockedZones, IReadOnlyList<ZoneIncomeModifier> activeModifiers) -> ZoneDefinition` chooses the greatest expected Gold-equivalent per hour; Rank and unlock checks run before scoring; ties resolve by Zone ID. Sub-project 6 maps live Bounty Board orders into modifiers.
 - Default HubWorld unlock input is Zone 1 until Sub-project 6 owns progression. Game.Sim may pass all zones explicitly to exercise the selector. Tiers match GDD map: Zone1 Grass, Zone2 Volcano, Zone3 Ice, Zone4 Swamp, Zone5 Abyss; Zone N requires Rank ≥ N.
 
-- [ ] **Step 1: Write failing tests** for rank filtering, locked-zone filtering, all-ineligible result, income maximization, Capitalist bounty preference and stable tie-break.
-- [ ] **Step 2: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~ZoneSelectorTests` and observe expected failures.**
-- [ ] **Step 3: Implement data-driven Zone definitions and selector**; weights and scores not fixed by GDD are Prototype inputs.
-- [ ] **Step 4: Run focused and full Domain tests.**
-- [ ] **Step 5: Commit** as `feat(domain): add zone catalog and trainer zone choice`.
+- [x] **Step 1: Write failing tests** for rank filtering, locked-zone filtering, all-ineligible result, income maximization, Capitalist bounty preference and stable tie-break.
+- [x] **Step 2: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~ZoneSelectorTests` and observe expected failures.**
+- [x] **Step 3: Implement data-driven Zone definitions and selector**; weights and scores not fixed by GDD are Prototype inputs.
+- [x] **Step 4: Run focused and full Domain tests.**
+- [x] **Step 5: Commit** as `feat(domain): add zone catalog and trainer zone choice`.
 
 ### Task 8: Encounter generation, typed loot and EXP resolution
 

@@ -45,6 +45,8 @@ namespace Game.Domain
         public MonsterStatConfig MonsterStatSettings = MonsterStatConfig.Prototype;
         public TrainerAttributeConfig TrainerAttributeSettings = TrainerAttributeConfig.Prototype;
         public TrainerProgressionConfig TrainerProgressionSettings = TrainerProgressionConfig.Prototype;
+        public ZoneCatalog ZoneCatalogSettings = ZoneCatalog.Default;
+        public ZoneSelectionConfig ZoneSelectionSettings = ZoneSelectionConfig.Prototype;
 
         // --- Nhu cầu (mỗi giờ) ---
         public double FieldStaminaPerHour = 6, FieldSatietyPerHour = 5, FieldHydrationPerHour = 6, FieldStressPerHour = 0.5;
