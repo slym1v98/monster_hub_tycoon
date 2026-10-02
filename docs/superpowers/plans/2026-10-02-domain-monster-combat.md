@@ -113,11 +113,11 @@
 - `SkillDefinition` contains stable ID, element, power, cooldown-in-actions, target rule and optional effect ID. `SkillCatalog` rejects duplicate IDs and unknown references.
 - Prototype skills and all power/cooldown/effect values are configuration/catalog data; the element chart is GDD-defined and must match all 81 cells.
 
-- [ ] **Step 1: Write failing tests** for all 81 matchup cells, reciprocal light/dark, no zero multiplier, invalid enum inputs and duplicate skill IDs.
-- [ ] **Step 2: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~ElementChartTests` and observe failure.**
-- [ ] **Step 3: Implement the literal 9×9 chart and validated skill catalog.**
-- [ ] **Step 4: Run focused and full Domain tests.**
-- [ ] **Step 5: Commit** as `feat(domain): add monster elements and skill catalog`.
+- [x] **Step 1: Write failing tests** for all 81 matchup cells, reciprocal light/dark, no zero multiplier, invalid enum inputs and duplicate skill IDs.
+- [x] **Step 2: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~ElementChartTests` and observe failure.**
+- [x] **Step 3: Implement the literal 9×9 chart and validated skill catalog.**
+- [x] **Step 4: Run focused and full Domain tests.**
+- [x] **Step 5: Commit** as `feat(domain): add monster elements and skill catalog`.
 
 ### Task 5: Deterministic battle resolver and replay record
 
