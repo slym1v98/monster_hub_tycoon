@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Game.Domain.Production;
 using Game.Domain.Supply;
 
@@ -38,6 +40,11 @@ namespace Game.Domain
         public int StartBuildingLevel = 5;
         /// <summary>Phút bắt đầu: 06:00 sáng ngày đầu tiên.</summary>
         public int StartMinute = SimClock.DawnMinute;
+
+        // --- Chỉ số và tiến trình Prototype của Monster/Trainer ---
+        public MonsterStatConfig MonsterStatSettings = MonsterStatConfig.Prototype;
+        public TrainerAttributeConfig TrainerAttributeSettings = TrainerAttributeConfig.Prototype;
+        public TrainerProgressionConfig TrainerProgressionSettings = TrainerProgressionConfig.Prototype;
 
         // --- Nhu cầu (mỗi giờ) ---
         public double FieldStaminaPerHour = 6, FieldSatietyPerHour = 5, FieldHydrationPerHour = 6, FieldStressPerHour = 0.5;
@@ -97,6 +104,92 @@ namespace Game.Domain
             double wage = BaseWage * Math.Pow(RarityGrowth, (int)rarity);
             if (personality == Personality.Capitalist) wage *= CapitalistWageMultiplier;
             return (long)Math.Round(wage);
+        }
+    }
+
+    /// <summary>Hệ số chỉ số Prototype; IV theo GDD cố định và không thuộc cấu hình này.</summary>
+    public sealed class MonsterStatConfig
+    {
+        public const string BalanceStatus = "Prototype";
+        public IReadOnlyList<double> RarityMultipliers { get; }
+        public double GrowthFactor { get; }
+        public static MonsterStatConfig Prototype { get; } = new MonsterStatConfig(new[] { 1.0, 1.2, 1.4, 1.6, 1.8 });
+
+        public MonsterStatConfig(IEnumerable<double> rarityMultipliers, double growthFactor = 1)
+        {
+            var factors = (rarityMultipliers ?? throw new ArgumentNullException(nameof(rarityMultipliers))).ToArray();
+            if (factors.Length != 5) throw new ArgumentException("Cần hệ số cho đủ năm bậc Rarity.", nameof(rarityMultipliers));
+            foreach (var factor in factors)
+                if (double.IsNaN(factor) || double.IsInfinity(factor) || factor <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(rarityMultipliers));
+            if (double.IsNaN(growthFactor) || double.IsInfinity(growthFactor) || growthFactor < 0)
+                throw new ArgumentOutOfRangeException(nameof(growthFactor));
+            RarityMultipliers = Array.AsReadOnly(factors);
+            GrowthFactor = growthFactor;
+        }
+    }
+
+    /// <summary>Khoảng sinh chỉ số Prototype liên tục; hai đầu bằng nhau cho giá trị cố định.</summary>
+    public sealed class TrainerAttributeRange
+    {
+        public double Minimum { get; }
+        public double Maximum { get; }
+        public TrainerAttributeRange(double minimum, double maximum)
+        {
+            if (double.IsNaN(minimum) || double.IsInfinity(minimum) || minimum < 0)
+                throw new ArgumentOutOfRangeException(nameof(minimum));
+            if (double.IsNaN(maximum) || double.IsInfinity(maximum) || maximum < minimum)
+                throw new ArgumentOutOfRangeException(nameof(maximum));
+            Minimum = minimum;
+            Maximum = maximum;
+        }
+    }
+
+    /// <summary>Bốn khoảng chỉ số Prototype; chưa nối hiệu ứng nhu cầu hoặc chiến đấu ở tác vụ này.</summary>
+    public sealed class TrainerAttributeConfig
+    {
+        public const string BalanceStatus = "Prototype";
+        public TrainerAttributeRange Dexterity { get; }
+        public TrainerAttributeRange Luck { get; }
+        public TrainerAttributeRange Endurance { get; }
+        public TrainerAttributeRange Leadership { get; }
+        public static TrainerAttributeConfig Prototype { get; } = new TrainerAttributeConfig(
+            new TrainerAttributeRange(8, 12), new TrainerAttributeRange(8, 12),
+            new TrainerAttributeRange(90, 110), new TrainerAttributeRange(18, 22));
+
+        public TrainerAttributeConfig(TrainerAttributeRange dexterity, TrainerAttributeRange luck,
+            TrainerAttributeRange endurance, TrainerAttributeRange leadership)
+        {
+            Dexterity = dexterity ?? throw new ArgumentNullException(nameof(dexterity));
+            Luck = luck ?? throw new ArgumentNullException(nameof(luck));
+            Endurance = endurance ?? throw new ArgumentNullException(nameof(endurance));
+            Leadership = leadership ?? throw new ArgumentNullException(nameof(leadership));
+        }
+    }
+
+    /// <summary>Đường cong PrototypeLinear: EXP lên cấp = cơ sở + bước × (cấp hiện tại − 1).</summary>
+    public sealed class TrainerProgressionConfig
+    {
+        public const string BalanceStatus = "Prototype";
+        public string CurveId => "PrototypeLinear";
+        public long BaseExperience { get; }
+        public long ExperiencePerLevel { get; }
+        public static TrainerProgressionConfig Prototype { get; } = new TrainerProgressionConfig();
+
+        public TrainerProgressionConfig(long baseExperience = 100, long experiencePerLevel = 25)
+        {
+            if (baseExperience <= 0) throw new ArgumentOutOfRangeException(nameof(baseExperience));
+            if (experiencePerLevel < 0) throw new ArgumentOutOfRangeException(nameof(experiencePerLevel));
+            // Chỉ cần ngưỡng tới Lv100; phép kiểm tra chặn cấu hình gây tràn số trước khi đổi trạng thái.
+            _ = checked(baseExperience + 98 * experiencePerLevel);
+            BaseExperience = baseExperience;
+            ExperiencePerLevel = experiencePerLevel;
+        }
+
+        public long ExperienceToNextLevel(int level)
+        {
+            if (level < 1 || level >= 100) throw new ArgumentOutOfRangeException(nameof(level));
+            return checked(BaseExperience + (level - 1) * ExperiencePerLevel);
         }
     }
 }

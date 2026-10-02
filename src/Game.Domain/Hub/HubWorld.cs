@@ -76,7 +76,10 @@ namespace Game.Domain
             for (int i = 0; i < cfg.TrainerCount; i++)
             {
                 Personality personality = cfg.ForcedPersonality ?? (Personality)rng.NextInt(4);
-                var trainer = new Trainer
+                // Luồng chỉ số riêng theo seed và ID, không làm lệch chuỗi ngẫu nhiên mô phỏng.
+                int attributeSeed = unchecked(seed ^ (i * (int)0x9E3779B9u) ^ (int)0xA341316Cu);
+                var trainer = new Trainer(new SimRandom(attributeSeed),
+                    cfg.TrainerAttributeSettings ?? throw new ArgumentException("Thiếu TrainerAttributeSettings.", nameof(config)))
                 {
                     Id = i, Rarity = Rarity.Common, Personality = personality,
                     Gold = cfg.StartTrainerGold,
@@ -88,7 +91,9 @@ namespace Game.Domain
                 // Trộn seed bằng số nguyên ổn định; không tiêu thụ chuỗi ngẫu nhiên của mô phỏng.
                 int monsterSeed = unchecked(seed ^ (i * (int)0x9E3779B9u));
                 trainer.Roster.Add(Monster.Create(new MonsterId("trainer_" + i.ToString(CultureInfo.InvariantCulture) + "_starter"),
-                    starterDefinition, trainer.Rarity, MonsterIvGrade.B, 1, monsterSeed, isSoulBound: true));
+                    starterDefinition, trainer.Rarity, MonsterIvGrade.B,
+                    MonsterProgression.MonsterLevel(trainer.Rank, trainer.Level), monsterSeed, isSoulBound: true,
+                    statConfig: cfg.MonsterStatSettings ?? throw new ArgumentException("Thiếu MonsterStatSettings.", nameof(config))));
                 trainers.Add(trainer);
             }
 

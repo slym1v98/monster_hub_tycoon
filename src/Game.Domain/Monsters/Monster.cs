@@ -13,11 +13,11 @@ namespace Game.Domain.Monsters
         public MonsterRole Role => Definition.Role;
         public Rarity Rarity { get; }
         public MonsterIvGrade Iv { get; }
-        public int Level { get; }
+        public int Level { get; private set; }
         public bool IsSoulBound { get; }
         /// <summary>Năm giá trị gen cố định theo thứ tự HP, ATK, DEF, ASPD, CRIT trong [0, 1).</summary>
         public IReadOnlyList<double> Genes { get; }
-        public MonsterStats Stats { get; }
+        public MonsterStats Stats { get; private set; }
         public long CurrentHp { get; private set; }
         public long MaxHp => Stats.Hp;
         public MonsterLifeState LifeState => IsStored ? MonsterLifeState.Stored :
@@ -26,8 +26,10 @@ namespace Game.Domain.Monsters
         internal MonsterRoster Owner { get; set; }
         internal bool IsStored { get; set; }
 
+        readonly MonsterStatConfig statConfig;
+
         Monster(MonsterId id, MonsterDefinition definition, Rarity rarity, MonsterIvGrade iv, int level,
-            int seed, bool isSoulBound)
+            int seed, bool isSoulBound, MonsterStatConfig statConfig)
         {
             Id = id;
             Definition = definition;
@@ -38,13 +40,13 @@ namespace Game.Domain.Monsters
             var random = new SimRandom(seed);
             Genes = Array.AsReadOnly(new[] { random.NextDouble(), random.NextDouble(), random.NextDouble(),
                 random.NextDouble(), random.NextDouble() });
-            // Tác vụ 2 sẽ tính tăng trưởng, Rarity và IV từ các đầu vào tường minh.
-            Stats = definition.BaseStats;
+            this.statConfig = statConfig;
+            Stats = MonsterStatsCalculator.Calculate(definition, rarity, iv, level, statConfig);
             CurrentHp = MaxHp;
         }
 
         public static Monster Create(MonsterId id, MonsterDefinition definition, Rarity rarity,
-            MonsterIvGrade iv, int level, int seed, bool isSoulBound = false)
+            MonsterIvGrade iv, int level, int seed, bool isSoulBound = false, MonsterStatConfig statConfig = null)
         {
             if (string.IsNullOrWhiteSpace(id.Value)) throw new ArgumentException("Mã Monster không được rỗng.", nameof(id));
             if (definition == null) throw new ArgumentNullException(nameof(definition));
@@ -52,7 +54,19 @@ namespace Game.Domain.Monsters
             if (!Enum.IsDefined(typeof(Rarity), rarity)) throw new ArgumentOutOfRangeException(nameof(rarity));
             if (!Enum.IsDefined(typeof(MonsterIvGrade), iv)) throw new ArgumentOutOfRangeException(nameof(iv));
             if (level < 1 || level > 100) throw new ArgumentOutOfRangeException(nameof(level));
-            return new Monster(id, definition, rarity, iv, level, seed, isSoulBound);
+            return new Monster(id, definition, rarity, iv, level, seed, isSoulBound, statConfig ?? MonsterStatConfig.Prototype);
+        }
+
+        internal MonsterStats StatsAtLevel(int targetLevel) => targetLevel <= Level ? null :
+            MonsterStatsCalculator.Calculate(Definition, Rarity, Iv, targetLevel, statConfig);
+
+        /// <summary>Tăng cấp giữ nguyên HP hiện tại, kể cả trạng thái ngất; gen không đổi.</summary>
+        internal void ApplyLevel(int targetLevel, MonsterStats stats)
+        {
+            if (stats == null) return;
+            Level = targetLevel;
+            Stats = stats;
+            CurrentHp = Math.Min(CurrentHp, MaxHp);
         }
 
         /// <summary>Cập nhật HP của chính Monster; HP bằng 0 là ngất, không mất danh tính.</summary>

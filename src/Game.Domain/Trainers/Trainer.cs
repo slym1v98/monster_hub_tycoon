@@ -40,12 +40,27 @@ namespace Game.Domain
     {
         public int Id;
         public Rarity Rarity;
-        public int Rank = 1;
-        public int Level = 1;
+        int rank = 1;
+        int level = 1;
+        public int Rank
+        {
+            get => rank;
+            set { MonsterProgression.UpdateLevels(this, value, level); rank = value; }
+        }
+        public int Level
+        {
+            get => level;
+            set { MonsterProgression.UpdateLevels(this, rank, value); level = value; }
+        }
+        /// <summary>EXP còn lại tới cấp kế tiếp; Lv100 bỏ phần dư, chưa thực hiện Rebirth.</summary>
+        public long Experience { get; internal set; }
+        public TrainerAttributes Attributes { get; }
+        public TrainerClass Class { get; internal set; } = TrainerClass.None;
+
         public Personality Personality;
         public readonly Needs Needs = new Needs();
         public long Gold;
-        public MonsterRoster Roster { get; } = new MonsterRoster();
+        public MonsterRoster Roster { get; }
         public long TeamHp => Roster.TotalHp;
         public long TeamHpMax => Roster.TotalHpMax;
         public int BackpackUnits;
@@ -73,6 +88,13 @@ namespace Game.Domain
         public int WaitingSinceMinute;
         public int MarketWaitSinceMinute;
         public BuildingKind PendingService;
+
+        public Trainer(SimRandom random = null, TrainerAttributeConfig attributeConfig = null)
+        {
+            Roster = new MonsterRoster(this);
+            Attributes = TrainerAttributes.Generate(random ?? new SimRandom(0),
+                attributeConfig ?? TrainerAttributeConfig.Prototype);
+        }
 
         public bool IsOnStrike => StrikeDaysLeft > 0;
     }

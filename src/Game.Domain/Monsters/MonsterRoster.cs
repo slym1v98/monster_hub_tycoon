@@ -8,6 +8,7 @@ namespace Game.Domain.Monsters
     public sealed class MonsterRoster
     {
         public const int Capacity = 3;
+        readonly Trainer trainer;
         readonly List<Monster> members = new List<Monster>();
         readonly List<Monster> storage = new List<Monster>();
         public IReadOnlyList<Monster> Members { get; }
@@ -17,8 +18,11 @@ namespace Game.Domain.Monsters
         public long TotalHp => members.Sum(x => x.CurrentHp);
         public long TotalHpMax => members.Sum(x => x.MaxHp);
 
-        public MonsterRoster()
+        public MonsterRoster() : this(null) { }
+
+        internal MonsterRoster(Trainer trainer)
         {
+            this.trainer = trainer;
             Members = members.AsReadOnly();
             Storage = storage.AsReadOnly();
         }
@@ -30,6 +34,11 @@ namespace Game.Domain.Monsters
                 throw new InvalidOperationException("Monster đã thuộc đội hoặc kho.");
             if (monster.Owner != null) throw new InvalidOperationException("Monster đã có chủ sở hữu.");
             EnsureCapacity();
+            if (trainer != null)
+            {
+                int level = MonsterProgression.MonsterLevel(trainer.Rank, trainer.Level);
+                monster.ApplyLevel(level, monster.StatsAtLevel(level));
+            }
             members.Add(monster);
             Sort(members);
             monster.Owner = this;
