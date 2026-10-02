@@ -116,7 +116,7 @@ namespace Game.Domain.Materials
                 Product("reward_cake", "Bánh thưởng", "restaurant"), Product("liquor", "Rượu", "bar"),
                 Product("raincoat", "Áo mưa", "tool_workshop"), Product("gas_mask", "Mặt nạ phòng độc", "tool_workshop"),
                 Product("capture_ball", "Bóng bắt thú", "tool_workshop"), Product("trap", "Bẫy", "tool_workshop"),
-                Product("tactics_book", "Sách Chiến Thuật", "tool_workshop"), Product("monster_buff_bottle", "Bình nước buff", "soda_factory"),
+                Product("tactics_book", "Sách Chiến Thuật", "tool_workshop"), Product("monster_buff_bottle", "Bình nước buff", "soda_factory", ProductEffectKind.TemporaryMonsterStatBuff),
                 Product("pet_communication_lock", "Khóa Giao Tiếp Thú Cưng", "academy"),
                 Product("overclock_coffee", "Cà phê ép xung", "inn"),
                 Product("monster_gear", "Trang bị Monster", "monster_forge"),
@@ -148,10 +148,40 @@ namespace Game.Domain.Materials
                     recipes.Add(new Recipe(new RecipeId($"reactor_{blank.Id.Value}_to_{output.Item1.Value}"),
                         $"Chế {output.Item2} từ {blank.Name}", new ProducerId("reactor"),
                         new[] { new RecipeInput(blank.Id, 1) }, new[] { new RecipeOutput(output.Item1, 1) }));
+            AddConsumableRecipe(recipes, "hospital", "potion", "Chế Thuốc từ Thảo dược", MaterialFamily.Herb);
+            AddConsumableRecipe(recipes, "hospital", "vaccine", "Chế Vắc-xin từ Thảo dược", MaterialFamily.Herb);
+            AddConsumableRecipe(recipes, "hospital", "tranquilizer", "Chế Thuốc An Thần từ Thảo dược", MaterialFamily.Herb);
+            AddConsumableRecipe(recipes, "restaurant", "food_drink", "Chế Đồ ăn, nước uống từ Thực phẩm", MaterialFamily.Food);
+            AddConsumableRecipe(recipes, "restaurant", "reward_cake", "Chế Bánh thưởng từ Thực phẩm", MaterialFamily.Food);
+            AddConsumableRecipe(recipes, "bar", "liquor", "Chế Rượu từ Thực phẩm", MaterialFamily.Food);
+            AddConsumableRecipe(recipes, "soda_factory", "monster_buff_bottle", "Chế Bình nước buff từ Thực phẩm", MaterialFamily.Food);
+            AddConsumableRecipe(recipes, "inn", "overclock_coffee", "Chế Cà phê ép xung từ Thực phẩm", MaterialFamily.Food);
+            AddProductInputRecipe(recipes, "tool_workshop", "raincoat", "Chế Áo mưa từ Phôi", new ProductId("blank_ore_tier_1"));
+            AddProductInputRecipe(recipes, "tool_workshop", "gas_mask", "Chế Mặt nạ phòng độc từ Phôi", new ProductId("blank_ore_tier_1"));
+            AddProductInputRecipe(recipes, "tool_workshop", "tactics_book", "Chế Sách Chiến Thuật từ Phôi", new ProductId("blank_ore_tier_1"));
+            AddToolRecipe(recipes, "capture_ball", "Bóng bắt thú");
+            AddToolRecipe(recipes, "trap", "Bẫy");
             return new MaterialCatalog(list, products, recipes, producers);
         }
 
-        private static ProductDefinition Product(string id, string name, string producer)
-            => new ProductDefinition(new ProductId(id), name, producer == null ? (ProducerId?)null : new ProducerId(producer));
+        private static void AddConsumableRecipe(List<Recipe> recipes, string producer, string product, string name, MaterialFamily family)
+            => recipes.Add(new Recipe(new RecipeId($"{producer}_{product}"), name, new ProducerId(producer),
+                new[] { new RecipeInput(MaterialId.For(family, 1), 1) },
+                new[] { new RecipeOutput(new ProductId(product), 1) }));
+
+        private static void AddProductInputRecipe(List<Recipe> recipes, string producer, string product, string name, ProductId input)
+            => recipes.Add(new Recipe(new RecipeId($"{producer}_{product}"), name, new ProducerId(producer),
+                new[] { new RecipeInput(input, 1) }, new[] { new RecipeOutput(new ProductId(product), 1) }));
+
+        private static void AddToolRecipe(List<Recipe> recipes, string product, string name)
+            => recipes.Add(new Recipe(new RecipeId($"tool_workshop_{product}"), name, new ProducerId("tool_workshop"),
+                new[] { new RecipeInput(new ProductId("blank_ore_tier_1"), 1),
+                    new RecipeInput(MaterialId.For(MaterialFamily.Wood, 1), 1) },
+                new[] { new RecipeOutput(new ProductId(product), 1) }));
+
+        private static ProductDefinition Product(string id, string name, string producer,
+            ProductEffectKind effectKind = ProductEffectKind.None)
+            => new ProductDefinition(new ProductId(id), name,
+                producer == null ? (ProducerId?)null : new ProducerId(producer), effectKind: effectKind);
     }
 }
