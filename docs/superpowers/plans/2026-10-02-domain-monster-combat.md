@@ -49,11 +49,11 @@
 - `MonsterRoster` has capacity 3 and at most one Active; existing HubWorld-created Trainers start with one Soul-bound Monster of matching Trainer Rarity.
 - `Trainer.Roster` becomes the owner of Monster state. Preserve `TeamHp`/`TeamHpMax` only as computed compatibility properties until Task 9 removes all mutable aggregate uses.
 
-- [ ] **Step 1: Write failing tests** for adding a starter Monster, assigning Active/Reserve, refusing duplicate IDs/fourth member, and preserving Monster identity when moved to storage.
-- [ ] **Step 2: Run focused tests and confirm expected failure:** `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~MonsterRosterTests --no-restore`.
-- [ ] **Step 3: Implement the Monster types, catalog validation and roster transitions** in the listed Domain files; initialize one deterministic starter Monster from `HubWorld` using the world seed and Trainer ID.
-- [ ] **Step 4: Run focused tests, then `dotnet test tests/Game.Domain.Tests`**; both must pass.
-- [ ] **Step 5: Commit** as `feat(domain): add monster roster model`.
+- [x] **Step 1: Write failing tests** for adding a starter Monster, assigning Active/Reserve, refusing duplicate IDs/fourth member, and preserving Monster identity when moved to storage.
+- [x] **Step 2: Run focused tests and confirm expected failure:** `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~MonsterRosterTests --no-restore`.
+- [x] **Step 3: Implement the Monster types, catalog validation and roster transitions** in the listed Domain files; initialize one deterministic starter Monster from `HubWorld` using the world seed and Trainer ID.
+- [x] **Step 4: Run focused tests, then `dotnet test tests/Game.Domain.Tests`**; both must pass.
+- [x] **Step 5: Commit** as `feat(domain): add monster roster model`.
 
 ### Task 2: Level conversion, IV/stat derivation and Trainer attributes
 
