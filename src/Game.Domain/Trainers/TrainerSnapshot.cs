@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Game.Domain.Monsters;
+using Game.Domain.Gear;
 using Game.Domain.Materials;
 
 namespace Game.Domain
@@ -25,7 +26,8 @@ namespace Game.Domain
 
         public TrainerSnapshot(int id, int rank, int level, Rarity rarity, Personality personality, TrainerAttributes attributes, bool hasNightVision = false,
             IEnumerable<MonsterSnapshot> team = null, MonsterId? activeMonsterId = null, SimTime? time = null, long gold = 0,
-            IEnumerable<KeyValuePair<ProductId, int>> products = null, double leadershipBonus = 0, bool bagSynergyEnabled = false)
+            IEnumerable<KeyValuePair<ProductId, int>> products = null, double leadershipBonus = 0, bool bagSynergyEnabled = false,
+            GearLoadout gear = null, GearCatalog catalog = null)
         {
             if (id < 0) throw new ArgumentOutOfRangeException(nameof(id));
             if (rank < 1 || rank > 5) throw new ArgumentOutOfRangeException(nameof(rank));
@@ -46,6 +48,13 @@ namespace Game.Domain
             Gold = gold;
             if (double.IsNaN(leadershipBonus) || double.IsInfinity(leadershipBonus) || leadershipBonus < 0) throw new ArgumentOutOfRangeException(nameof(leadershipBonus));
             LeadershipBonus = leadershipBonus; BagSynergyEnabled = bagSynergyEnabled;
+            if (gear != null && gear.Equipped.Count > 0)
+            {
+                catalog = catalog ?? GearCatalog.Default;
+                var gstats = GearLoadout.TotalStats(gear.Equipped, catalog).Add(GearLoadout.SetBonus(gear.Equipped, catalog));
+                HasNightVision = gstats.NightVision;
+                // BackpackCapacity & hydration handled by HubWorld at runtime
+            }
             var productCopy = new Dictionary<ProductId, int>();
             foreach (var product in products ?? Array.Empty<KeyValuePair<ProductId, int>>())
             {
@@ -55,16 +64,16 @@ namespace Game.Domain
             }
             Products = new System.Collections.ObjectModel.ReadOnlyDictionary<ProductId, int>(productCopy);
         }
-        public static TrainerSnapshot FromTrainer(Trainer trainer, int totalMinutes = 0)
+        public static TrainerSnapshot FromTrainer(Trainer trainer, int totalMinutes = 0, GearCatalog catalog = null)
         {
             if (trainer == null) throw new ArgumentNullException(nameof(trainer));
             var a = trainer.Attributes;
             var team = trainer.Roster.Members.Select(m => MonsterSnapshot.FromMonster(m,
-                m.CombatSkillIds, totalMinutes: totalMinutes));
+                m.CombatSkillIds, null, totalMinutes, m.Gear, catalog));
             return new TrainerSnapshot(trainer.Id, trainer.Rank, trainer.Level, trainer.Rarity, trainer.Personality,
                 new TrainerAttributes(a.Dexterity, a.Luck, a.Endurance, a.Leadership), trainer.HasNightVision, team, trainer.Roster.Active?.Id,
                 new SimTime(totalMinutes), trainer.Gold, trainer.Inventory.Products, trainer.LeadershipItemBonus,
-                trainer.BagSynergyExpiresAtMinute > totalMinutes);
+                trainer.BagSynergyExpiresAtMinute > totalMinutes, trainer.Gear, catalog);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game.Domain.Materials;
+using Game.Domain.Gear;
 using Game.Domain.Monsters;
 
 namespace Game.Domain
@@ -62,6 +63,8 @@ namespace Game.Domain
         public long Gold;
         public MonsterRoster Roster { get; }
         public TrainerInventory Inventory { get; } = new TrainerInventory();
+        /// <summary>Trang bị Tiện ích + Hào quang của Trainer (12 slot); chỉ số cộng dồn.</summary>
+        public GearLoadout Gear { get; } = new GearLoadout();
         public int BackpackUnits;
         public readonly Dictionary<MaterialId, int> BackpackMaterials = new Dictionary<MaterialId, int>();
         public int BackpackCapacity;

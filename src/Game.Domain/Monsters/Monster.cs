@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Game.Domain.Gear;
 
 namespace Game.Domain.Monsters
 {
@@ -23,6 +24,8 @@ namespace Game.Domain.Monsters
         public IReadOnlyList<double> Genes { get; }
         public IReadOnlyList<string> CombatSkillIds { get; private set; }
         public MonsterStats Stats { get; private set; }
+        /// <summary>Trang bị chiến đấu của Monster (6 slot Lò Rèn); không đổi Stats gốc, chỉ cộng khi chụp ảnh.</summary>
+        public GearLoadout Gear { get; } = new GearLoadout();
         public long CurrentHp { get; private set; }
         public long MaxHp => Stats.Hp;
         public MonsterLifeState LifeState => Custody == MonsterCustody.Hospital ? MonsterLifeState.Recovering : IsStored || Custody == MonsterCustody.GeneBank ? MonsterLifeState.Stored :

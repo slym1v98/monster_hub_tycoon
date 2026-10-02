@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Game.Domain.Gear;
 
 namespace Game.Domain.Monsters
 {
@@ -54,10 +55,23 @@ namespace Game.Domain.Monsters
 
         /// <summary>Chụp dữ liệu hiện tại; thay đổi thực thể sau đó không tác động ảnh chụp.</summary>
         public static MonsterSnapshot FromMonster(Monster monster, IEnumerable<string> skillIds,
-            IReadOnlyDictionary<string, int> cooldowns = null, int totalMinutes = 0)
+            IReadOnlyDictionary<string, int> cooldowns = null, int totalMinutes = 0,
+            GearLoadout loadout = null, GearCatalog catalog = null)
         {
             if (monster == null) throw new ArgumentNullException(nameof(monster));
-            return new MonsterSnapshot(monster.Id, monster.Element, monster.CombatStatsAt(totalMinutes), monster.CurrentHp,
+            var stats = monster.CombatStatsAt(totalMinutes);
+            if (loadout != null && loadout.Equipped.Count > 0)
+            {
+                catalog = catalog ?? GearCatalog.Default;
+                var gear = GearLoadout.TotalStats(loadout.Equipped, catalog).Add(GearLoadout.SetBonus(loadout.Equipped, catalog));
+                stats = new MonsterStats(
+                    checked((long)Math.Min(long.MaxValue, Math.Ceiling(stats.Hp + gear.Hp))),
+                    stats.Attack + gear.Attack,
+                    stats.Defense + gear.Defense,
+                    stats.AttackSpeed + gear.AttackSpeed,
+                    Math.Min(1, stats.CriticalChance + gear.CriticalChance));
+            }
+            return new MonsterSnapshot(monster.Id, monster.Element, stats, monster.CurrentHp,
                 skillIds, cooldowns, monster.Level, monster.Rarity, monster.RebellionReductionAt(totalMinutes), monster.Role);
         }
     }
