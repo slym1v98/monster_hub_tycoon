@@ -32,6 +32,16 @@ namespace Game.Domain.Supply
         }
         private readonly Dictionary<InventoryItem, MutableBalance> balances = new Dictionary<InventoryItem, MutableBalance>();
 
+        public int TotalAvailableUnits
+        {
+            get
+            {
+                var total = 0;
+                checked { foreach (var balance in balances.Values) total += balance.Available; }
+                return total;
+            }
+        }
+
         public InventoryBalance Get(InventoryItem item)
         {
             if (!balances.TryGetValue(item, out var b)) return new InventoryBalance(0, 0, 0);
