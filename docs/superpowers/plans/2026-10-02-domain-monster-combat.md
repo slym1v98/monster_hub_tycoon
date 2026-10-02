@@ -203,11 +203,11 @@
 - Zone N material weighting must favor tier N while allowing configured lower-tier spillover; Night Vision at night applies ×2 to loot/EXP exactly once. Pickup roll uses personality `MaterialPickRate`; Gold is always picked and scales with Luck.
 - Capacity truncation returns both collected and dropped units by material ID; each quantity is non-negative and their sum equals generated loot.
 
-- [ ] **Step 1: Write failing tests** for weighted zone generation determinism, tier priority/spillover, personality pickup, guaranteed Gold, Luck scaling, nighttime ×2 and exact backpack-capacity conservation.
-- [ ] **Step 2: Run focused tests and confirm failures:** `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~LootResolverTests`.
-- [ ] **Step 3: Implement generator/resolver** with all missing rates in named config properties and no fallback to `ore_tier_1`.
-- [ ] **Step 4: Run focused and full Domain tests.**
-- [ ] **Step 5: Commit** as `feat(domain): resolve zone encounters and typed loot`.
+- [x] **Step 1: Write failing tests** for weighted zone generation determinism, tier priority/spillover, personality pickup, guaranteed Gold, Luck scaling, nighttime ×2 and exact backpack-capacity conservation.
+- [x] **Step 2: Run focused tests and confirm failures:** `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~LootResolverTests`.
+- [x] **Step 3: Implement generator/resolver** with all missing rates in named config properties and no fallback to `ore_tier_1`.
+- [x] **Step 4: Run focused and full Domain tests.**
+- [x] **Step 5: Commit** as `feat(domain): resolve zone encounters and typed loot`.
 
 ### Task 9: Connect expeditions to HubWorld and remove aggregate HP farm
 

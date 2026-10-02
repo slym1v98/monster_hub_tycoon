@@ -10,8 +10,9 @@ namespace Game.Domain
         public Rarity Rarity { get; }
         public Personality Personality { get; }
         public TrainerAttributes Attributes { get; }
+        public bool HasNightVision { get; }
 
-        public TrainerSnapshot(int id, int rank, int level, Rarity rarity, Personality personality, TrainerAttributes attributes)
+        public TrainerSnapshot(int id, int rank, int level, Rarity rarity, Personality personality, TrainerAttributes attributes, bool hasNightVision = false)
         {
             if (id < 0) throw new ArgumentOutOfRangeException(nameof(id));
             if (rank < 1 || rank > 5) throw new ArgumentOutOfRangeException(nameof(rank));
@@ -20,13 +21,14 @@ namespace Game.Domain
             if (!Enum.IsDefined(typeof(Personality), personality)) throw new ArgumentOutOfRangeException(nameof(personality));
             Attributes = attributes ?? throw new ArgumentNullException(nameof(attributes));
             Id = id; Rank = rank; Level = level; Rarity = rarity; Personality = personality;
+            HasNightVision = hasNightVision;
         }
         public static TrainerSnapshot FromTrainer(Trainer trainer)
         {
             if (trainer == null) throw new ArgumentNullException(nameof(trainer));
             var a = trainer.Attributes;
             return new TrainerSnapshot(trainer.Id, trainer.Rank, trainer.Level, trainer.Rarity, trainer.Personality,
-                new TrainerAttributes(a.Dexterity, a.Luck, a.Endurance, a.Leadership));
+                new TrainerAttributes(a.Dexterity, a.Luck, a.Endurance, a.Leadership), trainer.HasNightVision);
         }
     }
 }
