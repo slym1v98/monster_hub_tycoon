@@ -136,11 +136,11 @@
 - Prototype integer damage formula is `max(1, floor((power * attacker.Attack / max(1, defender.Defense)) * effectiveness * criticalMultiplier))`; constants `power` and `criticalMultiplier` are workbook inputs. Add only if no more specific GDD rule exists.
 - Resolve tied action initiative by stable Monster ID. Cooldowns decrement once per completed action round; use occurs only at zero.
 
-- [ ] **Step 1: Write failing tests** for damage floor, crit multiplier, elemental multiplier application, target tie-break, cooldown ready/blocked/ready cycle, identical seed replay and log-to-final-state consistency.
-- [ ] **Step 2: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~BattleResolverTests` and confirm feature failures.**
-- [ ] **Step 3: Implement the resolver and replay log** over copied battle state; do not mutate input snapshots.
-- [ ] **Step 4: Run focused and full Domain tests.**
-- [ ] **Step 5: Commit** as `feat(domain): resolve deterministic monster battles`.
+- [x] **Step 1: Write failing tests** for damage floor, crit multiplier, elemental multiplier application, target tie-break, cooldown ready/blocked/ready cycle, identical seed replay and log-to-final-state consistency.
+- [x] **Step 2: Run `dotnet test tests/Game.Domain.Tests --filter FullyQualifiedName~BattleResolverTests` and confirm feature failures.**
+- [x] **Step 3: Implement the resolver and replay log** over copied battle state; do not mutate input snapshots.
+- [x] **Step 4: Run focused and full Domain tests.**
+- [x] **Step 5: Commit** as `feat(domain): resolve deterministic monster battles`.
 
 ### Task 6: Team combat, Swap, faint and Rebellion outcomes
 
