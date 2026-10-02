@@ -4,6 +4,8 @@ using Game.Domain;
 using Game.Domain.Materials;
 using Game.Domain.Monsters;
 using Xunit;
+using System.Linq;
+using System.Text.Json;
 
 public sealed class HubWorldMonsterTests
 {
@@ -123,6 +125,378 @@ public sealed class HubWorldMonsterTests
         var with = Create(true); with.RunFor(10);
         Assert.Equal(TrainerState.Traveling, with.Trainers[0].State);
     }
+
+    // Missing commands, leaked mutable entities, duplicate IDs and unreported rewards are
+    // the integration breaks these tests exercise through the Hub boundary.
+    [Fact]
+    public void DirectorLifecycleCommandsRejectInvalidInputAndEmitExplicitChanges()
+    {
+        var cfg = new SimConfig { TrainerCount = 2, StartMinute = 100,
+            VeterinaryHospitalSettings = new VeterinaryHospitalConfig(firstCaptureRecoveryMinutes: 1),
+            RarityUpgradeSettings = new UpgradeConfig(new[] { 1d, 1d, 1d, 1d }, new[] { 0, 0, 0, 0 }, new[] { 0, 0, 0, 0 }) };
+        var definition = MonsterCatalog.Default.Definitions[0];
+        var target = new MonsterDefinition("test_evolved", "Test evolved", MonsterElement.Water, MonsterRole.Tank,
+            new MonsterStats(400, 12, 12, 1, 0.05), new MonsterStats(0, 0, 0, 0, 0));
+        cfg.EvolutionCatalogSettings = new EvolutionCatalog(new[] {
+            new EvolutionDefinition(definition.Id, "test_branch", target, 40, 1, 1,
+                new ProductId("gene_fragment"), 1, new[] { target.Element.ToString().ToLowerInvariant() + "_strike" }) });
+        var world = new HubWorld(cfg, 31);
+        var events = new List<IDomainEvent>(); world.EventRaised += events.Add;
+        Assert.True(world.AdmitCapturedMonster(0, Monster.Create(new MonsterId("reserve"), definition,
+            Rarity.Common, MonsterIvGrade.B, 40, 2)).Accepted);
+        Assert.True(world.AdmitCapturedMonster(0, Monster.Create(new MonsterId("salvage"), definition,
+            Rarity.Common, MonsterIvGrade.D, 1, 3)).Accepted);
+        world.RunFor(1);
+        Assert.False(world.SwapActiveMonster(-1, "reserve").Ok);
+        Assert.False(world.SwapActiveMonster(1, "reserve").Ok);
+        Assert.False(world.AppraiseMonster(0, "").Ok);
+        Assert.False(world.UpgradeMonsterRarity(0, "trainer_0_starter").Ok);
+        Assert.True(world.SwapActiveMonster(0, "reserve").Ok);
+        Assert.True(world.StoreMonster(0, "reserve").Ok);
+        Assert.Contains(world.MonstersForTrainer(0), m => m.Id == "reserve" && m.LifeState == MonsterLifeState.Stored);
+        Assert.True(world.WithdrawMonster(0, "reserve").Ok);
+        Assert.True(world.DepositMonster(0, "reserve").Ok);
+        Assert.False(world.WithdrawBankMonster(1, "reserve").Ok);
+        Assert.True(world.WithdrawBankMonster(0, "reserve").Ok);
+        long before = world.Trainers[0].Gold;
+        Assert.True(world.AppraiseMonster(0, "reserve").Ok);
+        Assert.False(world.AppraiseMonster(0, "reserve").Ok);
+        Assert.Equal(before - 25, world.Trainers[0].Gold);
+        Assert.True(world.DismantleMonster(0, "salvage").Ok);
+        Assert.DoesNotContain(world.MonstersForTrainer(0), m => m.Id == "salvage");
+        Assert.Equal(5, world.Trainers[0].Products[new ProductId("gene_fragment")]);
+        Assert.True(world.UpgradeMonsterRarity(0, "reserve").Ok);
+        Assert.False(world.EvolveMonster(0, "reserve", "missing").Ok);
+        Assert.True(world.EvolveMonster(0, "reserve", "test_branch").Ok);
+        Assert.Equal(3, world.Trainers[0].Products[new ProductId("gene_fragment")]);
+        var evolved = world.MonstersForTrainer(0).Single(m => m.Id == "reserve");
+        Assert.Equal(target.Id, evolved.SpeciesId);
+        Assert.Equal(Rarity.Rare, evolved.Rarity);
+        Assert.Equal(MonsterIvGrade.B, evolved.KnownIv);
+        Assert.Contains(events, e => e is MonsterAppraised);
+        Assert.Contains(events, e => e is MonsterDismantled);
+        Assert.Contains(events, e => e is MonsterUpgradeResolved);
+        Assert.Contains(events, e => e is MonsterEvolutionResolved);
+        Assert.Contains(events, e => e is TrainerProductChanged change && change.Quantity == -2);
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void SnapshotsAreDetachedAndServicesExposeNoMutableEntities()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1 }, 1);
+        var old = world.MonstersForTrainer(0);
+        Assert.Throws<NotSupportedException>(() => ((IList<MonsterView>)old).Clear());
+        Assert.IsType<VeterinaryHospitalView>(world.VeterinaryHospital);
+        Assert.True(world.DepositMonster(0, old[0].Id).Ok);
+        Assert.Equal(MonsterCustody.Trainer, old[0].Custody);
+        var bank = world.GeneBank;
+        Assert.Single(bank.StoredMonsters);
+        Assert.True(world.WithdrawBankMonster(0, old[0].Id).Ok);
+        Assert.Single(bank.StoredMonsters);
+        Assert.Empty(world.GeneBank.StoredMonsters);
+        Assert.Empty(world.MonstersForTrainer(-1));
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void DuplicateIdentityAcrossHospitalAndBankIsRejectedBeforeOwnershipTransfer()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 2 }, 10);
+        var def = MonsterCatalog.Default.Definitions[0];
+        var first = Monster.Create(new MonsterId("duplicate"), def, Rarity.Common, MonsterIvGrade.B, 1, 1);
+        var second = Monster.Create(first.Id, def, Rarity.Common, MonsterIvGrade.B, 1, 2);
+        Assert.True(world.AdmitCapturedMonster(0, first).Accepted);
+        Assert.False(world.StoreUnassignedMonsterInGeneBank(1, second));
+        Assert.Equal(MonsterCustody.Unassigned, second.Custody);
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void SameSeedDefaultResolverProducesIdenticalViewsAndEventStreamsWithUnlocks()
+    {
+        (string views, string events) Run()
+        {
+            var world = new HubWorld(new SimConfig { TrainerCount = 2, StartTreasury = 100000 }, 2026);
+            var stream = new List<string>();
+            world.EventRaised += e => stream.Add(JsonSerializer.Serialize(e, e.GetType()));
+            Assert.False(world.UnlockZone("unknown").Ok);
+            Assert.True(world.UnlockZone("zone_2").Ok);
+            Assert.False(world.UnlockZone("zone_2").Ok);
+            Assert.Contains(world.Zones, z => z.Id == "zone_2" && z.IsUnlocked);
+            world.RunFor(1440);
+            world.ValidateInvariants();
+            Assert.Contains(stream, e => e.Contains("Battles"));
+            return (JsonSerializer.Serialize(world.Trainers), string.Join("\n", stream));
+        }
+        Assert.Equal(Run(), Run());
+    }
+
+    [Fact]
+    public void PaydayAssessmentDoesNotCollectFeesOrConfiscateAndFollowsWages()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTrainerGold = 0,
+            StartTreasury = 10000, UnlockedZoneIds = Array.Empty<string>() }, 1);
+        Assert.True(world.DepositMonster(0, "trainer_0_starter").Ok);
+        world.RunUntilPayday();
+        long gold = world.Trainers[0].Gold;
+        var events = new List<IDomainEvent>(); world.EventRaised += events.Add;
+        var outcome = world.ResolvePayday();
+        Assert.Equal(gold + outcome.TotalPaid, world.Trainers[0].Gold);
+        Assert.Single(world.GeneBank.StoredMonsters);
+        Assert.DoesNotContain(events, e => e is MonsterConfiscated);
+        Assert.True(events.FindIndex(e => e is GeneBankFeeAssessed) > events.FindIndex(e => e is PaydayResolved));
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void SalvageCanBeSoldAndPurchasedAtStationWithMoneyAndItemLedger()
+    {
+        var cfg = new SimConfig { TrainerCount = 1, StartMinute = 100,
+            ConsumablePrices = new ConsumablePriceConfig(new Dictionary<ProductId, long> { [new ProductId("gene_fragment")] = 10 }),
+            VeterinaryHospitalSettings = new VeterinaryHospitalConfig(firstCaptureRecoveryMinutes: 1) };
+        var world = new HubWorld(cfg, 1);
+        Assert.True(world.AdmitCapturedMonster(0, Monster.Create(new MonsterId("salvage_trade"),
+            MonsterCatalog.Default.Definitions[0], Rarity.Common, MonsterIvGrade.D, 1, 1)).Accepted);
+        world.RunFor(1);
+        Assert.True(world.DismantleMonster(0, "salvage_trade").Ok);
+        Assert.True(world.SetProductBuyRequest("gene_fragment", 5, 10).Ok);
+        Assert.True(world.SellProductToStation(0, "gene_fragment", 5).Ok);
+        long treasury = world.Treasury, gold = world.Trainers[0].Gold;
+        Assert.True(world.PurchaseProduct(0, "gene_fragment", 2).Ok);
+        Assert.Equal(gold - 20, world.Trainers[0].Gold);
+        Assert.Equal(treasury + 20, world.Treasury);
+        Assert.Equal(2, world.Trainers[0].Products[new ProductId("gene_fragment")]);
+        Assert.Equal(3, world.SupplyStocks.Single(s => s.ItemId == "product:gene_fragment").Available);
+        Assert.False(world.PurchaseProduct(0, "gene_fragment", 4).Ok);
+        Assert.Equal(treasury + 20, world.Treasury);
+        Assert.Equal(2, world.SupplyTransactions.Count);
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void RemovingLastFieldMonsterDuringTravelReturnsHomeWithoutResolvingEmptyTeam()
+    {
+        var cfg = new SimConfig { TrainerCount = 1, StartTreasury = 10000 };
+        var world = new HubWorld(cfg, 1);
+        world.RunFor(1);
+        Assert.True(world.StoreMonster(0, "trainer_0_starter").Ok);
+        world.RunFor(120);
+        Assert.Equal(TrainerState.AtHub, world.Trainers[0].State);
+        Assert.Equal("NoFieldMonster", world.Trainers[0].StateReason);
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void InvariantsDetectDuplicateOwnersAndNegativeTrainerMoney()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 2 }, 1);
+        // Deliberate corruption belongs in tests, never in a production mutation API.
+        var field = typeof(HubWorld).GetField("trainers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var trainers = (List<Trainer>)field.GetValue(world);
+        trainers[1].Gold = -1;
+        Assert.Throws<InvalidOperationException>(() => world.ValidateInvariants());
+        trainers[1].Gold = 200;
+        trainers[1].Roster.Add(Monster.Create(new MonsterId("trainer_0_starter"), MonsterCatalog.Default.Definitions[0],
+            Rarity.Common, MonsterIvGrade.B, 1, 2));
+        Assert.Throws<InvalidOperationException>(() => world.ValidateInvariants());
+    }
+
+    [Theory]
+    [InlineData("monster")]
+    [InlineData("expedition")]
+    public void SimScenariosUseHubResolverAndReconcileDeterministically(string mode)
+    {
+        string Run()
+        {
+            var writer = new System.IO.StringWriter(System.Globalization.CultureInfo.InvariantCulture);
+            MonsterScenarios.Run(mode, writer);
+            return string.Join("\n", writer.ToString().Split('\n').Where(line => !line.StartsWith("Runtime:")));
+        }
+        string first = Run();
+        Assert.Equal(first, Run());
+        Assert.Contains("Gold reconciliation: trainer difference 0; treasury difference 0; supply difference 0", first);
+        Assert.Contains("Ownership reconciliation: difference 0", first);
+        Assert.Contains("Item reconciliation: difference 0", first);
+        Assert.Contains("zone_1: encounters ", first);
+        Assert.Contains("appraisal 1; evolution attempts 1", first);
+        Assert.Matches(@"swaps [1-9][0-9]*", first);
+        Assert.Matches(@"faints [1-9][0-9]*", first);
+        Assert.Matches(@"losses [1-9][0-9]*", first);
+        if (mode == "expedition")
+            foreach (var zone in new[] { "zone_1", "zone_2", "zone_3", "zone_4", "zone_5" })
+                Assert.Matches(zone + @": encounters [1-9][0-9]*", first);
+    }
+
+    [Fact]
+    public void HubCaptureConsumesInventoryAndQueuesRecoveredOwnershipExactlyOnce()
+    {
+        var cfg = new SimConfig { TrainerCount = 1, StartMinute = 100,
+            VeterinaryHospitalSettings = new VeterinaryHospitalConfig(firstCaptureRecoveryMinutes: 1) };
+        var world = new HubWorld(cfg, 2026);
+        var trainers = (List<Trainer>)typeof(HubWorld).GetField("trainers",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(world);
+        trainers[0].Inventory.Add(new ProductId("capture_ball"), 20);
+        var events = new List<IDomainEvent>(); world.EventRaised += events.Add;
+        var target = Monster.Create(new MonsterId("wild_target"), MonsterCatalog.Default.Definitions[0],
+            Rarity.Rare, MonsterIvGrade.B, 1, 3);
+        target.SetCurrentHp(1);
+        bool captured = false;
+        for (int i = 0; i < 20 && !captured; i++)
+        {
+            Assert.True(world.AttemptCapture(0, target).Ok);
+            captured = events.OfType<MonsterCaptureResolved>().Any(e => e.Success);
+        }
+        Assert.True(captured);
+        Assert.False(world.AttemptCapture(0, target).Ok);
+        Assert.Single(world.VeterinaryHospital.Recoveries);
+        world.ValidateInvariants();
+        world.RunFor(1);
+        Assert.Single(world.MonstersForTrainer(0), m => m.Id == "wild_target");
+        Assert.Equal(20 - events.OfType<MonsterCaptureResolved>().Count(),
+            world.Trainers[0].Products[new ProductId("capture_ball")]);
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void LocalStorageLimitRejectsTransfersWithoutLosingBankOwnership()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1 }, 1);
+        var trainer = InternalTrainers(world)[0];
+        for (int i = 0; i < 500; i++)
+            trainer.Roster.AddToStorage(Monster.Create(new MonsterId("stored_" + i), MonsterCatalog.Default.Definitions[0],
+                Rarity.Common, MonsterIvGrade.B, 1, i));
+        Assert.False(world.StoreMonster(0, "trainer_0_starter").Ok);
+        trainer.Roster.Add(Monster.Create(new MonsterId("second"), MonsterCatalog.Default.Definitions[0], Rarity.Common, MonsterIvGrade.B, 1, 2));
+        trainer.Roster.Add(Monster.Create(new MonsterId("third"), MonsterCatalog.Default.Definitions[0], Rarity.Common, MonsterIvGrade.B, 1, 3));
+        Assert.True(world.StoreUnassignedMonsterInGeneBank(0, Monster.Create(new MonsterId("banked"),
+            MonsterCatalog.Default.Definitions[0], Rarity.Common, MonsterIvGrade.B, 1, 4)));
+        Assert.False(world.WithdrawBankMonster(0, "banked").Ok);
+        Assert.Single(world.GeneBank.StoredMonsters);
+        Assert.Equal(503, world.MonstersForTrainer(0).Count(m => m.Custody == MonsterCustody.Trainer));
+        world.ValidateInvariants();
+        trainer.Roster.AddToStorage(Monster.Create(new MonsterId("overflow"), MonsterCatalog.Default.Definitions[0],
+            Rarity.Common, MonsterIvGrade.B, 1, 5));
+        Assert.Throws<InvalidOperationException>(world.ValidateInvariants);
+    }
+
+    [Fact]
+    public void RecoveryAdmissionReservesAnOwnershipSlotAndCannotBeAppraised()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartMinute = 100, StartTrainerGold = 1000 }, 1);
+        var trainer = InternalTrainers(world)[0];
+        trainer.Roster.Active.SetCurrentHp(1);
+        Assert.True(world.RequestMonsterEmergencyCare(trainer.Roster.Active.Id).Accepted);
+        long gold = trainer.Gold, treasury = world.Treasury;
+        Assert.False(world.AppraiseMonster(0, "trainer_0_starter").Ok);
+        Assert.False(world.SwapActiveMonster(0, "trainer_0_starter").Ok);
+        Assert.False(world.DepositMonster(0, "trainer_0_starter").Ok);
+        Assert.Equal(gold, trainer.Gold);
+        Assert.Equal(treasury, world.Treasury);
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void OrphanedRecoveryEventsAndInvalidHpAreDetected()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1 }, 1);
+        var monster = InternalTrainers(world)[0].Roster.Active;
+        typeof(Monster).GetProperty("CurrentHp").SetValue(monster, monster.MaxHp + 1);
+        Assert.Throws<InvalidOperationException>(world.ValidateInvariants);
+        monster.SetCurrentHp(monster.MaxHp);
+        var queue = (EventQueue)typeof(HubWorld).GetField("queue",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(world);
+        queue.Schedule(world.Now.TotalMinutes + 1, SimEventKind.MonsterRecoveryDone, arg: 123);
+        Assert.Throws<InvalidOperationException>(world.ValidateInvariants);
+    }
+
+    [Fact]
+    public void RejectedCommandsLeaveSnapshotsEventsAndSeededFutureUnchanged()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1 }, 42);
+        var control = new HubWorld(new SimConfig { TrainerCount = 1 }, 42);
+        var events = new List<string>(); var controlEvents = new List<string>();
+        world.EventRaised += e => events.Add(JsonSerializer.Serialize(e, e.GetType()));
+        control.EventRaised += e => controlEvents.Add(JsonSerializer.Serialize(e, e.GetType()));
+        Assert.False(world.EvolveMonster(0, "trainer_0_starter", "missing").Ok);
+        Assert.False(world.UpgradeMonsterRarity(0, "trainer_0_starter", "unknown").Ok);
+        Assert.False(world.DismantleMonster(0, "trainer_0_starter").Ok);
+        Assert.False(world.WithdrawMonster(0, "missing").Ok);
+        Assert.False(world.UnlockZone(null).Ok);
+        Assert.Empty(events);
+        world.RunFor(1440); control.RunFor(1440);
+        Assert.Equal(controlEvents, events);
+        Assert.Equal(JsonSerializer.Serialize(control.Trainers), JsonSerializer.Serialize(world.Trainers));
+    }
+
+    [Fact]
+    public void PendingCapturesReserveCapacityBeforeInventoryOrRngIsSpent()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartMinute = 100,
+            MonsterStorageSettings = new MonsterStorageConfig(0) }, 2026);
+        var def = MonsterCatalog.Default.Definitions[0];
+        var trainer = InternalTrainers(world)[0];
+        trainer.Inventory.Add(new ProductId("capture_ball"), 3);
+        Assert.True(world.AdmitCapturedMonster(0, Monster.Create(new MonsterId("pending_a"), def,
+            Rarity.Common, MonsterIvGrade.B, 1, 1)).Accepted);
+        Assert.True(world.AdmitCapturedMonster(0, Monster.Create(new MonsterId("pending_b"), def,
+            Rarity.Common, MonsterIvGrade.B, 1, 2)).Accepted);
+        var target = Monster.Create(new MonsterId("over_capacity"), def, Rarity.Epic, MonsterIvGrade.B, 1, 3);
+        target.SetCurrentHp(1);
+        var events = new List<IDomainEvent>(); world.EventRaised += events.Add;
+        Assert.False(world.AttemptCapture(0, target).Ok);
+        Assert.Empty(events);
+        Assert.Equal(3, trainer.Inventory.Count(new ProductId("capture_ball")));
+        Assert.Equal(AdmissionStatus.Full, world.AdmitCapturedMonster(0, target).Status);
+        world.RunFor(1440);
+        Assert.Equal(3, world.Trainers[0].Monsters.Count);
+        world.ValidateInvariants();
+    }
+
+    [Fact]
+    public void ExtraRecoveryCompletionWithValidIdentityButWrongTimeIsOrphaned()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartMinute = 100 }, 1);
+        var admission = world.AdmitCapturedMonster(0, Monster.Create(new MonsterId("queued"),
+            MonsterCatalog.Default.Definitions[0], Rarity.Common, MonsterIvGrade.B, 1, 1));
+        Assert.True(admission.Accepted);
+        var queue = (EventQueue)typeof(HubWorld).GetField("queue",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(world);
+        queue.Schedule(admission.CompleteAtMinute + 1, SimEventKind.MonsterRecoveryDone, arg: admission.RecoveryId);
+        Assert.Throws<InvalidOperationException>(world.ValidateInvariants);
+    }
+
+    [Fact]
+    public void NestedServiceAndTrainerCollectionsAreImmutableDetachedSnapshots()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartMinute = 100,
+            VeterinaryHospitalSettings = new VeterinaryHospitalConfig(firstCaptureRecoveryMinutes: 1) }, 1);
+        var monster = Monster.Create(new MonsterId("recovering"), MonsterCatalog.Default.Definitions[0],
+            Rarity.Common, MonsterIvGrade.B, 1, 1);
+        Assert.True(world.AdmitCapturedMonster(0, monster).Accepted);
+        var hospital = world.VeterinaryHospital;
+        Assert.Throws<NotSupportedException>(() => ((IList<MonsterRecoveryView>)hospital.Recoveries).Clear());
+        var zones = world.Zones;
+        Assert.Throws<NotSupportedException>(() => ((IList<ZoneView>)zones).Clear());
+        var trainer = world.Trainers[0];
+        Assert.Throws<NotSupportedException>(() => ((IDictionary<ProductId, int>)trainer.Products).Add(new ProductId("gene_fragment"), 1));
+        world.RunFor(1);
+        Assert.Single(hospital.Recoveries);
+        Assert.Equal(MonsterLifeState.Recovering, hospital.Recoveries[0].Monster.LifeState);
+        Assert.Empty(world.VeterinaryHospital.Recoveries);
+        Assert.Single(trainer.Monsters);
+        Assert.Equal(2, world.Trainers[0].Monsters.Count);
+        Assert.True(world.UnlockZone("zone_2").Ok);
+        Assert.False(zones.Single(z => z.Id == "zone_2").IsUnlocked);
+        Assert.True(world.DepositMonster(0, "recovering").Ok);
+        var bank = world.GeneBank;
+        Assert.Throws<NotSupportedException>(() => ((IList<BankMonsterView>)bank.StoredMonsters).Clear());
+        Assert.Equal(MonsterLifeState.Stored, bank.StoredMonsters[0].Monster.LifeState);
+        world.ValidateInvariants();
+    }
+
+    static List<Trainer> InternalTrainers(HubWorld world) => (List<Trainer>)typeof(HubWorld).GetField("trainers",
+        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(world);
 
     private sealed class ScriptedExpedition : IExpeditionResolver
     {

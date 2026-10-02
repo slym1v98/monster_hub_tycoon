@@ -56,6 +56,7 @@ namespace Game.Domain
         public MonsterItemConfig MonsterItemSettings = MonsterItemConfig.Prototype;
         public VeterinaryHospitalConfig VeterinaryHospitalSettings = VeterinaryHospitalConfig.Prototype;
         public GeneBankConfig GeneBankSettings = GeneBankConfig.Prototype;
+        public MonsterStorageConfig MonsterStorageSettings = MonsterStorageConfig.Prototype;
         public GeneticLabConfig GeneticLabSettings = GeneticLabConfig.Prototype;
         public UpgradeConfig RarityUpgradeSettings = UpgradeConfig.Prototype;
         public EvolutionCatalog EvolutionCatalogSettings = EvolutionCatalog.Empty;
@@ -117,6 +118,21 @@ namespace Game.Domain
             double wage = BaseWage * Math.Pow(RarityGrowth, (int)rarity);
             if (personality == Personality.Capitalist) wage *= CapitalistWageMultiplier;
             return (long)Math.Round(wage);
+        }
+    }
+
+    /// <summary>Local storage capacity is a prototype policy independent of Gene Bank beds.</summary>
+    public sealed class MonsterStorageConfig
+    {
+        public static MonsterStorageConfig Prototype { get; } = new MonsterStorageConfig();
+        public int Capacity { get; }
+        public IReadOnlyList<BalanceParameter> BalanceParameters { get; }
+        public MonsterStorageConfig(int capacity = 500)
+        {
+            if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+            Capacity = capacity;
+            BalanceParameters = Array.AsReadOnly(new[] { new BalanceParameter("monster.local_storage_capacity", capacity,
+                "Monsters", "Prototype", "Task 15 integration: local storage cap is unspecified; prototype safety limit.") });
         }
     }
 

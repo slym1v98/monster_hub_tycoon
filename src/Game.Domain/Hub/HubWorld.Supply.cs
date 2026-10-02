@@ -80,7 +80,8 @@ namespace Game.Domain
             if (!useSupplyChain || supplyLedger == null) return CommandResult.Rejected("Quầy tiêu hao không khả dụng.");
             var id = new ProductId(productId);
             var definition = MaterialCatalog.Default.Products.FirstOrDefault(x => x.Id == id);
-            if (definition == null || !productStalls.TryGetValue(id, out var stall)) return CommandResult.Rejected("Sản phẩm không được bán tại quầy.");
+            if (definition == null) return CommandResult.Rejected("Product is not in the catalog.");
+            productStalls.TryGetValue(id, out var stall);
             var trainer = trainers[trainerId];
             if (!trainer.Inventory.CanAdd(id, units)) return CommandResult.Rejected("Số lượng vượt giới hạn kho Trainer.");
             long price;
@@ -89,13 +90,16 @@ namespace Game.Domain
             long total = checked(price * units);
             if (trainer.Gold < total) return CommandResult.Rejected("Trainer không đủ Gold.");
             if (treasury.Balance > long.MaxValue - total) return CommandResult.Rejected("Kho bạc đã đạt giới hạn số dư.");
-            if (!stall.TryPurchaseToTrainer("trainer:" + trainer.Id, id, units, price, trainer.Gold, out _))
+            bool purchased = stall != null
+                ? stall.TryPurchaseToTrainer("trainer:" + trainer.Id, id, units, price, trainer.Gold, out _)
+                : station.TrySellProduct("trainer:" + trainer.Id, id, units, price, trainer.Gold);
+            if (!purchased)
                 return CommandResult.Rejected("Tồn kho không đủ.");
-            int beforeCount = trainer.Inventory.Count(id);
             trainer.Inventory.Add(id, units);
             trainer.Gold -= total;
-            treasury.Add(total);
-            Raise(new TreasuryChanged(now, total, treasury.Balance, "ConsumableSale"));
+            // Stalls record the transfer but Hub settles their treasury; Station settles its own transfer.
+            if (stall != null) treasury.Add(total);
+            Raise(new TreasuryChanged(now, total, treasury.Balance, stall != null ? "ConsumableSale" : "StationProductSale"));
             Raise(new SupplyStockChanged(now, "product:" + id.Value, station.Stock.Get(new InventoryItem(id))));
             Raise(new TrainerProductChanged(now, trainer.Id, id.Value, units, trainer.Inventory.Count(id)));
             Raise(new ProductPurchased(now, trainer.Id, id.Value, units, price, total));

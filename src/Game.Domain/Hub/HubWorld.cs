@@ -41,6 +41,7 @@ namespace Game.Domain
         int productionEventMinute = -1;
 
         int now;                 // phút in-game hiện tại
+        readonly HashSet<string> unlockedZoneIds = new HashSet<string>(StringComparer.Ordinal);
         int paydayIndex;         // số Payday đã xử lý
         bool paydayPending;      // Payday đã tới, đang chờ người chơi xử lý
 
@@ -75,7 +76,9 @@ namespace Game.Domain
                     foreach (var product in definition.Products) productStalls.Add(product, stall);
                 }
             }
+            if (cfg.MonsterStorageSettings == null) throw new ArgumentException("Missing MonsterStorageSettings.", nameof(config));
             now = cfg.StartMinute;
+            foreach (var id in cfg.UnlockedZoneIds ?? Array.Empty<string>()) unlockedZoneIds.Add(id);
 
             foreach (BuildingSpec spec in cfg.Buildings)
                 buildings[(int)spec.Kind] = new ServiceBuilding(spec, cfg.StartBuildingLevel, cfg.UpkeepPerBuildingPerDay);
@@ -120,13 +123,22 @@ namespace Game.Domain
 
         /// <summary>Phút in-game hiện tại.</summary>
         public SimTime Now => new SimTime(now);
-        public VeterinaryHospital VeterinaryHospital => veterinaryHospital;
-        public GeneBank GeneBank => geneBank;
+
+
+        // Captures reserve their eventual field/storage slot while recovering.
+        bool HasMonsterSlot(Trainer trainer, int additional = 1)
+        {
+            long owned = trainer.Roster.Members.Count + (long)trainer.Roster.Storage.Count;
+            long pending = veterinaryHospital.Recoveries.Count(r => r.TrainerId == trainer.Id && r.IsCapturedMonster);
+            return owned + pending + additional <= MonsterRoster.Capacity + (long)cfg.MonsterStorageSettings.Capacity;
+        }
 
         public AdmissionResult AdmitCapturedMonster(int trainerId, Monster monster)
         {
             if (trainerId < 0 || trainerId >= trainers.Count) return new AdmissionResult(AdmissionStatus.UnknownTrainer);
-            if (monster != null && geneBank.Contains(monster.Id)) return new AdmissionResult(AdmissionStatus.AlreadyOwned);
+            if (monster == null) return new AdmissionResult(AdmissionStatus.AlreadyOwned);
+            if (!HasMonsterSlot(trainers[trainerId])) return new AdmissionResult(AdmissionStatus.Full);
+            if (geneBank.Contains(monster.Id)) return new AdmissionResult(AdmissionStatus.AlreadyOwned);
             var result = veterinaryHospital.AdmitCaptured(monster, trainerId, now);
             if (result.Accepted)
             {
@@ -176,6 +188,7 @@ namespace Game.Domain
         public bool StoreUnassignedMonsterInGeneBank(int trainerId, Monster monster)
         {
             if (trainerId < 0 || trainerId >= trainers.Count || monster == null ||
+                veterinaryHospital.Contains(monster.Id) ||
                 trainers.Any(x => x.Roster.Members.Any(m => m.Id == monster.Id) || x.Roster.Storage.Any(m => m.Id == monster.Id)) ||
                 !geneBank.StoreUnassignedMonster(trainerId, monster)) return false;
             Raise(new GeneBankOwnershipChanged(now, trainerId, monster.Id.Value, MonsterCustody.Unassigned, MonsterCustody.GeneBank));
@@ -184,13 +197,14 @@ namespace Game.Domain
 
         public bool WithdrawMonsterFromGeneBank(int trainerId, MonsterId monsterId)
         {
-            if (trainerId < 0 || trainerId >= trainers.Count || !geneBank.Withdraw(trainerId, monsterId)) return false;
+            if (trainerId < 0 || trainerId >= trainers.Count || !HasMonsterSlot(trainers[trainerId]) || !geneBank.Withdraw(trainerId, monsterId)) return false;
             Raise(new GeneBankOwnershipChanged(now, trainerId, monsterId.Value, MonsterCustody.GeneBank, MonsterCustody.Trainer));
             return true;
         }
 
         public Monster ConfiscateForUnpaidGeneBankFee(int trainerId)
         {
+            if (trainerId < 0 || trainerId >= trainers.Count) return null;
             var monster = geneBank.ConfiscateForUnpaidFee(trainerId);
             if (monster != null) Raise(new MonsterConfiscated(now, trainerId, monster.Id.Value));
             return monster;
@@ -199,7 +213,7 @@ namespace Game.Domain
         public bool ResellConfiscatedMonster(int buyerId, MonsterId monsterId)
         {
             long price = (cfg.GeneBankSettings ?? GeneBankConfig.Prototype).ResalePrice;
-            if (buyerId < 0 || buyerId >= trainers.Count || trainers[buyerId].Gold < price || treasury.Balance > long.MaxValue - price) return false;
+            if (buyerId < 0 || buyerId >= trainers.Count || !HasMonsterSlot(trainers[buyerId]) || trainers[buyerId].Gold < price || treasury.Balance > long.MaxValue - price) return false;
             if (!geneBank.ResellToTrainer(buyerId, monsterId)) return false;
             treasury.Add(price);
             if (price > 0) Raise(new TreasuryChanged(now, price, treasury.Balance, "GeneBankMonsterSale"));

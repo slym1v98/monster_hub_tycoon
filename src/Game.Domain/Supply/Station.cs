@@ -133,6 +133,22 @@ namespace Game.Domain.Supply
             return new SaleBreakdown(accepted, 0, unsold, gross, 0, gross);
         }
 
+        /// <summary>Direct product sale from available Station stock; no implicit stock creation.</summary>
+        public bool TrySellProduct(string buyerAccount, ProductId product, int units, long unitPrice, long buyerGold)
+        {
+            if (string.IsNullOrWhiteSpace(buyerAccount)) throw new ArgumentException("Buyer account is required.", nameof(buyerAccount));
+            if (units <= 0 || unitPrice < 0 || buyerGold < 0) return false;
+            long total;
+            try { total = checked((long)units * unitPrice); }
+            catch (OverflowException) { return false; }
+            var item = new InventoryItem(product);
+            if (buyerGold < total || Treasury > long.MaxValue - total || Stock.Get(item).Available < units) return false;
+            ledger.Record(buyerAccount, TreasuryAccount, TaxAccount, total, 0, "station product sale");
+            Stock.Remove(item, units);
+            if (!ledgerBackedTreasury) treasury.Add(total);
+            return true;
+        }
+
         private static int CoveredUnits(InventoryBalance balance)
             => (int)Math.Min(int.MaxValue, (long)balance.Available + balance.Reserved + balance.InProduction);
     }

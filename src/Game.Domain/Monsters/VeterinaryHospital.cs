@@ -76,6 +76,12 @@ namespace Game.Domain.Monsters
         public int RecoveryBedCapacity => config.RecoveryBeds;
         public int EmergencyBedCapacity => config.EmergencyBeds;
 
+        internal IReadOnlyList<AdmissionResult> Recoveries => Array.AsReadOnly(recoveries.Values.OrderBy(x => x.Id)
+            .Select(x => new AdmissionResult(AdmissionStatus.Accepted, x.Id, x.Trainer.Id, x.Monster.Id,
+                x.FinishMinute, x.Fee, x.Captured)).ToArray());
+        internal Monster RecoveringMonster(int recoveryId) => recoveries.TryGetValue(recoveryId, out var recovery) ? recovery.Monster : null;
+        internal bool Contains(MonsterId id) => recoveries.Values.Any(x => x.Monster.Id == id);
+
         public VeterinaryHospital(IEnumerable<Trainer> trainers, VeterinaryHospitalConfig config = null)
         {
             if (trainers == null) throw new ArgumentNullException(nameof(trainers));

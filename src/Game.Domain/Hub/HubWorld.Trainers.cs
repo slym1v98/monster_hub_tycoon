@@ -58,6 +58,12 @@ namespace Game.Domain
             Settle(t);
             bool isNight = SimClock.IsNight(now);
 
+            if (t.Roster.Members.Any(m => m.Custody == MonsterCustody.Hospital))
+            {
+                SetState(t, TrainerState.AtHub, "MonsterRecovery");
+                queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
             BuildingKind? need = TrainerBrain.PickService(t, cfg, isNight, !t.IsOnStrike);   // đình công: không vào Bệnh Viện
             if (need.HasValue) { RequestService(t, need.Value); return; }
 
@@ -73,7 +79,13 @@ namespace Game.Domain
                 queue.Schedule(SimClock.NextMinuteOfDay(now, SimClock.DawnMinute), SimEventKind.TrainerDecide, t.Id, t.Token);
                 return;
             }
-            var unlocked = (cfg.UnlockedZoneIds ?? Array.Empty<string>())
+            if (t.Roster.Members.Count == 0)
+            {
+                SetState(t, TrainerState.AtHub, "NoFieldMonster");
+                queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
+            var unlocked = unlockedZoneIds.OrderBy(id => id, StringComparer.Ordinal)
                 .Select(id => cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == id)).Where(z => z != null).ToArray();
             var zone = new ZoneSelector(cfg.ZoneSelectionSettings).Select(TrainerSnapshot.FromTrainer(t, now), unlocked, Array.Empty<ZoneIncomeModifier>());
             if (zone == null)
@@ -101,6 +113,11 @@ namespace Game.Domain
             Settle(t);
             var zone = cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == t.CurrentZoneId)
                 ?? throw new InvalidOperationException("Trainer đang farm nhưng Zone hiện tại không còn trong catalog.");
+            if (t.Roster.Members.Count == 0 || t.Roster.Members.Any(m => m.Custody == MonsterCustody.Hospital))
+            {
+                StartReturn(t, ReturnReason.TeamDown);
+                return;
+            }
             UseAvailableExpeditionItems(t);
             ExpeditionResult result = expeditions.Resolve(TrainerSnapshot.FromTrainer(t, now), zone, cfg.FarmChunkMinutes, rng);
             var loot = result.Loot;
@@ -115,15 +132,25 @@ namespace Game.Domain
                 var monster = t.Roster.Members.FirstOrDefault(x => x.Id == state.Key);
                 if (monster != null) monster.SetCurrentHp(state.Value);
             }
+            var finalActive = result.Battles.LastOrDefault()?.ActiveId;
+            if (finalActive.HasValue && t.Roster.Members.Any(m => m.Id == finalActive.Value && m.CurrentHp > 0))
+                t.Roster.SetActive(finalActive.Value);
             int available = Math.Max(0, t.BackpackCapacity - t.BackpackUnits);
+            var collected = new System.Collections.Generic.List<MaterialQuantity>();
+            var dropped = new System.Collections.Generic.List<MaterialQuantity>(loot.Dropped);
             foreach (var lot in loot.Collected.OrderBy(x => x.MaterialId.Value, StringComparer.Ordinal))
             {
                 int requested = payroll.DebtMode ? (int)(lot.Quantity * cfg.DebtModeFarmMultiplier) : lot.Quantity;
                 int gained = Math.Min(available, requested); available -= gained; t.BackpackUnits += gained;
+                if (gained > 0) collected.Add(new MaterialQuantity(lot.MaterialId, gained));
+                if (requested > gained) dropped.Add(new MaterialQuantity(lot.MaterialId, requested - gained));
                 if (gained > 0) t.BackpackMaterials[lot.MaterialId] = checked(t.BackpackMaterials.TryGetValue(lot.MaterialId, out var held) ? held + gained : gained);
             }
-            t.Gold = checked(t.Gold + (payroll.DebtMode ? (long)(loot.Gold * cfg.DebtModeFarmMultiplier) : loot.Gold));
+            long goldGained = payroll.DebtMode ? (long)(loot.Gold * cfg.DebtModeFarmMultiplier) : loot.Gold;
+            t.Gold = checked(t.Gold + goldGained);
             TrainerProgression.AddExperience(t, result.TrainerExperience, cfg.TrainerProgressionSettings);
+            Raise(new ExpeditionCompleted(now, t.Id, zone.Id, result.Battles, collected.AsReadOnly(), dropped.AsReadOnly(),
+                goldGained, result.TrainerExperience, t.Level));
 
             ReturnReason reason = TrainerBrain.ShouldReturn(t, SimClock.IsNight(now));
             if (reason != ReturnReason.None) StartReturn(t, reason);

@@ -24,7 +24,39 @@ namespace Game.Domain
         System.Collections.Generic.IReadOnlyDictionary<Game.Domain.Materials.ProductId, int> Products);
 
     public sealed record MonsterView(string Id, string SpeciesId, Game.Domain.Monsters.MonsterElement Element,
-        int Level, long CurrentHp, long MaxHp, Game.Domain.Monsters.MonsterLifeState LifeState, bool IsActive);
+        int Level, long CurrentHp, long MaxHp, Game.Domain.Monsters.MonsterLifeState LifeState, bool IsActive,
+        Rarity Rarity = Rarity.Common, Game.Domain.Monsters.MonsterIvGrade? KnownIv = null,
+        Game.Domain.Monsters.MonsterCustody Custody = Game.Domain.Monsters.MonsterCustody.Trainer,
+        bool IsSoulBound = false);
+
+    public sealed record ZoneView(string Id, string DisplayName, int MinimumRank, int WalkMinutes, bool IsUnlocked);
+    public sealed record MonsterRecoveryView(int RecoveryId, int TrainerId, MonsterView Monster, int CompleteAtMinute,
+        long Fee, bool IsCapturedMonster);
+    public sealed record VeterinaryHospitalView(int RecoveryBedCapacity, int EmergencyBedCapacity,
+        int OccupiedRecoveryBeds, int OccupiedEmergencyBeds,
+        System.Collections.Generic.IReadOnlyList<MonsterRecoveryView> Recoveries);
+    public sealed record BankMonsterView(int TrainerId, MonsterView Monster);
+    public sealed record GeneBankView(int Capacity, int Count, int ConfiscatedCount,
+        System.Collections.Generic.IReadOnlyList<BankMonsterView> StoredMonsters,
+        System.Collections.Generic.IReadOnlyList<MonsterView> ConfiscatedMonsters);
+
+    public sealed record MonsterRosterChanged(int Minute, int TrainerId, string MonsterId, string Transition,
+        string ActiveMonsterId) : IDomainEvent;
+    public sealed record MonsterAppraised(int Minute, int TrainerId, string MonsterId,
+        Game.Domain.Monsters.MonsterIvGrade Iv, long PricePaid) : IDomainEvent;
+    public sealed record MonsterDismantled(int Minute, int TrainerId, string MonsterId, int GeneFragments) : IDomainEvent;
+    public sealed record MonsterUpgradeResolved(int Minute, int TrainerId, string MonsterId, bool Success,
+        double Chance, double? Roll, bool ProtectionApplied, Rarity ResultRarity) : IDomainEvent;
+    public sealed record MonsterEvolutionResolved(int Minute, int TrainerId, string MonsterId, string BranchId,
+        bool Success, double Chance, double? Roll, bool ProtectionApplied, string ResultSpeciesId) : IDomainEvent;
+    public sealed record MonsterCaptureResolved(int Minute, int TrainerId, string MonsterId, bool Success,
+        double Chance, double? Roll, int BallsConsumed, int TrapsConsumed) : IDomainEvent;
+    public sealed record ZoneUnlocked(int Minute, string ZoneId) : IDomainEvent;
+    public sealed record ExpeditionCompleted(int Minute, int TrainerId, string ZoneId,
+        System.Collections.Generic.IReadOnlyList<Game.Domain.Combat.BattleResult> Battles,
+        System.Collections.Generic.IReadOnlyList<MaterialQuantity> Collected,
+        System.Collections.Generic.IReadOnlyList<MaterialQuantity> Dropped,
+        long GoldGained, long ExperienceGained, int TrainerLevel) : IDomainEvent;
 
     /// <summary>Ảnh chụp chỉ đọc của một công trình dịch vụ cho UI.</summary>
     public sealed record BuildingView(

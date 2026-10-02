@@ -25,7 +25,7 @@ namespace Game.Domain.Monsters
         public MonsterStats Stats { get; private set; }
         public long CurrentHp { get; private set; }
         public long MaxHp => Stats.Hp;
-        public MonsterLifeState LifeState => Custody == MonsterCustody.Hospital ? MonsterLifeState.Recovering : IsStored ? MonsterLifeState.Stored :
+        public MonsterLifeState LifeState => Custody == MonsterCustody.Hospital ? MonsterLifeState.Recovering : IsStored || Custody == MonsterCustody.GeneBank ? MonsterLifeState.Stored :
             CurrentHp == 0 ? MonsterLifeState.Fainted : MonsterLifeState.Ready;
 
         internal MonsterRoster Owner { get; set; }
