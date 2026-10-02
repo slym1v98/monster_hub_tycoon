@@ -399,11 +399,11 @@
 - Runtime defaults, catalog tables, spec decisions and report must agree. Keep locked GDD inputs as `Locked`/existing GDD status; mark inferred numeric inputs `Prototype`; leave unresolved values `TBD`.
 - Update docs only for implemented behavior and retain cross-project dependencies (Gene Bank Payday settlement → Sub-project 5; Zone unlock/events → Sub-project 6; gear wear → Sub-project 4).
 
-- [ ] **Step 1: Add workbook rows and structured catalogs** with `@oai/artifact-tool`; before the first authoring command run `node container_tools/mark_artifact_operation_started.mjs --operation-kind edit --expected-output-count 1 --output-format xlsx` exactly once. Keep a single reproducible `.mjs` builder in task scratch space and save only the requested workbook.
-- [ ] **Step 2: Reopen the saved workbook read-only** and verify sheet names, parameter IDs, values, units, statuses, sources, formulas/references and no duplicate/conflicting runtime inputs.
-- [ ] **Step 3: Update GDD parameter notes, O7/O10/O11 statuses, README Domain progress and task report** with behavior implemented, explicit prototype gaps and numeric IDs.
-- [ ] **Step 4: Run `dotnet test tests/Game.Domain.Tests`; run `dotnet run --project tools/Game.Sim -- monster`, `-- expedition`, `-- core`, and `-- market`; confirm same-seed event hashes, inventory ownership and Gold/material ledgers reconcile.**
-- [ ] **Step 5: Run `git diff --check`, inspect the complete requirement-to-test map against the approved spec and coverage map, then commit** as `docs(balance): document monster simulation parameters`.
+- [x] **Step 1: Add workbook rows and structured catalogs** with `@oai/artifact-tool`; before the first authoring command run `node container_tools/mark_artifact_operation_started.mjs --operation-kind edit --expected-output-count 1 --output-format xlsx` exactly once. Keep a single reproducible `.mjs` builder in task scratch space and save only the requested workbook.
+- [x] **Step 2: Reopen the saved workbook read-only** and verify sheet names, parameter IDs, values, units, statuses, sources, formulas/references and no duplicate/conflicting runtime inputs.
+- [x] **Step 3: Update GDD parameter notes, O7/O10/O11 statuses, README Domain progress and task report** with behavior implemented, explicit prototype gaps and numeric IDs.
+- [x] **Step 4: Run `dotnet test tests/Game.Domain.Tests`; run `dotnet run --project tools/Game.Sim -- monster`, `-- expedition`, `-- core`, and `-- market`; confirm same-seed event hashes, inventory ownership and Gold/material ledgers reconcile.**
+- [x] **Step 5: Run `git diff --check`, inspect the complete requirement-to-test map against the approved spec and coverage map, then commit** as `docs(balance): document monster simulation parameters`.
 
 ## Handoff and execution
 
