@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System;
 using System.Linq;
 using Game.Domain.Materials;
+using Game.Domain.Gear;
 using Xunit;
 
 public sealed class EventCalendarTests
@@ -53,6 +54,7 @@ public sealed class EventCalendarTests
             StartTreasury = 100000,
             StartMinute = SimClock.DawnMinute + 1,
             StartTownHallLevel = 4,
+            UnlockedZoneIds = Array.Empty<string>(),
             StartingProductStock = new Dictionary<ProductId, int>
             {
                 [new ProductId("capture_ball")] = 10,
@@ -275,6 +277,31 @@ public sealed class EventCalendarTests
 
         Assert.Equal(3, events.OfType<HubEventChanged>().Count(e => e.Kind == HubEventKind.BlackFriday && e.Phase == "ImpulsePurchases"));
         Assert.Contains(events, e => e is HubEventChanged change && change.Kind == HubEventKind.BlackFriday && change.Phase == "Ended");
+    }
+
+    [Fact]
+    public void BlackFridaySellsJunkGearAndUtilityToTrainersAtTheHub()
+    {
+        int start = SimClock.PaydayMinute(0) - 3 * SimClock.MinutesPerDay;
+        var world = new HubWorld(new SimConfig
+        {
+            TrainerCount = 1,
+            StartMinute = start,
+            StartTrainerGold = 100_000,
+            UnlockedZoneIds = Array.Empty<string>(),
+            EventSettings = new HubEventConfig(blackFridayJunkGearPrice: 10)
+        }, 152);
+        var catalog = GearCatalog.Default;
+        var existing = new GearItem("existing.utility.hat", catalog.GetSlot("trainer.hat"), 1,
+            catalog.MaxDurabilityFor(GearGroup.TrainerUtility));
+        Assert.True(world.OfferGear(0, existing, 1).Ok);
+        var events = new List<IDomainEvent>();
+        world.EventRaised += events.Add;
+
+        world.RunFor(1);
+
+        Assert.Contains(events, x => x is GearFodderPurchased purchase && purchase.SlotId == "trainer.hat");
+        Assert.Contains(events, x => x is GearOffered offer && offer.SlotId == "trainer.backpack");
     }
 
     [Fact]

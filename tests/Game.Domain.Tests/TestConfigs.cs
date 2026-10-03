@@ -26,4 +26,14 @@ internal static class TestConfigs
         config.StartingFacilityLevels = levels;
         return config;
     }
+
+    public static SimConfig WithMonsterForge(this SimConfig config)
+    {
+        config.StartTownHallLevel = System.Math.Max(5, config.StartTownHallLevel);
+        config.UnlockedZoneIds = new[] { "zone_1" };
+        var levels = new Dictionary<string, int>(config.StartingFacilityLevels ?? new Dictionary<string, int>());
+        levels["monster_forge"] = 1;
+        config.StartingFacilityLevels = levels;
+        return config;
+    }
 }

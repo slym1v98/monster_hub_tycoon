@@ -32,13 +32,17 @@ namespace Game.Domain
         public IReadOnlyList<BattleResult> Battles { get; }
         public ExpeditionLoot Loot { get; }
         public IReadOnlyDictionary<MonsterId, long> FinalMonsterHp { get; }
+        public IReadOnlyList<Monster> CaptureOpportunities { get; }
         public ExpeditionResult(IEnumerable<BattleResult> battles, ExpeditionLoot loot, long trainerExperience = 0,
-            IReadOnlyDictionary<MonsterId, long> finalMonsterHp = null)
+            IReadOnlyDictionary<MonsterId, long> finalMonsterHp = null, IEnumerable<Monster> captureOpportunities = null)
         {
             if (battles == null) throw new ArgumentNullException(nameof(battles));
             if (trainerExperience < 0) throw new ArgumentOutOfRangeException(nameof(trainerExperience));
             Battles = Array.AsReadOnly(battles.ToArray()); Loot = loot ?? throw new ArgumentNullException(nameof(loot)); TrainerExperience = trainerExperience;
             FinalMonsterHp = new System.Collections.ObjectModel.ReadOnlyDictionary<MonsterId, long>(new Dictionary<MonsterId, long>(finalMonsterHp ?? new Dictionary<MonsterId, long>()));
+            var opportunities = (captureOpportunities ?? Enumerable.Empty<Monster>()).ToArray();
+            if (opportunities.Any(x => x == null)) throw new ArgumentException("Capture opportunities cannot contain null monsters.", nameof(captureOpportunities));
+            CaptureOpportunities = Array.AsReadOnly(opportunities);
         }
         public long TrainerExperience { get; }
     }

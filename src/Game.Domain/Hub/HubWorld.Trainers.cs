@@ -37,7 +37,8 @@ namespace Game.Domain
                 n.Satiety -= cfg.HubSatietyPerHour * p.SatietyDecayMult * hours;
                 n.Hydration -= cfg.HubHydrationPerHour * hours;
                 if (t.State == TrainerState.Queued) n.Stress += cfg.QueueStressPerHour * hours;
-                if (t.State == TrainerState.WaitingForMoney) n.Stress += cfg.WaitStressPerHour * hours;
+                if (t.State == TrainerState.WaitingForMoney || t.State == TrainerState.WaitingForMarket)
+                    n.Stress += cfg.WaitStressPerHour * hours;
             }
             n.Clamp();
         }
@@ -78,7 +79,12 @@ namespace Game.Domain
             {
                 string facilityId = need.Value == BuildingKind.Inn ? "inn" : need.Value == BuildingKind.Restaurant ? "restaurant"
                     : need.Value == BuildingKind.Bar ? "bar" : "veterinary_hospital";
-                if (!CanFacilityOperate(facilityId)) need = null;
+                if (!CanFacilityOperate(facilityId))
+                {
+                    SetState(t, TrainerState.AtHub, "ServiceUnavailable");
+                    queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
+                    return;
+                }
             }
             if (need.HasValue) { RequestService(t, need.Value); return; }
 
@@ -140,13 +146,15 @@ namespace Game.Domain
                 foreach (var state in battle.FinalMonsters.Where(x => x.Side == BattleSide.Team))
                 {
                     var monster = t.Roster.Members.FirstOrDefault(x => x.Id == state.Id);
-                    if (monster != null) monster.SetCurrentHp(state.CurrentHp);
+                    if (monster != null) monster.SetCurrentHp(Math.Min(monster.MaxHp, state.CurrentHp));
                 }
             foreach (var state in result.FinalMonsterHp)
             {
                 var monster = t.Roster.Members.FirstOrDefault(x => x.Id == state.Key);
-                if (monster != null) monster.SetCurrentHp(state.Value);
+                if (monster != null) monster.SetCurrentHp(Math.Min(monster.MaxHp, state.Value));
             }
+            foreach (var target in result.CaptureOpportunities)
+                AttemptCapture(t.Id, target);
             var finalActive = result.Battles.LastOrDefault()?.ActiveId;
             if (finalActive.HasValue && t.Roster.Members.Any(m => m.Id == finalActive.Value && m.CurrentHp > 0))
                 t.Roster.SetActive(finalActive.Value);
@@ -179,7 +187,7 @@ namespace Game.Domain
             var rebellion = t.Roster.Members.Count(m => RebellionModel.IsRebellious(m.Level, m.Rarity,
                 t.Rank, t.Level, t.Rarity, t.LeadershipItemBonus));
             var risk = new CombatRiskSnapshot(t.Roster.Members.Count(m => m.CurrentHp < m.MaxHp),
-                rebelliousMonsterCount: rebellion, hasEligibleReserve: t.Roster.Members.Count > 1,
+                captureOpportunity: true, rebelliousMonsterCount: rebellion, hasEligibleReserve: t.Roster.Members.Count > 1,
                 expectedCombatRisk: zone.EncounterProfile.ExpectedEncountersPerHour * cfg.FarmChunkMinutes / 60.0);
             var plan = ConsumablePolicy.DecidePurchases(TrainerSnapshot.FromTrainer(t, now), ConsumableStock,
                 risk, cfg.ConsumablePolicySettings);
@@ -260,6 +268,7 @@ namespace Game.Domain
                 SaleResult sale = market.Quote(t, t.BackpackUnits);
                 ReceiveTrainerIncome(t, sale.GrossToTrainer - sale.Tax, "MaterialSale");
                 AddTreasury(sale.Tax, "TradeTax");
+                ApplyTradeTaxStress(t, sale.GrossToTrainer, sale.Tax);
                 t.BackpackUnits = 0;
                 t.BackpackMaterials.Clear();
             }
@@ -273,13 +282,14 @@ namespace Game.Domain
                 int remaining = lot.Value;
                 if (buyRequests.TryGetValue(lot.Key, out var request) && request.Enabled)
                 {
-                    long before = treasury.Balance;
                     SaleBreakdown direct = station.BuyFromTrainer("trainer:" + t.Id, lot.Key, remaining, request);
                     ReceiveTrainerIncome(t, direct.NetToSeller, "StationMaterialSale");
+                    ApplyTradeTaxStress(t, direct.Gross, direct.Tax);
                     remaining = direct.UnsoldUnits;
                     if (direct.StationUnits > 0) Raise(new MaterialTradeSettled(now, t.Id, lot.Key.Value, "Station",
                         direct.StationUnits, direct.Gross, direct.Tax, direct.NetToSeller));
-                    if (treasury.Balance != before) Raise(new TreasuryChanged(now, treasury.Balance - before, treasury.Balance, "TradeTax"));
+                    if (direct.StationUnits > 0)
+                        Raise(new TreasuryChanged(now, -direct.NetToSeller, treasury.Balance, "TradeTax"));
                     if (direct.StationUnits > 0) Raise(new SupplyStockChanged(now, "material:" + lot.Key.Value,
                         station.Stock.Get(new InventoryItem(lot.Key))));
                     if (direct.StationUnits > 0) ReconcileProduction();
@@ -289,6 +299,7 @@ namespace Game.Domain
                     SaleBreakdown merchantSale = merchantFleet.Current.BuyFromTrainer("trainer:" + t.Id, lot.Key, remaining,
                         marketReferencePrice, marketTaxRate, long.MaxValue - treasury.Balance);
                     ReceiveTrainerIncome(t, merchantSale.NetToSeller, "MerchantMaterialSale");
+                    ApplyTradeTaxStress(t, merchantSale.Gross, merchantSale.Tax);
                     if (merchantSale.MerchantUnits > 0) Raise(new MaterialTradeSettled(now, t.Id, lot.Key.Value, "Merchant",
                         merchantSale.MerchantUnits, merchantSale.Gross, merchantSale.Tax, merchantSale.NetToSeller));
                     if (merchantSale.Tax > 0)
@@ -305,6 +316,16 @@ namespace Game.Domain
             checked { foreach (int units in t.BackpackMaterials.Values) total += units; }
             t.BackpackUnits = total;
             return total == 0;
+        }
+
+        void ApplyTradeTaxStress(Trainer trainer, long gross, long tax)
+        {
+            if (gross <= 0 || tax <= 0) return;
+            double taxRate = (double)tax / gross;
+            double excess = Math.Max(0, taxRate - cfg.EventSettings.InspectionTaxThreshold);
+            if (excess <= 0) return;
+            trainer.Needs.Stress += cfg.PriceStressFactor * excess * PersonalityProfile.Of(trainer.Personality).PriceSensitivity;
+            trainer.Needs.Clamp();
         }
     }
 }

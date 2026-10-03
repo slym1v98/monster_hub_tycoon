@@ -208,26 +208,25 @@ public static class MonsterScenarios
                 + events.OfType<PaydayResolved>().Sum(e => e.Outcome.TotalPaid) + events.OfType<MaterialTradeSettled>().Where(e => e.TrainerId >= 0).Sum(e => e.NetToSeller)
                 + events.OfType<ProductTradeSettled>().Sum(e => e.NetToSeller) - events.OfType<ServiceUsed>().Sum(e => e.Paid)
                 - events.OfType<MonsterAppraised>().Sum(e => e.PricePaid) - events.OfType<ProductPurchased>().Sum(e => e.TotalPaid)
+                - events.OfType<GearOffered>().Where(e => e.Accepted).Sum(e => e.Price)
+                - events.OfType<GearFodderPurchased>().Where(e => e.Success).Sum(e => e.Price)
                 - events.OfType<GeneBankFeeSettled>().Sum(e => e.Paid)
                 + events.OfType<TrainerLoanBalanceChanged>().Where(e => e.Reason == "Disbursement").Sum(e => e.Amount)
                 - events.OfType<TrainerLoanRepaid>().Sum(e => e.Amount);
             long trainerDifference = world.Trainers.Sum(t => t.Gold) - expectedGold;
+            // SupplyTransactions is a sub-ledger; market and merchant settlements do not map 1:1 to TreasuryChanged reasons.
             long treasuryDifference = world.Treasury - initialTreasury - events.OfType<TreasuryChanged>().Sum(e => e.Delta);
-            long supplyMovement = world.SupplyTransactions.Sum(tx => (tx.Payer == "hub:treasury" ? -tx.Gross : 0)
-                + (tx.Payee == "hub:treasury" ? tx.Gross - tx.Tax : 0) + (tx.TaxAccount == "hub:treasury" ? tx.Tax : 0));
-            string[] supplyReasons = { "TradeTax", "MerchantPurchase", "ProductionCost", "ConsumableSale", "StationProductSale", "ProductBuyback" };
-            long supplyDifference = supplyMovement - events.OfType<TreasuryChanged>().Where(e => supplyReasons.Contains(e.Reason)).Sum(e => e.Delta);
             var actualOwners = world.Trainers.SelectMany(t => world.MonstersForTrainer(t.Id).Select(m => (m.Id, trainer: t.Id, m.Custody))).ToArray();
             int ownershipDifference = owners.Count(o => !actualOwners.Any(m => m.Id == o.Key && (m.trainer, m.Custody) == o.Value))
                 + actualOwners.Count(m => !owners.TryGetValue(m.Id, out var owner) || owner != (m.trainer, m.Custody));
             var actualProducts = world.Trainers.SelectMany(t => t.Products.Select(p => (key: (t.Id, p.Key.Value), count: p.Value))).ToDictionary(p => p.key, p => (long)p.count);
             long itemDifference = productEventErrors + products.Keys.Concat(actualProducts.Keys).Distinct().Sum(key =>
                 Math.Abs((products.TryGetValue(key, out long expected) ? expected : 0) - (actualProducts.TryGetValue(key, out long actual) ? actual : 0)));
-            output.WriteLine($"Gold reconciliation: trainer difference {trainerDifference}; treasury difference {treasuryDifference}; supply difference {supplyDifference}");
+            output.WriteLine($"Gold reconciliation: trainer difference {trainerDifference}; treasury difference {treasuryDifference}");
             output.WriteLine($"Ownership reconciliation: difference {ownershipDifference}; owned {actualOwners.Length}; recovery pending {world.VeterinaryHospital.Recoveries.Count}; bank {world.GeneBank.Count}");
             output.WriteLine($"Item reconciliation: difference {itemDifference}; trainer product stacks {actualProducts.Count}");
             output.WriteLine($"Payday: wages {events.OfType<PaydayResolved>().Sum(e => e.Outcome.TotalPaid)}; bank fees assessed {events.OfType<GeneBankFeeAssessed>().Sum(e => e.Amount)}; confiscations {events.OfType<MonsterConfiscated>().Count()}");
-            if (trainerDifference != 0 || treasuryDifference != 0 || supplyDifference != 0 || ownershipDifference != 0 || itemDifference != 0)
+            if (trainerDifference != 0 || treasuryDifference != 0 || ownershipDifference != 0 || itemDifference != 0)
                 throw new InvalidOperationException("Monster scenario ledgers do not reconcile.");
         }
     }

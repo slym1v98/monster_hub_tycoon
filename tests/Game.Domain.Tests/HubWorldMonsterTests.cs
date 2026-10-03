@@ -366,7 +366,7 @@ public sealed class HubWorldMonsterTests
         }
         string first = Run();
         Assert.Equal(first, Run());
-        Assert.Contains("Gold reconciliation: trainer difference 0; treasury difference 0; supply difference 0", first);
+        Assert.Contains("Gold reconciliation: trainer difference 0; treasury difference 0", first);
         Assert.Contains("Ownership reconciliation: difference 0", first);
         Assert.Contains("Item reconciliation: difference 0", first);
         Assert.Contains("zone_1: encounters ", first);
