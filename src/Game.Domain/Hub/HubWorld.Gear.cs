@@ -127,6 +127,7 @@ namespace Game.Domain
         public CommandResult TrainerEnhanceGear(int trainerId, GearItem item)
         {
             if (!ValidGearInput(trainerId, item)) return CommandResult.Rejected("Thiếu tham số trang bị hợp lệ.");
+            if (!CanFacilityOperate(EnhancementFacility)) return CommandResult.Rejected("facility.unavailable");
             if (trainers[trainerId].Inventory.Count(new ProductId("enhancement_stone")) < GearSettings.EnhanceStoneCost)
                 return CommandResult.Rejected("Không có Đá Cường hóa.");
             TrainerPrepareEnhancementProtection(trainerId, item);
@@ -138,6 +139,7 @@ namespace Game.Domain
         public CommandResult EnhanceGear(int trainerId, GearItem item, bool useProtectionCharm)
         {
             if (!ValidGearInput(trainerId, item)) return CommandResult.Rejected("Thiếu tham số trang bị hợp lệ.");
+            if (!CanFacilityOperate(EnhancementFacility)) return CommandResult.Rejected("facility.unavailable");
             if (useProtectionCharm && trainers[trainerId].Inventory.Count(new ProductId("protection_charm")) < GearSettings.EnhanceProtectionCharmCost)
                 return CommandResult.Rejected("Không có Bùa Bảo Hộ.");
             var trainer = trainers[trainerId];
@@ -168,6 +170,7 @@ namespace Game.Domain
         {
             if (!ValidGearInput(trainerId, item) || junk == null || ReferenceEquals(item, junk))
                 return CommandResult.Rejected("Thiếu tham số trang bị hợp lệ.");
+            if (!CanFacilityOperate("jeweler")) return CommandResult.Rejected("facility.unavailable");
             var equipped = trainers[trainerId].Gear.Equipped.Concat(trainers[trainerId].Roster.Members.SelectMany(m => m.Gear.Equipped)).ToList();
             if (equipped.Any(x => ReferenceEquals(x, junk)) || !ReferenceEquals(trainers[trainerId].GearInventory.Get(junk.Id), junk))
                 return CommandResult.Rejected("Món hiến tế không nằm trong kho trang bị Trainer.");
@@ -194,6 +197,7 @@ namespace Game.Domain
         public CommandResult RefineGear(int trainerId, GearItem item)
         {
             if (!ValidGearInput(trainerId, item)) return CommandResult.Rejected("Thiếu tham số trang bị hợp lệ.");
+            if (!CanFacilityOperate("jeweler")) return CommandResult.Rejected("facility.unavailable");
             var trainer = trainers[trainerId];
             var crystal = new ProductId("world_boss_crystal");
             var water = new ProductId("distilled_water");
@@ -219,6 +223,9 @@ namespace Game.Domain
         public CommandResult RepairGear(int trainerId, GearItem item)
         {
             if (!ValidGearInput(trainerId, item)) return CommandResult.Rejected("Thiếu tham số trang bị hợp lệ.");
+            if (item.Slot.Group == GearGroup.Aura) return CommandResult.Rejected("gear.repair_not_supported");
+            string facilityId = item.Slot.Group == GearGroup.MonsterCombat ? "monster_forge" : "textile_workshop";
+            if (!CanFacilityOperate(facilityId)) return CommandResult.Rejected("facility.unavailable");
             var trainer = trainers[trainerId];
             int oldDurability = item.Durability;
             long repairCost = checked((long)Math.Ceiling((item.MaxDurability - item.Durability) * GearSettings.RepairGoldPerDurability));
@@ -256,6 +263,9 @@ namespace Game.Domain
 
         bool ValidGearInput(int trainerId, GearItem item)
             => trainerId >= 0 && trainerId < trainers.Count && item != null && !item.IsDestroyed && IsEquippedByTrainer(trainerId, item);
+
+        // GDD 12 maps Enhancement Stone use to the Forge for all gear groups.
+        const string EnhancementFacility = "monster_forge";
 
         bool IsEquippedByTrainer(int trainerId, GearItem item)
         {

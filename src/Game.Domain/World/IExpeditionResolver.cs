@@ -55,6 +55,7 @@ namespace Game.Domain
             int count = (int)Math.Floor(expected);
             if (random.NextDouble() < expected - count) count++;
             var battles = new List<BattleResult>();
+            var captureOpportunities = new List<Monster>();
             var currentTeam = trainer.Team.ToArray();
             MonsterId? activeId = trainer.ActiveMonsterId;
             var totals = new SortedDictionary<Materials.MaterialId, int>(Comparer<Materials.MaterialId>.Create((a, b) => string.CompareOrdinal(a.Value, b.Value)));
@@ -73,6 +74,16 @@ namespace Game.Domain
                     x => Math.Max(0, RebellionModel.ManagementScore(x.Level, x.Rarity) - x.ManagementScoreReduction));
                 var battle = BattleResolver.Resolve(new BattleInput(battleTeam, new[] { foe }, activeId, leadership, management), CombatConfig.Prototype, random);
                 battles.Add(battle);
+                var wildState = battle.FinalMonsters.First(x => x.Side == BattleSide.Opponents);
+                string speciesId = encounter.SpeciesId;
+                var wildDefinition = new MonsterDefinition(speciesId, speciesId, encounter.Element, MonsterRole.Dps,
+                    foe.Stats, new MonsterStats(0, 0, 0, 0, 0));
+                var wild = Monster.Create(new MonsterId(zone.Id + ".wild." + trainer.Id + "." + time.TotalMinutes + "." + i),
+                    wildDefinition, encounter.Rarity, MonsterIvGrade.B, encounter.Level, i,
+                    statConfig: config.MonsterStatSettings);
+                double remainingHpFraction = wildState.CurrentHp / (double)foeHp;
+                wild.SetCurrentHp((long)Math.Floor(wild.MaxHp * remainingHpFraction));
+                captureOpportunities.Add(wild);
                 activeId = battle.ActiveId;
                 currentTeam = battle.FinalMonsters.Where(x => x.Side == BattleSide.Team)
                     .Select(state => {
@@ -104,7 +115,7 @@ namespace Game.Domain
             var collected = totals.Select(x => new MaterialQuantity(x.Key, x.Value)).ToArray();
             var loot = new ExpeditionLoot(collected, Array.Empty<MaterialQuantity>(), totalGold, totalExperience);
             var finalHp = currentTeam.ToDictionary(x => x.Id, x => x.CurrentHp);
-            return new ExpeditionResult(battles, loot, totalExperience, finalHp);
+            return new ExpeditionResult(battles, loot, totalExperience, finalHp, captureOpportunities);
         }
 
         static MonsterSnapshot[] ApplyBagSynergy(MonsterSnapshot[] team, MonsterId? activeId, bool enabled, MonsterItemConfig settings)

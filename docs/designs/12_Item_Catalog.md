@@ -50,9 +50,9 @@ Danh mục các vật phẩm tiêu hao và nguyên liệu được nhắc trong 
 
 ## 3. Trạng thái catalog trong Domain
 
-Prototype `Game.Domain` có ID ổn định cho 30 nguyên liệu (6 nhóm × 5 tier), các nhóm sản phẩm, công thức Tinh chế/Lò Phản Ứng và công thức tiêu hao dùng thử. Công thức và số lượng đầu vào/đầu ra trong [workbook cân bằng](../balance/MonsterHUB_Balance.xlsx) là dữ liệu Prototype/TBD, chưa phải định mức sản xuất đã chốt. Các công thức trang bị được biểu diễn theo nhóm slot; chỉ mapping xưởng và quầy, chưa có crafting/equipment economy hoàn chỉnh.
+Prototype `Game.Domain` có ID ổn định cho 30 nguyên liệu (6 nhóm × 5 tier), các nhóm sản phẩm, công thức Tinh chế/Lò Phản Ứng và công thức tiêu hao dùng thử. Công thức và số lượng đầu vào/đầu ra trong [workbook cân bằng](../balance/MonsterHUB_Balance.xlsx) là dữ liệu Prototype/TBD, chưa phải định mức sản xuất đã chốt. Các công thức trang bị được biểu diễn theo nhóm slot; AI mua một số vật phẩm theo chính sách và sự kiện, nhưng chưa có crafting/equipment economy hoàn chỉnh.
 
-**Loot chưa được đặc tả theo từng material ID:** farm prototype hiện trả Quặng tier 1 cho mọi lượt để kiểm tra luồng `Trainer → Trạm/Thương nhân → sản xuất`. GDD hiện chỉ nêu nhóm nguyên liệu và tier chủ yếu theo Zone, chưa có bảng xác suất/số lượng theo Zone, encounter hay loại quái. Vì vậy phép ánh xạ này là tạm; không suy ra rằng các Zone chỉ rơi Quặng. Chi tiết loot sẽ được chốt cùng mô hình farm/chiến đấu. Hiệu ứng vật phẩm và hành vi Trainer mua từ quầy cũng chưa được mô phỏng.
+**Loot chưa được đặc tả theo từng material ID:** farm fixture `SimpleFarmResolver` trả Quặng tier 1 để kiểm tra luồng `Trainer → Trạm/Thương nhân → sản xuất`. Mặc định, `DefaultExpeditionResolver` dùng encounter theo Zone và `LootResolver`; bảng xác suất/số lượng theo Zone, encounter hay loại quái chưa được GDD chốt. Vì vậy fixture không có nghĩa là mọi Zone chỉ rơi Quặng. Hiệu ứng vật phẩm và chính sách mua hàng hiện chỉ mô phỏng một phần.
 
 ## 3. Hiệu ứng đã mô phỏng (Sub-project 3)
 Thuốc (hồi HP), Bình nước buff (tăng tạm ATK/DEF/CRIT), Bánh thưởng (giảm Rebellion), Sách Chiến Thuật (Bag Synergy), Khóa Giao Tiếp (tăng Điểm Lãnh đạo) và Bóng/Bẫy (bắt thú) đã có hiệu ứng trong `Game.Domain`. Giá trị cụ thể là **Prototype** (workbook, sheet `Monster Lifecycle`, tiền tố `item_effect.`). Trang bị 30 slot thuộc Sub-project 4.

@@ -426,6 +426,7 @@ namespace Game.Domain
         {
             foreach (Trainer t in trainers.Where(x => x.State == TrainerState.WaitingForMarket).OrderBy(x => x.Id).ToArray())
             {
+                Settle(t);
                 if (!SellBackpack(t)) continue;
                 t.Token++;
                 SetState(t, TrainerState.AtHub, "MarketSettled");
@@ -443,6 +444,7 @@ namespace Game.Domain
         void OnMarketRetry(Trainer trainer)
         {
             if (trainer.State != TrainerState.WaitingForMarket) return;
+            Settle(trainer);
             // At an exact deadline, a retry event may have been queued before the replacement route event.
             // Materialize the due replacement here before applying the wait limit.
             if (merchantFleet.Current.State == MerchantState.Bankrupt &&

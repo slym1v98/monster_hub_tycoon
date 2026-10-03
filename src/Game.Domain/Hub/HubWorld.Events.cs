@@ -5,6 +5,7 @@ using Game.Domain.Materials;
 using Game.Domain.Supply;
 using Game.Domain.Monsters;
 using Game.Domain.Combat;
+using Game.Domain.Gear;
 
 namespace Game.Domain
 {
@@ -409,6 +410,22 @@ namespace Game.Domain
                     if (station.Stock.Get(new InventoryItem(new ProductId(product))).Available <= 0) continue;
                     var purchased = PurchaseProduct(trainer.Id, product, cfg.EventSettings.BlackFridayImpulseUnits);
                     if (purchased.Ok) purchases++;
+                }
+                foreach (var slot in GearCat.Slots)
+                {
+                    for (int unit = 0; unit < cfg.EventSettings.BlackFridayImpulseUnits; unit++)
+                    {
+                        var gear = new GearItem(
+                            $"black_friday:{paydayIndex}:{now}:{trainer.Id}:{slot.Id}:{unit}",
+                            slot, 1, GearCat.MaxDurabilityFor(slot.Group));
+                        var current = slot.Group == GearGroup.MonsterCombat
+                            ? trainer.Roster.Members.Select(m => m.Gear.Get(slot.Id)).FirstOrDefault(x => x != null)
+                            : trainer.Gear.Get(slot.Id);
+                        var purchased = current != null && current.Stars < 5
+                            ? OfferGearForSacrifice(trainer.Id, gear, cfg.EventSettings.BlackFridayJunkGearPrice)
+                            : OfferGear(trainer.Id, gear, cfg.EventSettings.BlackFridayJunkGearPrice);
+                        if (purchased.Ok) purchases++;
+                    }
                 }
             }
                 Raise(new HubEventChanged(now, HubEventKind.BlackFriday, "ImpulsePurchases", 0, purchases));

@@ -10,6 +10,7 @@ namespace Game.Domain
         public double RandomCrisisProbability { get; }
         public int BlackFridayDays { get; }
         public int BlackFridayImpulseUnits { get; }
+        public long BlackFridayJunkGearPrice { get; }
         public double InspectionTaxThreshold { get; }
         public double InspectionStressThreshold { get; }
         public double InspectionFineFraction { get; }
@@ -64,10 +65,12 @@ namespace Game.Domain
             double worldBossAttack = 250, double worldBossDefense = 80, double worldBossAttackSpeed = 1,
             long worldBossActivationGold = 5000,
             int worldBossCooldownMinutes = 43200, double worldBossBuildingDamageProbability = 0.25,
-            int worldBossCrystalCount = 1, int monsterFluVaccineUnitsToCure = 1, int monsterSiegeBossCoreCount = 1, long monsterFluHospitalRevenueBonus = 500)
+            int worldBossCrystalCount = 1, int monsterFluVaccineUnitsToCure = 1, int monsterSiegeBossCoreCount = 1, long monsterFluHospitalRevenueBonus = 500,
+            long blackFridayJunkGearPrice = 100)
         {
             if (randomCrisisCheckIntervalMinutes <= 0 || !UnitInterval(randomCrisisProbability)) throw new ArgumentOutOfRangeException(nameof(randomCrisisCheckIntervalMinutes));
             if (blackFridayDays <= 0 || blackFridayImpulseUnits < 0 || inspectionCooldownMinutes <= 0 || inspectionResolutionMinutes <= 0) throw new ArgumentOutOfRangeException(nameof(blackFridayDays));
+            if (blackFridayJunkGearPrice <= 0) throw new ArgumentOutOfRangeException(nameof(blackFridayJunkGearPrice));
             if (double.IsNaN(inspectionTaxThreshold) || inspectionTaxThreshold < 0 || inspectionTaxThreshold > 1) throw new ArgumentOutOfRangeException(nameof(inspectionTaxThreshold));
             if (double.IsNaN(inspectionStressThreshold) || inspectionStressThreshold < 0 || inspectionStressThreshold > 100) throw new ArgumentOutOfRangeException(nameof(inspectionStressThreshold));
             if (double.IsNaN(inspectionFineFraction) || inspectionFineFraction < 0 || inspectionFineFraction > 1) throw new ArgumentOutOfRangeException(nameof(inspectionFineFraction));
@@ -78,6 +81,7 @@ namespace Game.Domain
             RandomCrisisCheckIntervalMinutes = randomCrisisCheckIntervalMinutes;
             RandomCrisisProbability = randomCrisisProbability;
             BlackFridayDays = blackFridayDays; BlackFridayImpulseUnits = blackFridayImpulseUnits;
+            BlackFridayJunkGearPrice = blackFridayJunkGearPrice;
             InspectionTaxThreshold = inspectionTaxThreshold; InspectionStressThreshold = inspectionStressThreshold;
             InspectionFineFraction = inspectionFineFraction; InspectionCooldownMinutes = inspectionCooldownMinutes;
             InspectionResolutionMinutes = inspectionResolutionMinutes;
@@ -120,6 +124,7 @@ namespace Game.Domain
                 P("random_crisis.probability_per_check", RandomCrisisProbability, "probability/check", "Prototype", "docs/designs/06_Events_PVE_PVP.md §1B/1D: random event chance unspecified."),
                 P("black_friday.duration_days", blackFridayDays, "in-game days", "Locked", "docs/designs/06_Events_PVE_PVP.md §1A: last 3 in-game days before Payday."),
                 P("black_friday.impulse_units_per_product", blackFridayImpulseUnits, "units/Trainer/product", "Prototype", "docs/designs/06_Events_PVE_PVP.md §1A: impulsive buying; quantity is unspecified."),
+                P("black_friday.junk_gear_price", blackFridayJunkGearPrice, "Gold/gear item", "Prototype", "docs/designs/05_Itemization_Gear_System.md §1 and docs/designs/06_Events_PVE_PVP.md §1A: impulse gear/utility buying; price unspecified."),
                 P("labor_inspection.tax_threshold", inspectionTaxThreshold, "fraction", "Locked", "docs/designs/06_Events_PVE_PVP.md §1B: transaction tax >30%."),
                 P("labor_inspection.stress_threshold", inspectionStressThreshold, "stress points", "Locked", "docs/designs/06_Events_PVE_PVP.md §1B and docs/designs/02_HUB_Economy_Infrastructure.md §1.5: Stress >=80."),
                 P("labor_inspection.fine_fraction", inspectionFineFraction, "fraction of Treasury", "Prototype", "docs/designs/06_Events_PVE_PVP.md §1B: penalty is unspecified."),

@@ -15,7 +15,17 @@ namespace Game.Domain.Tests
 
         static HubWorld World(out int trainerId)
         {
-            var cfg = new SimConfig { TrainerCount = 2, StartTrainerGold = 100000, StartTreasury = 100000 };
+            var cfg = new SimConfig
+            {
+                TrainerCount = 2, StartTrainerGold = 100000, StartTreasury = 100000,
+                StartTownHallLevel = 11, UnlockedZoneIds = new[] { "zone_1", "zone_2", "zone_3" },
+                StartingFacilityLevels = new System.Collections.Generic.Dictionary<string, int>
+                {
+                    ["monster_forge"] = 1,
+                    ["textile_workshop"] = 1,
+                    ["jeweler"] = 1
+                }
+            };
             var world = new HubWorld(cfg, 7);
             trainerId = 0;
             return world;
@@ -113,6 +123,51 @@ namespace Game.Domain.Tests
         }
 
         [Fact]
+        public void GearUpgradeAndRepairCommandsRequireTheirOperatingWorkshop()
+        {
+            var world = new HubWorld(new SimConfig
+            {
+                TrainerCount = 1,
+                StartTrainerGold = 100_000,
+                StartTreasury = 100_000,
+                StartTownHallLevel = 11,
+                UnlockedZoneIds = new[] { "zone_1", "zone_2", "zone_3" }
+            }, 71);
+
+            var utility = Item("trainer.gloves", 2, dur: 1);
+            Assert.True(world.OfferGear(0, utility, 1).Ok);
+            world.GrantProductForTest(0, "enhancement_stone", 1);
+            Assert.False(world.EnhanceGear(0, utility, false).Ok);
+            Assert.False(world.RepairGear(0, utility).Ok);
+
+            var target = Item("trainer.backpack", 2);
+            var junk = Item("trainer.backpack", 1);
+            Assert.True(world.OfferGear(0, target, 1).Ok);
+            Assert.True(world.OfferGearForSacrifice(0, junk, 1).Ok);
+            Assert.False(world.StarUpGear(0, target, junk).Ok);
+
+            var aura = Item("aura.whistle", 2);
+            Assert.True(world.OfferGear(0, aura, 1).Ok);
+            world.GrantProductForTest(0, "world_boss_crystal", Gcfg.RefineCrystalCost);
+            world.GrantProductForTest(0, "distilled_water", Gcfg.RefineWaterCost);
+            Assert.False(world.RefineGear(0, aura).Ok);
+
+            var textileOnly = new HubWorld(new SimConfig
+            {
+                TrainerCount = 1,
+                StartTrainerGold = 100_000,
+                StartTreasury = 100_000,
+                StartTownHallLevel = 5,
+                UnlockedZoneIds = new[] { "zone_1" },
+                StartingFacilityLevels = new System.Collections.Generic.Dictionary<string, int> { ["textile_workshop"] = 1 }
+            }, 72);
+            var utilityForEnhance = Item("trainer.gloves", 2);
+            Assert.True(textileOnly.OfferGear(0, utilityForEnhance, 1).Ok);
+            textileOnly.GrantProductForTest(0, "enhancement_stone", 1);
+            Assert.Equal("facility.unavailable", textileOnly.EnhanceGear(0, utilityForEnhance, false).Reason);
+        }
+
+        [Fact]
         public void SacrificeOfferRequiresACompatibleUnmaxedGearSlot()
         {
             var world = World(out int id);
@@ -147,7 +202,9 @@ namespace Game.Domain.Tests
         [Fact]
         public void EnhancementAutomaticallyUsesAvailableTrainerCredit()
         {
-            var cfg = new SimConfig { TrainerCount = 1, StartTrainerGold = 10, StartTreasury = 100000 };
+            var cfg = new SimConfig { TrainerCount = 1, StartTrainerGold = 10, StartTreasury = 100000,
+                StartTownHallLevel = 5, UnlockedZoneIds = new[] { "zone_1" },
+                StartingFacilityLevels = new System.Collections.Generic.Dictionary<string, int> { ["monster_forge"] = 1 } };
             var world = new HubWorld(cfg, 5);
             var item = Item("trainer.gloves", 2);
             Assert.True(world.OfferGear(0, item, 1).Ok);
@@ -163,7 +220,9 @@ namespace Game.Domain.Tests
         {
             for (int seed = 0; seed < 1000; seed++)
             {
-                var cfg = new SimConfig { TrainerCount = 1, StartTrainerGold = 100000, StartTreasury = 100000 };
+                var cfg = new SimConfig { TrainerCount = 1, StartTrainerGold = 100000, StartTreasury = 100000,
+                    StartTownHallLevel = 5, UnlockedZoneIds = new[] { "zone_1" },
+                    StartingFacilityLevels = new System.Collections.Generic.Dictionary<string, int> { ["monster_forge"] = 1 } };
                 var world = new HubWorld(cfg, seed);
                 var item = Item("trainer.gloves", 2, enh: 10);
                 Assert.True(world.OfferGear(0, item, 1).Ok);
@@ -187,7 +246,9 @@ namespace Game.Domain.Tests
         {
             for (int seed = 0; seed < 1000; seed++)
             {
-                var cfg = new SimConfig { TrainerCount = 1, StartTrainerGold = 100000, StartTreasury = 100000 };
+                var cfg = new SimConfig { TrainerCount = 1, StartTrainerGold = 100000, StartTreasury = 100000,
+                    StartTownHallLevel = 5, UnlockedZoneIds = new[] { "zone_1" },
+                    StartingFacilityLevels = new System.Collections.Generic.Dictionary<string, int> { ["monster_forge"] = 1 } };
                 var world = new HubWorld(cfg, seed);
                 var item = Item("trainer.gloves", 2, enh: 10);
                 Assert.True(world.OfferGear(0, item, 1).Ok);

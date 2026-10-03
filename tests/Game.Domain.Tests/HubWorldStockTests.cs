@@ -48,6 +48,29 @@ public sealed class HubWorldStockTests
     }
 
     [Fact]
+    public void TrainerShareTransferDoesNotCountAsDirectorStockManipulation()
+    {
+        var world = new HubWorld(new SimConfig
+        {
+            TrainerCount = 2, StartMinute = SimClock.DawnMinute, StartBuildingLevel = 5, StartTownHallLevel = 5,
+            StartTrainerGold = 100000, StartTreasury = 1000000,
+            UnlockedZoneIds = Array.Empty<string>(), ForcedPersonality = Personality.Timid
+        }.WithServiceFacilities().WithTierThreeFacilities("stock_exchange"), 20261005);
+        var events = new List<IDomainEvent>();
+        world.EventRaised += events.Add;
+        world.RunFor(15 * SimClock.MinutesPerDay + 1);
+        Assert.True(world.IpoBuildingStock(BuildingKind.Restaurant).Ok);
+        var company = Assert.Single(world.StockCompanies);
+        Assert.True(world.BuyIpoShares(0, company.CompanyId, company.AvailableFloatShares).Ok);
+        int directorOperationsBeforeTransfer = events.OfType<DirectorStockOperationSettled>().Count();
+
+        Assert.True(world.TradeStockShares(0, 1, company.CompanyId, 1).Ok);
+
+        Assert.Equal(directorOperationsBeforeTransfer, events.OfType<DirectorStockOperationSettled>().Count());
+        Assert.Equal(1, world.Quests.DailyKpis.Single(x => x.Id == "kpi.daily.stock_pump").Progress);
+    }
+
+    [Fact]
     public void CommonTrainerBuysAvailablePublicSharesAtDawnAfterListing()
     {
         var world = new HubWorld(new SimConfig

@@ -66,7 +66,7 @@ public sealed class ProtectionCharmMarketTests
             StartTreasury = 100_000,
             StartTrainerGold = 100_000,
             QuestSettings = new HubQuestConfig(maximumProtectionCharmFulfillment: 10)
-        }.WithServiceFacilities(), 9001);
+        }.WithServiceFacilities().WithMonsterForge(), 9001);
         var item = new GearItem("ai+10", GearCatalog.Default.GetSlot("trainer.gloves"), 2, 100, enhanceLevel: 10);
         Assert.True(world.OfferGear(0, item, 1).Ok);
         Assert.True(world.ProvisionProtectionCharms(1).Ok);

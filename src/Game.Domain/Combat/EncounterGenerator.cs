@@ -15,8 +15,9 @@ namespace Game.Domain.Combat
             var selected = entries[entries.Length - 1].Key;
             foreach (var entry in entries) { draw -= entry.Value; if (draw < 0) { selected = entry.Key; break; } }
             var profile = zone.EncounterProfile;
-            return new EncounterDefinition(zone.Id + ".encounter", selected, profile.GoldPerEncounter,
-                profile.ExperiencePerEncounter, profile.ExpectedMaterialUnitsPerEncounter);
+            string speciesId = zone.Id + ".wild." + selected.ToString().ToLowerInvariant();
+            return new EncounterDefinition(speciesId, selected, profile.GoldPerEncounter,
+                profile.ExperiencePerEncounter, profile.ExpectedMaterialUnitsPerEncounter, speciesId);
         }
     }
 }

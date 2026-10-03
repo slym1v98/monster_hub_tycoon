@@ -80,7 +80,6 @@ namespace Game.Domain
             AddTreasury(treasuryCredit, "StockFeeAndTax");
             Raise(new StockTradeSettled(now, companyId, buyerTrainerId, sellerTrainerId, shares,
                 quote.Gross, quote.Fee, quote.RealizedProfit, quote.Tax, quote.BuyerTotal, quote.SellerNet, "TrainerTrade"));
-            if (stockAiOperationDepth == 0) Raise(new DirectorStockOperationSettled(now, "TrainerShareTransfer"));
             return CommandResult.Success();
         }
 
