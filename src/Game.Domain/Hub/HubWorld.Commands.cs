@@ -231,6 +231,7 @@ namespace Game.Domain
             if (merchantFleet != null && merchantFleet.Current.Cash < 0) throw new InvalidOperationException("Merchant cash is negative.");
             if (supplyLedger != null && supplyLedger.TotalBalance != 0) throw new InvalidOperationException("Supply money ledger does not balance.");
             if (treasury.Balance < 0) throw new InvalidOperationException("Kho bạc âm.");
+            stockExchange.ValidateInvariants();
 
             ValidateMonsterInvariants();
 
@@ -281,6 +282,10 @@ namespace Game.Domain
             foreach (var trainer in trainers)
             {
                 if (trainer.Gold < 0) throw new InvalidOperationException("Trainer Gold is negative.");
+                if (trainer.HubLoanBalance < 0 || trainer.HubLoanOverLimitPaydays < 0 ||
+                    trainer.ReverseLoanBalance < 0 || trainer.ReverseLoanPaydaysRemaining < 0 ||
+                    (trainer.ReverseLoanBalance == 0 && (trainer.ReverseLoanOverdue || trainer.ReverseLoanPaydaysRemaining != 0)))
+                    throw new InvalidOperationException("Invalid Trainer loan state.");
                 var roster = trainer.Roster;
                 if (roster.Storage.Count > cfg.MonsterStorageSettings.Capacity ||
                     !HasMonsterSlot(trainer, additional: 0) || roster.Members.Count > MonsterRoster.Capacity ||

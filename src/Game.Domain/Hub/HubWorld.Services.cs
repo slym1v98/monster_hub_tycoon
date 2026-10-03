@@ -12,7 +12,9 @@ namespace Game.Domain
             ServiceBuilding b = buildings[(int)kind];
             long price = PriceForTrainer(t, b);
             bool freeInDebtMode = payroll.DebtMode && kind == BuildingKind.Restaurant && t.WageOwed > 0;
-            if (!freeInDebtMode && t.Gold < price) { BeginWaitForMoney(t, kind); return; }
+            bool reverseLoanService = t.ReverseLoanOverdue && t.ReverseLoanBalance > 0;
+            if (!freeInDebtMode && !reverseLoanService) EnsureTrainerCanPayFromLoan(t, price);
+            if (!freeInDebtMode && !reverseLoanService && t.Gold < price) { BeginWaitForMoney(t, kind); return; }
 
             SetState(t, TrainerState.Queued, kind.ToString());
             b.Enqueue(t.Id);
@@ -37,10 +39,12 @@ namespace Game.Domain
             Settle(t);   // cộng nốt Stress xếp hàng
             PersonalityProfile profile = PersonalityProfile.Of(t.Personality);
             long normalPrice = PriceForTrainer(t, b);
-            bool free = payroll.DebtMode && b.Kind == BuildingKind.Restaurant && t.WageOwed > 0;
+            bool freeInDebtMode = payroll.DebtMode && b.Kind == BuildingKind.Restaurant && t.WageOwed > 0;
+            bool reverseLoanService = t.ReverseLoanOverdue && t.ReverseLoanBalance > 0;
+            bool free = freeInDebtMode || reverseLoanService;
             long paid = free ? 0 : normalPrice;
 
-            if (t.Gold < paid)   // giá bị Giám đốc đẩy lên trong lúc chờ
+            if (!free && t.Gold < paid)   // giá bị Giám đốc đẩy lên trong lúc chờ
             {
                 b.Leave(t.Id);
                 BeginWaitForMoney(t, b.Kind);
@@ -49,7 +53,22 @@ namespace Game.Domain
 
             if (free)
             {
-                t.WageOwed = Math.Max(0, t.WageOwed - normalPrice);   // giá trị dịch vụ trừ vào nợ lương
+                long remainingServiceValue = normalPrice;
+                if (freeInDebtMode)
+                {
+                    long wageOffset = Math.Min(t.WageOwed, remainingServiceValue);
+                    t.WageOwed -= wageOffset;
+                    remainingServiceValue -= wageOffset;
+                }
+                if (reverseLoanService)
+                {
+                    long oldBalance = t.ReverseLoanBalance;
+                    long offset = Math.Min(oldBalance, remainingServiceValue);
+                    t.ReverseLoanBalance -= offset;
+                    if (t.ReverseLoanBalance == 0) { t.ReverseLoanOverdue = false; t.ReverseLoanPaydaysRemaining = 0; }
+                    Raise(new ReverseLoanBalanceChanged(now, t.Id, oldBalance, t.ReverseLoanBalance, offset, "FreeServiceOffset"));
+                    Raise(new ReverseLoanServiceOffset(now, t.Id, b.Kind, offset, t.ReverseLoanBalance));
+                }
             }
             else
             {
@@ -57,6 +76,7 @@ namespace Game.Domain
                 long cogs = (long)Math.Round(paid * cfg.ServiceCogs);
                 AddTreasury(paid - cogs, "Service");
             }
+            if (paid > 0) stockExchange.RecordRevenue(b.Kind.ToString(), paid);
 
             double priceRatio = (double)b.Price / b.FairPrice;
             double stressAdded = cfg.PriceStressFactor * Math.Max(0.0, priceRatio - 1.0) * profile.PriceSensitivity;

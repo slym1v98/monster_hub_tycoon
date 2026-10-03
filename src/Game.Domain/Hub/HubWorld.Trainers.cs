@@ -149,7 +149,7 @@ namespace Game.Domain
                 if (gained > 0) t.BackpackMaterials[lot.MaterialId] = checked(t.BackpackMaterials.TryGetValue(lot.MaterialId, out var held) ? held + gained : gained);
             }
             long goldGained = payroll.DebtMode ? (long)(loot.Gold * cfg.DebtModeFarmMultiplier) : loot.Gold;
-            t.Gold = checked(t.Gold + goldGained);
+            ReceiveTrainerIncome(t, goldGained, "ExpeditionGold");
             TrainerProgression.AddExperience(t, result.TrainerExperience, cfg.TrainerProgressionSettings);
             Raise(new ExpeditionCompleted(now, t.Id, zone.Id, result.Battles, collected.AsReadOnly(), dropped.AsReadOnly(),
                 goldGained, result.TrainerExperience, t.Level));
@@ -235,7 +235,7 @@ namespace Game.Domain
             else if (t.BackpackUnits > 0)
             {
                 SaleResult sale = market.Quote(t, t.BackpackUnits);
-                t.Gold += sale.GrossToTrainer - sale.Tax;
+                ReceiveTrainerIncome(t, sale.GrossToTrainer - sale.Tax, "MaterialSale");
                 AddTreasury(sale.Tax, "TradeTax");
                 t.BackpackUnits = 0;
                 t.BackpackMaterials.Clear();
@@ -252,7 +252,7 @@ namespace Game.Domain
                 {
                     long before = treasury.Balance;
                     SaleBreakdown direct = station.BuyFromTrainer("trainer:" + t.Id, lot.Key, remaining, request);
-                    t.Gold = checked(t.Gold + direct.NetToSeller);
+                    ReceiveTrainerIncome(t, direct.NetToSeller, "StationMaterialSale");
                     remaining = direct.UnsoldUnits;
                     if (direct.StationUnits > 0) Raise(new MaterialTradeSettled(now, t.Id, lot.Key.Value, "Station",
                         direct.StationUnits, direct.Gross, direct.Tax, direct.NetToSeller));
@@ -265,7 +265,7 @@ namespace Game.Domain
                 {
                     SaleBreakdown merchantSale = merchantFleet.Current.BuyFromTrainer("trainer:" + t.Id, lot.Key, remaining,
                         marketReferencePrice, marketTaxRate, long.MaxValue - treasury.Balance);
-                    t.Gold = checked(t.Gold + merchantSale.NetToSeller);
+                    ReceiveTrainerIncome(t, merchantSale.NetToSeller, "MerchantMaterialSale");
                     if (merchantSale.MerchantUnits > 0) Raise(new MaterialTradeSettled(now, t.Id, lot.Key.Value, "Merchant",
                         merchantSale.MerchantUnits, merchantSale.Gross, merchantSale.Tax, merchantSale.NetToSeller));
                     if (merchantSale.Tax > 0)

@@ -24,7 +24,7 @@ namespace Game.Domain.Monsters
             });
         }
         static BalanceParameter P(string name, double value, string unit) => new BalanceParameter(
-            "gene_bank." + name, value, unit, "Prototype", "docs/designs/02_HUB_Economy_Infrastructure.md §1.4; resale price/capacity are prototype settings.");
+            "gene_bank." + name, value, unit, "Prototype", "docs/designs/13_Balance_Parameters.md §13 and docs/designs/02_HUB_Economy_Infrastructure.md §2; capacity/resale price are prototype settings.");
     }
 
     public sealed class BankFeeAssessment

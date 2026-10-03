@@ -84,10 +84,14 @@ namespace Game.Domain
             productStalls.TryGetValue(id, out var stall);
             var trainer = trainers[trainerId];
             if (!trainer.Inventory.CanAdd(id, units)) return CommandResult.Rejected("Số lượng vượt giới hạn kho Trainer.");
+            int available = stall != null ? stall.Available(id) : station.Stock.Get(new InventoryItem(id)).Available;
+            if (available < units)
+                return CommandResult.Rejected("Tồn kho không đủ.");
             long price;
             try { price = ProductPrice(id); _ = checked(price * units); }
             catch (Exception ex) when (ex is OverflowException || ex is KeyNotFoundException) { return CommandResult.Rejected("Giá hoặc tổng thanh toán không hợp lệ."); }
             long total = checked(price * units);
+            if (!EnsureTrainerCanPayFromLoan(trainer, total)) return CommandResult.Rejected("Trainer không đủ tiền mặt hoặc hạn mức vay.");
             if (trainer.Gold < total) return CommandResult.Rejected("Trainer không đủ Gold.");
             if (treasury.Balance > long.MaxValue - total) return CommandResult.Rejected("Kho bạc đã đạt giới hạn số dư.");
             bool purchased = stall != null
@@ -158,7 +162,7 @@ namespace Game.Domain
             try { sale = station.BuyFromTrainer("trainer:" + trainer.Id, id, units, request); }
             catch (Exception ex) when (ex is OverflowException || ex is InvalidOperationException) { return CommandResult.Rejected(ex.Message); }
             if (sale.StationUnits <= 0 || !trainer.Inventory.TryConsume(id, sale.StationUnits)) return CommandResult.Rejected("Không thể hoàn tất giao dịch.");
-            trainer.Gold = checked(trainer.Gold + sale.NetToSeller);
+            ReceiveTrainerIncome(trainer, sale.NetToSeller, "ProductSale");
             Raise(new ProductTradeSettled(now, trainer.Id, id.Value, sale.StationUnits, sale.Gross, sale.Tax, sale.NetToSeller));
             Raise(new TrainerProductChanged(now, trainer.Id, id.Value, -sale.StationUnits, trainer.Inventory.Count(id)));
             Raise(new SupplyStockChanged(now, "product:" + id.Value, station.Stock.Get(new InventoryItem(id))));

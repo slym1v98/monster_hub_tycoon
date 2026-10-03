@@ -19,7 +19,8 @@ namespace Game.Domain
     public sealed record TrainerView(
         int Id, Rarity Rarity, Personality Personality, TrainerState State, string StateReason, long Gold,
         double Stamina, double Satiety, double Hydration, double Stress,
-        int BackpackUnits, long ContractWage, long WageOwed, int StrikeDaysLeft,
+        int BackpackUnits, long ContractWage, long WageOwed, int StrikeDaysLeft, long HubLoanBalance, long ReverseLoanBalance,
+        int ReverseLoanPaydaysRemaining, bool ReverseLoanOverdue,
         System.Collections.Generic.IReadOnlyList<MonsterView> Monsters, string CurrentZoneId, int Rank, int Level,
         System.Collections.Generic.IReadOnlyDictionary<Game.Domain.Materials.ProductId, int> Products);
 
@@ -78,6 +79,20 @@ namespace Game.Domain
     public sealed record GearBuyback(int Minute, int TrainerId, string ItemId, long SalePrice, long BuybackPrice, bool Success) : IDomainEvent;
     public sealed record GearFodderPurchased(int Minute, int TrainerId, string ItemId, string SlotId, long Price, bool Success) : IDomainEvent;
     public sealed record ProductPurchased(int Minute, int TrainerId, string ProductId, int Units, long UnitPrice, long TotalPaid) : IDomainEvent;
+    public sealed record GeneBankFeeSettled(int Minute, int TrainerId, long Assessed, long Paid, long Unpaid, string ConfiscatedMonsterId) : IDomainEvent;
+    public sealed record TrainerLoanBalanceChanged(int Minute, int TrainerId, long OldBalance, long NewBalance, long Amount, string Reason) : IDomainEvent;
+    public sealed record TrainerLoanRepaid(int Minute, int TrainerId, long Amount, string IncomeSource) : IDomainEvent;
+    public sealed record TrainerLoanOverdueStrike(int Minute, int TrainerId, long Balance, long Limit, int ConsecutivePaydays) : IDomainEvent;
+    public sealed record TrainerLoanPolicyChanged(int Minute, double PreviousRate, double NewRate) : IDomainEvent;
+    public sealed record StockExchangeLevelChanged(int Minute, int OldLevel, int NewLevel) : IDomainEvent;
+    public sealed record StockCompanyIpo(int Minute, string CompanyId, double OpeningPrice, long TotalShares, long HubLockedShares, long FloatShares) : IDomainEvent;
+    public sealed record StockPriceChanged(int Minute, string CompanyId, double OldPrice, double NewPrice, double TrafficChange, double NetOrderFraction) : IDomainEvent;
+    public sealed record StockTradeSettled(int Minute, string CompanyId, int BuyerId, int SellerId, long Shares,
+        long Gross, long Fee, long RealizedProfit, long Tax, long BuyerTotal, long SellerNet, string TradeType) : IDomainEvent;
+    public sealed record StockDividendPaid(int Minute, string CompanyId, int TrainerId, long Shares, long Gross, bool Paid) : IDomainEvent;
+    public sealed record StockDailyRevenue(int Minute, string CompanyId, long Revenue, int DayNumber) : IDomainEvent;
+    public sealed record ReverseLoanBalanceChanged(int Minute, int LenderTrainerId, long OldBalance, long NewBalance, long Amount, string Reason) : IDomainEvent;
+    public sealed record ReverseLoanServiceOffset(int Minute, int TrainerId, BuildingKind Building, long ServiceValue, long BalanceRemaining) : IDomainEvent;
 }
 
 namespace Game.Domain

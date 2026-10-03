@@ -69,7 +69,7 @@ public static class MonsterScenarios
         Require(world.SetProductBuyRequest("gene_fragment", 1, cfg.MaterialPrice));
         Require(world.SellProductToStation(0, "gene_fragment", 1));
         Require(world.PurchaseProduct(0, "gene_fragment", 1));
-        Require(world.DepositMonster(0, "trainer_0_starter")); // Fee remains assessment-only at Payday.
+        Require(world.DepositMonster(0, "trainer_0_starter")); // Bank fee settles at Payday.
 
         var target = Monster.Create(new MonsterId("scenario_wild_capture"), species, Rarity.Epic,
             MonsterIvGrade.B, FixtureLevel, Seed + 2);
@@ -138,6 +138,10 @@ public static class MonsterScenarios
             .Concat(cfg.GeneticLabSettings.BalanceParameters).Concat(cfg.RarityUpgradeSettings.BalanceParameters)
             .Concat(cfg.EvolutionCatalogSettings.BalanceParameters).Concat(cfg.VeterinaryHospitalSettings.BalanceParameters)
             .Concat(cfg.GeneBankSettings.BalanceParameters).Concat(cfg.MonsterStorageSettings.BalanceParameters)
+            .Concat(cfg.TrainerLoanSettings.BalanceParameters)
+            .Concat(cfg.ReverseLoanSettings.BalanceParameters)
+            .Concat(cfg.StockExchangeSettings.BalanceParameters)
+            .Concat(cfg.GeneBankSettings.BalanceParameters)
             .Concat(cfg.MonsterItemSettings.BalanceParameters).Concat(CaptureConfig.Prototype.BalanceParameters)
             .Concat(cfg.ConsumablePrices.BalanceParameters)) yield return p;
     }
@@ -206,7 +210,10 @@ public static class MonsterScenarios
             long expectedGold = initialTrainerGold + expeditions.Sum(e => e.GoldGained) + events.OfType<DonationReceived>().Sum(e => e.Gold)
                 + events.OfType<PaydayResolved>().Sum(e => e.Outcome.TotalPaid) + events.OfType<MaterialTradeSettled>().Where(e => e.TrainerId >= 0).Sum(e => e.NetToSeller)
                 + events.OfType<ProductTradeSettled>().Sum(e => e.NetToSeller) - events.OfType<ServiceUsed>().Sum(e => e.Paid)
-                - events.OfType<MonsterAppraised>().Sum(e => e.PricePaid) - events.OfType<ProductPurchased>().Sum(e => e.TotalPaid);
+                - events.OfType<MonsterAppraised>().Sum(e => e.PricePaid) - events.OfType<ProductPurchased>().Sum(e => e.TotalPaid)
+                - events.OfType<GeneBankFeeSettled>().Sum(e => e.Paid)
+                + events.OfType<TrainerLoanBalanceChanged>().Where(e => e.Reason == "Disbursement").Sum(e => e.Amount)
+                - events.OfType<TrainerLoanRepaid>().Sum(e => e.Amount);
             long trainerDifference = world.Trainers.Sum(t => t.Gold) - expectedGold;
             long treasuryDifference = world.Treasury - initialTreasury - events.OfType<TreasuryChanged>().Sum(e => e.Delta);
             long supplyMovement = world.SupplyTransactions.Sum(tx => (tx.Payer == "hub:treasury" ? -tx.Gross : 0)

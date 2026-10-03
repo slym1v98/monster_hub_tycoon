@@ -20,6 +20,7 @@ namespace Game.Domain
         readonly EventQueue queue = new EventQueue();
         readonly TreasuryAccount treasury;
         readonly Payroll payroll = new Payroll();
+        readonly StockExchange stockExchange;
         readonly List<Trainer> trainers = new List<Trainer>();
         readonly VeterinaryHospital veterinaryHospital;
         readonly GeneBank geneBank;
@@ -55,6 +56,8 @@ namespace Game.Domain
         public HubWorld(SimConfig config, int seed, IExpeditionResolver expeditionResolver, IMaterialMarket materialMarket)
         {
             cfg = config ?? throw new ArgumentNullException(nameof(config));
+            currentTrainerLoanRate = (cfg.TrainerLoanSettings ?? TrainerLoanConfig.Prototype).InterestPerPayday;
+            stockExchange = new StockExchange(unchecked(seed ^ (int)0x51A7C0DE), cfg.StockExchangeSettings ?? StockExchangeConfig.Prototype);
             marketReferencePrice = cfg.MaterialPrice;
             marketTaxRate = cfg.TaxRate;
             rng = new SimRandom(seed);
@@ -84,17 +87,21 @@ namespace Game.Domain
                 buildings[(int)spec.Kind] = new ServiceBuilding(spec, cfg.StartBuildingLevel, cfg.UpkeepPerBuildingPerDay);
             for (int i = 0; i < buildings.Length; i++)
                 if (buildings[i] == null) throw new ArgumentException($"SimConfig.Buildings thiếu công trình {(BuildingKind)i}.");
+            foreach (ServiceBuilding building in buildings) stockExchange.RecordRevenue(building.Kind.ToString(), 0);
 
             var starterDefinition = MonsterCatalog.CreateDefault(cfg.StarterMonsterHp).Definitions[0];
             for (int i = 0; i < cfg.TrainerCount; i++)
             {
+                int initialRank = cfg.StartingTrainerRanks != null && i < cfg.StartingTrainerRanks.Length ? cfg.StartingTrainerRanks[i] : 1;
+                if (initialRank < 1 || initialRank > 5) throw new ArgumentOutOfRangeException(nameof(config), "Starting Trainer rank must be within 1..5.");
                 Personality personality = cfg.ForcedPersonality ?? (Personality)rng.NextInt(4);
                 // Luồng chỉ số riêng theo seed và ID, không làm lệch chuỗi ngẫu nhiên mô phỏng.
                 int attributeSeed = unchecked(seed ^ (i * (int)0x9E3779B9u) ^ (int)0xA341316Cu);
                 var trainer = new Trainer(new SimRandom(attributeSeed),
                     cfg.TrainerAttributeSettings ?? throw new ArgumentException("Thiếu TrainerAttributeSettings.", nameof(config)))
                 {
-                    Id = i, Rarity = Rarity.Common, Personality = personality,
+                    Id = i, Rarity = cfg.StartingTrainerRarities != null && i < cfg.StartingTrainerRarities.Length
+                        ? cfg.StartingTrainerRarities[i] : Rarity.Common, Personality = personality, Rank = initialRank,
                     Gold = cfg.StartTrainerGold,
                     BackpackCapacity = cfg.BackpackCapacity,
                     ContractWage = cfg.ContractWageFor(Rarity.Common, personality),
@@ -310,6 +317,7 @@ namespace Game.Domain
         void OnDawn()
         {
             Raise(new DayPhaseChanged(now, false));
+            ExecuteStockAiOrders();
             queue.Schedule(now + SimClock.MinutesPerDay, SimEventKind.Dawn);
         }
 
@@ -328,6 +336,7 @@ namespace Game.Domain
         /// <summary>00:00: trừ chi phí vận hành từng công trình, giảm số ngày đình công.</summary>
         void OnDayStart()
         {
+            CloseStockMarketDay();
             // Đình công bắt đầu đúng 23:59 ngày Payday nên lần nửa đêm ngay sau đó chưa tính là một ngày đã qua.
             bool firstStrikeMidnight = paydayIndex > 0 && now == SimClock.PaydayMinute(paydayIndex - 1) + 1;
             if (!firstStrikeMidnight)

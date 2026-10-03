@@ -4,11 +4,10 @@
 Implement the remaining Early Access finance behavior from `docs/designs/02_HUB_Economy_Infrastructure.md` §§2–3 and `docs/designs/13_Balance_Parameters.md` §§3, 12–13: Trainer debt/loans, HUB shares and market, and Gene Bank payday fees/confiscation. Keep debt balances and stock holdings in the simulation domain; every balance change emits an event and every runtime parameter is exported to `docs/balance/MonsterHUB_Balance.xlsx` with status and source.
 
 ## Current implementation audit
-- `FinanceModel` has dividend, IPO share-count, yield, and financial tax formulas only.
-- `StockMarket` is an isolated seeded random price generator; it is not wired to HubWorld, company shares, trades, dividends, fees, or AI behavior.
-- Trainer records `WageOwed` and `WageAdvance`; ordinary loan principal, interest, borrowing limits, repayment priority, and overdue strikes are absent.
-- `GeneBank` calculates fees and confiscates a Monster, and HubWorld raises an assessment event after Payday. The assessed fee is not actually debited from the Trainer or credited to the Treasury, nor does nonpayment automatically confiscate a Monster.
-- Reverse borrowing from Rank V Trainers is absent.
+- Implemented in this sub-project: ordinary Trainer credit, interest, income/wage offsets and overdue strikes; Rank V Trainer reverse loans; actual Gene Bank Payday transfers/confiscation; HubWorld IPO/trades/dividends/tax; and deterministic AI buying/selling behavior by rarity/personality.
+- `StockMarket` remains as a legacy standalone price utility. Runtime shares use `StockExchange` with share conservation checked by `HubWorld.ValidateInvariants`.
+- Source-defined outcomes are enforced; unspecified transaction fee, IPO eligibility threshold, exchange listing rate, AI purchase fractions and panic threshold remain Prototype values exported to the workbook.
+- Future event-driven traffic shocks can feed stock-price changes through the existing traffic formula; event probability/reward generation stays with sub-project 6.
 
 ## Required behavior
 1. **Trainer borrowing:** HUB lends to a Trainer on demand, up to the configured limit (default 2 monthly wages); principal can drive cash below zero only through an authorized loan. Interest accrues at default 10% per Payday, configurable from 5–40%. Wage and sale income repay debt before becoming spendable; 50% of eligible income is applied to the balance. If debt exceeds the limit for two consecutive Paydays, the Trainer strikes. Balances, income offsets, interest and strike counters are explicit and evented.
@@ -23,4 +22,4 @@ Use stable IDs (`finance.*`, `stock.*`, `loan.*`, `reverse_loan.*`, `gene_bank.*
 - Unit tests cover debt limits, rate bounds, interest, repayments, two-Payday overdue transition, reverse-loan eligibility/cap/term/service offset, stable seeded price path, IPO ownership, trade ledger, day closure, dividend and tax, Gene Bank actual fee transfer/confiscation ordering, and event ordering.
 - Integration tests reconcile every Gold movement between Trainer and Treasury/counterparty with no unexplained creation/loss.
 - Deterministic finance scenario runs for 360 days and reports debt, stock, dividend/tax, fee and custody ledgers plus all parameters.
-- Workbook runtime IDs, values, units, statuses, and sources exactly match the finance scenario export.
+- Workbook runtime IDs, values, units, statuses, and sources exactly match the finance scenario export (27 parameters, checked by a script).

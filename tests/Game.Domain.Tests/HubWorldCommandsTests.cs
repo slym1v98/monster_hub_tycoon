@@ -96,7 +96,8 @@ public class HubWorldCommandsTests
     [Fact]
     public void DirectorDonationWakesATrainerWaitingForMoney()
     {
-        var cfg = new SimConfig { StartTrainerGold = 0, TrainerCount = 1, ForcedPersonality = Personality.Timid, PatronChancePerHour = 0, MaterialPrice = 1 };
+        var cfg = new SimConfig { StartTrainerGold = 0, TrainerCount = 1, ForcedPersonality = Personality.Timid, PatronChancePerHour = 0, MaterialPrice = 1,
+            TrainerLoanSettings = new TrainerLoanConfig(monthlyWageLimitMultiplier: 0.000001) };
         var w = new HubWorld(cfg, 2);
         // Trainer tự về HUB khi thấp nhu cầu rồi kẹt vì hết tiền; chạy cho tới khi kẹt.
         TrainerView stuck = null;
@@ -115,7 +116,8 @@ public class HubWorldCommandsTests
     public void PartialDonationDoesNotRestartTheTwentyFourHourWait()
     {
         var cfg = new SimConfig { StartTrainerGold = 0, TrainerCount = 1, ForcedPersonality = Personality.Timid,
-                                  PatronChancePerHour = 0, MaterialPrice = 1 };
+                                  PatronChancePerHour = 0, MaterialPrice = 1,
+                                  TrainerLoanSettings = new TrainerLoanConfig(monthlyWageLimitMultiplier: 0.000001) };
         var w = new HubWorld(cfg, 2);
         foreach (BuildingKind kind in new[] { BuildingKind.Inn, BuildingKind.Restaurant, BuildingKind.Bar, BuildingKind.Hospital })
             w.SetPrice(kind, 1000);   // giá quá cao: quyên góp lẻ không bao giờ đủ

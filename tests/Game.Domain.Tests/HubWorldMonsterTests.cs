@@ -112,6 +112,34 @@ public sealed class HubWorldMonsterTests
     }
 
     [Fact]
+    public void GeneBankFeeIsUnpaidAndConfiscatesOneMonsterWhenPaydayTreasuryIsEmpty()
+    {
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTreasury = 0, StartTrainerGold = 0,
+            PatronChancePerHour = 0, UnlockedZoneIds = Array.Empty<string>() }, 21);
+        var events = new List<IDomainEvent>();
+        world.EventRaised += events.Add;
+        var starter = Assert.Single(world.Trainers[0].Monsters);
+        var id = new MonsterId(starter.Id);
+        Assert.True(world.StoreMonsterInGeneBank(0, id));
+        world.RunUntilPayday();
+        events.Clear();
+        long goldBeforePayday = world.Trainers[0].Gold;
+        long treasuryBeforePayday = world.Treasury;
+        var payday = world.ResolvePayday();
+
+        var settled = Assert.Single(events.OfType<GeneBankFeeSettled>());
+        Assert.Equal(600, settled.Assessed);
+        Assert.InRange(settled.Paid, 0, 599);
+        Assert.Equal(600 - settled.Paid, settled.Unpaid);
+        long repaid = events.OfType<TrainerLoanRepaid>().Sum(e => e.Amount);
+        Assert.Equal(goldBeforePayday + payday.TotalPaid - repaid - settled.Paid, world.Trainers[0].Gold);
+        Assert.Equal(treasuryBeforePayday - payday.TotalPaid + repaid + settled.Paid, world.Treasury);
+        Assert.Equal(starter.Id, settled.ConfiscatedMonsterId);
+        Assert.Equal(MonsterCustody.Hub, world.GeneBank.ConfiscatedMonsters.Single().Custody);
+        Assert.Contains(events, e => e is MonsterConfiscated confiscated && confiscated.MonsterId == starter.Id);
+    }
+
+    [Fact]
     public void NoVisionTrainerReturnsAtDuskAndNightVisionTrainerCanRemainOutside()
     {
         HubWorld Create(bool vision)
@@ -233,19 +261,23 @@ public sealed class HubWorldMonsterTests
     }
 
     [Fact]
-    public void PaydayAssessmentDoesNotCollectFeesOrConfiscateAndFollowsWages()
+    public void PaydayCollectsGeneBankFeeAfterWagesAndPreservesStoredMonsterWhenPaid()
     {
-        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTrainerGold = 0,
-            StartTreasury = 10000, UnlockedZoneIds = Array.Empty<string>() }, 1);
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTrainerGold = 1000000,
+            StartTreasury = 10000, PatronChancePerHour = 0, UnlockedZoneIds = Array.Empty<string>() }, 1);
         Assert.True(world.DepositMonster(0, "trainer_0_starter").Ok);
         world.RunUntilPayday();
         long gold = world.Trainers[0].Gold;
         var events = new List<IDomainEvent>(); world.EventRaised += events.Add;
         var outcome = world.ResolvePayday();
-        Assert.Equal(gold + outcome.TotalPaid, world.Trainers[0].Gold);
+        var fee = Assert.Single(events.OfType<GeneBankFeeSettled>());
+        long repaid = events.OfType<TrainerLoanRepaid>().Sum(e => e.Amount);
+        Assert.Equal(gold + outcome.TotalPaid - repaid - fee.Paid, world.Trainers[0].Gold);
+        Assert.Equal(600, fee.Paid);
+        Assert.Equal(0, fee.Unpaid);
         Assert.Single(world.GeneBank.StoredMonsters);
         Assert.DoesNotContain(events, e => e is MonsterConfiscated);
-        Assert.True(events.FindIndex(e => e is GeneBankFeeAssessed) > events.FindIndex(e => e is PaydayResolved));
+        Assert.True(events.FindIndex(e => e is GeneBankFeeSettled) > events.FindIndex(e => e is PaydayResolved));
         world.ValidateInvariants();
     }
 

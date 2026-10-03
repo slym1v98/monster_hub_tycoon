@@ -82,6 +82,14 @@ namespace Game.Domain
         public long WageOwed;
         /// <summary>Trainer đã ứng trước, trừ vào Payday kế tiếp.</summary>
         public long WageAdvance;
+        /// <summary>Principal and accrued interest owed to the HUB lender.</summary>
+        public long HubLoanBalance { get; internal set; }
+        /// <summary>Consecutive Payday count with loan balance above the credit limit.</summary>
+        public int HubLoanOverLimitPaydays { get; internal set; }
+        /// <summary>HUB balance owed to this Rank V Trainer through reverse borrowing.</summary>
+        public long ReverseLoanBalance { get; internal set; }
+        public int ReverseLoanPaydaysRemaining { get; internal set; }
+        public bool ReverseLoanOverdue { get; internal set; }
         public int StrikeDaysLeft;
 
         public TrainerState State;

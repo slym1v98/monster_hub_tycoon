@@ -56,6 +56,13 @@ namespace Game.Domain
         public MonsterItemConfig MonsterItemSettings = MonsterItemConfig.Prototype;
         public VeterinaryHospitalConfig VeterinaryHospitalSettings = VeterinaryHospitalConfig.Prototype;
         public GeneBankConfig GeneBankSettings = GeneBankConfig.Prototype;
+        public TrainerLoanConfig TrainerLoanSettings = TrainerLoanConfig.Prototype;
+        public ReverseLoanConfig ReverseLoanSettings = ReverseLoanConfig.Prototype;
+        public StockExchangeConfig StockExchangeSettings = StockExchangeConfig.Prototype;
+        /// <summary>Optional initial Trainer ranks for restored games and deterministic scenarios.</summary>
+        public int[] StartingTrainerRanks;
+        /// <summary>Optional restored/scenario rarity profile; normal recruitment rarity rules are owned by progression.</summary>
+        public Rarity[] StartingTrainerRarities;
         public MonsterStorageConfig MonsterStorageSettings = MonsterStorageConfig.Prototype;
         public GeneticLabConfig GeneticLabSettings = GeneticLabConfig.Prototype;
         public UpgradeConfig RarityUpgradeSettings = UpgradeConfig.Prototype;

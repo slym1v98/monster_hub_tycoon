@@ -76,6 +76,11 @@ namespace Game.Domain
             GearItem current = loadout.Get(offered.Slot.Id);
             double currentScore = current == null ? 0 : GearScore.Score(current, GearCat);
             double offeredScore = GearScore.Score(offered, GearCat);
+            if (!offered.IsBroken && offeredScore > currentScore && price > trainer.Gold * GearSettings.AcceptanceGoldFraction)
+            {
+                long minimumGold = checked((long)Math.Ceiling(price / GearSettings.AcceptanceGoldFraction));
+                EnsureTrainerCanPayFromLoan(trainer, minimumGold);
+            }
             bool accepted = GearMarket.WouldAccept(current, offered, trainer.Gold, price, GearSettings);
             Raise(new GearOffered(now, trainerId, offered.Slot.Id, current?.Id, offered.Id, price, currentScore, offeredScore, accepted));
             if (!accepted) return CommandResult.Rejected("Trainer từ chối chào hàng trang bị.");
@@ -104,6 +109,11 @@ namespace Game.Domain
                 .FirstOrDefault(x => x != null && x.Stars < 5);
             if (target == null || target.Slot.Id != offered.Slot.Id)
                 return CommandResult.Rejected("Trainer không cần phôi cho slot này.");
+            if (price > trainer.Gold * GearSettings.AcceptanceGoldFraction)
+            {
+                long minimumGold = checked((long)Math.Ceiling(price / GearSettings.AcceptanceGoldFraction));
+                EnsureTrainerCanPayFromLoan(trainer, minimumGold);
+            }
             if (price > trainer.Gold || (double)price > trainer.Gold * GearSettings.AcceptanceGoldFraction)
                 return CommandResult.Rejected("Giá phôi vượt ngân sách Trainer.");
             if (!trainer.GearInventory.TryAdd(offered)) return CommandResult.Rejected("Không thể thêm phôi vào kho trang bị.");
@@ -125,7 +135,7 @@ namespace Game.Domain
             if (item.EnhanceLevel >= GearForge.MaxEnhance) return CommandResult.Rejected("Đã đạt +20.");
             var model = new EnhancementModel();
             long attemptCost = checked((long)Math.Ceiling(model.AttemptCost(item.EnhanceLevel + 1)));
-            if (attemptCost > trainer.Gold) return CommandResult.Rejected("Không đủ Gold.");
+            if (!EnsureTrainerCanPayFromLoan(trainer, attemptCost)) return CommandResult.Rejected("Không đủ Gold hoặc hạn mức vay.");
             EnhanceResult result = GearForge.TryEnhance(item, model, GearSettings, rng, useProtectionCharm);
             trainer.Gold = checked(trainer.Gold - result.GoldSpent);
             trainer.Inventory.TryConsume(new ProductId("enhancement_stone"), result.StonesSpent);
@@ -154,7 +164,7 @@ namespace Game.Domain
             int oldStars = item.Stars;
             if (item.Stars >= 5) return CommandResult.Rejected("Đã đạt 5 Sao.");
             long cost = GearSettings.StarAttemptCost(item.Stars + 1);
-            if (trainer.Gold < cost) return CommandResult.Rejected("Không đủ Gold để Nâng Sao.");
+            if (!EnsureTrainerCanPayFromLoan(trainer, cost)) return CommandResult.Rejected("Không đủ Gold hoặc hạn mức vay để Nâng Sao.");
             StarUpResult result = GearForge.StarUp(item, junk, GearSettings, rng);
             if (result.ConsumedItem != null)
             {
@@ -178,8 +188,9 @@ namespace Game.Domain
             var water = new ProductId("distilled_water");
             long goldCost = GearSettings.RefineAttemptCost((int)item.Refine + 1);
             if (trainer.Inventory.Count(crystal) < GearSettings.RefineCrystalCost ||
-                trainer.Inventory.Count(water) < GearSettings.RefineWaterCost || trainer.Gold < goldCost)
+                trainer.Inventory.Count(water) < GearSettings.RefineWaterCost)
                 return CommandResult.Rejected("Không đủ Gold, Tinh Thể Boss Thế Giới hoặc Nước Cất.");
+            if (!EnsureTrainerCanPayFromLoan(trainer, goldCost)) return CommandResult.Rejected("Không đủ Gold hoặc hạn mức vay.");
             var oldGrade = item.Refine;
             RefineResult result = GearForge.Refine(item, trainer.Inventory.Count(crystal), trainer.Inventory.Count(water), trainer.Gold, GearSettings, rng);
             if (result.CrystalConsumed == 0) return CommandResult.Rejected("Không thể Tinh Luyện món này.");
@@ -199,6 +210,9 @@ namespace Game.Domain
             if (!ValidGearInput(trainerId, item)) return CommandResult.Rejected("Thiếu tham số trang bị hợp lệ.");
             var trainer = trainers[trainerId];
             int oldDurability = item.Durability;
+            long repairCost = checked((long)Math.Ceiling((item.MaxDurability - item.Durability) * GearSettings.RepairGoldPerDurability));
+            if (item.Slot.Group == GearGroup.Aura) repairCost = 0;
+            if (!EnsureTrainerCanPayFromLoan(trainer, repairCost)) return CommandResult.Rejected("Không đủ Gold hoặc hạn mức vay để sửa.");
             RepairResult result = GearForge.Repair(item, trainer.Gold, GearSettings);
             if (!result.Success) return CommandResult.Rejected("Không đủ Gold để sửa.");
             trainer.Gold = result.GoldRemaining;

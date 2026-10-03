@@ -145,7 +145,7 @@ namespace Game.Domain.Tests
         }
 
         [Fact]
-        public void UnaffordableEnhancementDoesNotMutateItem()
+        public void EnhancementAutomaticallyUsesAvailableTrainerCredit()
         {
             var cfg = new SimConfig { TrainerCount = 1, StartTrainerGold = 10, StartTreasury = 100000 };
             var world = new HubWorld(cfg, 5);
@@ -153,10 +153,9 @@ namespace Game.Domain.Tests
             Assert.True(world.OfferGear(0, item, 1).Ok);
             world.GrantProductForTest(0, "enhancement_stone", 1);
             var result = world.EnhanceGear(0, item, false);
-            Assert.False(result.Ok);
-            Assert.Equal(0, item.EnhanceLevel);
-            Assert.False(item.IsDestroyed);
-            Assert.Equal(1, world.Trainers[0].Products[new ProductId("enhancement_stone")]);
+            Assert.True(result.Ok, result.Reason);
+            Assert.True(world.Trainers[0].HubLoanBalance > 0);
+            Assert.DoesNotContain(world.Trainers[0].Products, p => p.Key == new ProductId("enhancement_stone"));
         }
 
         [Fact]
