@@ -19,6 +19,8 @@ namespace Game.Domain
         readonly SimRandom rng;
         readonly EventQueue queue = new EventQueue();
         readonly TreasuryAccount treasury;
+        readonly HubQuestTracker questTracker;
+        readonly HubQuestConfig questConfig;
         readonly Payroll payroll = new Payroll();
         readonly StockExchange stockExchange;
         readonly List<Trainer> trainers = new List<Trainer>();
@@ -44,6 +46,7 @@ namespace Game.Domain
         long marketReferencePrice;
         double marketTaxRate;
         int productionEventMinute = -1;
+        int stockAiOperationDepth;
         int townHallLevel;
         int dormitoryLevel;
         int dormitoryUpgradeFinishMinute = -1;
@@ -114,6 +117,11 @@ namespace Game.Domain
             }
             if (cfg.MonsterStorageSettings == null) throw new ArgumentException("Missing MonsterStorageSettings.", nameof(config));
             now = cfg.StartMinute;
+            questConfig = cfg.QuestSettings ?? HubQuestConfig.Prototype;
+            questTracker = new HubQuestTracker(questConfig);
+            questTracker.AdvanceTo(now);
+            questTracker.EventProduced += OnQuestTrackerEvent;
+            productPriceOverrides[new ProductId("protection_charm")] = questConfig.ProtectionCharmOfferPrice;
             nextInspectionMinute = now;
             nextWorldBossMinute = now;
             var progression = cfg.HubProgressionSettings ?? throw new ArgumentException("Missing HubProgressionSettings.", nameof(config));
@@ -198,6 +206,8 @@ namespace Game.Domain
             if (useSupplyChain) queue.Schedule(now + Math.Max(1, cfg.MerchantSettings.RouteCycleMinutes / 2), SimEventKind.MerchantRouteStep);
             foreach (Trainer t in trainers) queue.Schedule(now, SimEventKind.TrainerDecide, t.Id, t.Token);
             lastReputationScore = HubReputation.Calculate(buildings, trainers, Bankruptcies, cfg.HubReputationSettings).Score;
+            questTracker.SeedCampaignState(unlockedZoneIds.Contains("zone_" + questConfig.CampaignFoundationZoneNumber),
+                FacilityLevel("veterinary_hospital", true) >= questConfig.CampaignFoundationHospitalLevel, now);
         }
 
         /// <summary>Phút in-game hiện tại.</summary>
@@ -393,7 +403,11 @@ namespace Game.Domain
                     result.IsCapturedMonster, result.IsCapturedMonster && trainers[result.TrainerId].Roster.Storage.Any(x => x.Id == result.MonsterId)));
         }
 
-        void Raise(IDomainEvent e) => EventRaised?.Invoke(e);
+        void Raise(IDomainEvent e)
+        {
+            EventRaised?.Invoke(e);
+            questTracker.Observe(e);
+        }
 
         /// <summary>Cộng tiền vào Kho bạc và phát sự kiện (bỏ qua khi số tiền bằng 0).</summary>
         void AddTreasury(long amount, string reason)
@@ -425,6 +439,7 @@ namespace Game.Domain
         /// <summary>00:00: trừ chi phí vận hành từng công trình, giảm số ngày đình công.</summary>
         void OnDayStart()
         {
+            questTracker.AdvanceTo(now);
             ApplyMonsterFluDailyLoss();
             CloseStockMarketDay();
             // Đình công bắt đầu đúng 23:59 ngày Payday nên lần nửa đêm ngay sau đó chưa tính là một ngày đã qua.

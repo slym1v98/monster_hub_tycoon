@@ -7,6 +7,7 @@ namespace Game.Domain
 {
     public sealed partial class HubWorld
     {
+        public QuestView Quests => questTracker.View;
         public HubReputationView Reputation => HubReputation.Calculate(buildings, trainers, Bankruptcies, cfg.HubReputationSettings);
         public IReadOnlyList<HubEventView> ActiveEvents
         {

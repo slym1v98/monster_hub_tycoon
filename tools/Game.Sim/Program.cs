@@ -364,11 +364,12 @@ static class Program
         if (mode == "monster" || mode == "expedition") { MonsterScenarios.Run(mode, Console.Out); return; }
         if (mode == "finance") { FinanceScenarios.Run(Console.Out); return; }
         if (mode == "progression") { ProgressionEventScenarios.Run(Console.Out); return; }
+        if (mode == "quest-kpi") { QuestKpiScenarios.Run(Console.Out); return; }
         if (mode == "gear") { GearScenarios.Run(Console.Out); return; }
         if (mode == "core") { Core(); return; }
         if (mode == "market") { Market(); return; }
         if (mode == "ladders") { Ladders(); return; }
         if (mode == "stock") { Stock(); return; }
-        Console.WriteLine("Dùng: dotnet run --project tools/Game.Sim [core|market|ladders|stock|monster|expedition|gear|finance|progression]");
+        Console.WriteLine("Dùng: dotnet run --project tools/Game.Sim [core|market|ladders|stock|monster|expedition|gear|finance|progression|quest-kpi]");
     }
 }

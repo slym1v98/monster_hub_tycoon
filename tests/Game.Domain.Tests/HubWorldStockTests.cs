@@ -28,6 +28,8 @@ public sealed class HubWorldStockTests
         Assert.True(world.Trainers[0].Gold < gold);
         Assert.Contains(events, e => e is StockCompanyIpo);
         Assert.Contains(events, e => e is StockTradeSettled trade && trade.TradeType == "IpoPurchase");
+        Assert.Contains(events, e => e is DirectorStockOperationSettled operation && operation.Operation == "IpoPurchase");
+        Assert.Equal(1, world.Quests.DailyKpis.Single(x => x.Id == "kpi.daily.stock_pump").Progress);
 
         world.RunFor(15 * SimClock.MinutesPerDay);
         // This idle Trainer earns no post-IPO facility revenue, so the 15-day pool is correctly zero.
@@ -54,11 +56,15 @@ public sealed class HubWorldStockTests
             StartTrainerGold = 100000, StartTreasury = 1000000,
             UnlockedZoneIds = Array.Empty<string>(), ForcedPersonality = Personality.Warlike
         }.WithServiceFacilities().WithTierThreeFacilities("stock_exchange"), 20261004);
+        var events = new List<IDomainEvent>();
+        world.EventRaised += events.Add;
         world.RunFor(15 * SimClock.MinutesPerDay + 1);
         Assert.True(world.IpoBuildingStock(BuildingKind.Restaurant).Ok);
         var company = Assert.Single(world.StockCompanies);
         world.RunFor(SimClock.MinutesPerDay);
         Assert.Contains(world.StockHoldingsForTrainer(0), holding => holding.CompanyId == company.CompanyId && holding.Shares > 0);
+        Assert.DoesNotContain(events, e => e is DirectorStockOperationSettled);
+        Assert.Equal(0, world.Quests.DailyKpis.Single(x => x.Id == "kpi.daily.stock_pump").Progress);
         world.ValidateInvariants();
     }
 }

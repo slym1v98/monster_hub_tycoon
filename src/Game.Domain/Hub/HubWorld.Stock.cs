@@ -52,6 +52,7 @@ namespace Game.Domain
             AddTreasury(quote.BuyerTotal, "StockIpoPurchase");
             Raise(new StockTradeSettled(now, companyId, trainerId, StockExchange.HubLockedShareholderId,
                 shares, quote.Gross, quote.Fee, 0, 0, quote.BuyerTotal, 0, "IpoPurchase"));
+            if (stockAiOperationDepth == 0) Raise(new DirectorStockOperationSettled(now, "IpoPurchase"));
             return CommandResult.Success();
         }
 
@@ -79,6 +80,7 @@ namespace Game.Domain
             AddTreasury(treasuryCredit, "StockFeeAndTax");
             Raise(new StockTradeSettled(now, companyId, buyerTrainerId, sellerTrainerId, shares,
                 quote.Gross, quote.Fee, quote.RealizedProfit, quote.Tax, quote.BuyerTotal, quote.SellerNet, "TrainerTrade"));
+            if (stockAiOperationDepth == 0) Raise(new DirectorStockOperationSettled(now, "TrainerShareTransfer"));
             return CommandResult.Success();
         }
 
@@ -100,6 +102,7 @@ namespace Game.Domain
             AddTreasury(quote.BuyerTotal, "StockDirectorSale");
             Raise(new StockTradeSettled(now, companyId, buyerTrainerId, StockExchange.HubLockedShareholderId,
                 shares, quote.Gross, quote.Fee, 0, 0, quote.BuyerTotal, 0, "DirectorSale"));
+            if (stockAiOperationDepth == 0) Raise(new DirectorStockOperationSettled(now, "DirectorSale"));
             return CommandResult.Success();
         }
 
@@ -123,6 +126,7 @@ namespace Game.Domain
             AddTreasury(credits, "StockFeeAndTax");
             Raise(new StockTradeSettled(now, companyId, StockExchange.HubLockedShareholderId, sellerTrainerId,
                 shares, quote.Gross, quote.Fee, quote.RealizedProfit, quote.Tax, 0, quote.SellerNet, "DirectorPurchase"));
+            if (stockAiOperationDepth == 0) Raise(new DirectorStockOperationSettled(now, "DirectorPurchase"));
             return CommandResult.Success();
         }
 
@@ -149,6 +153,13 @@ namespace Game.Domain
 
         /// <summary>Daily seeded-market AI orders follow the rarity and personality tendencies in GDD 02 §3.</summary>
         void ExecuteStockAiOrders()
+        {
+            stockAiOperationDepth++;
+            try { ExecuteStockAiOrdersCore(); }
+            finally { stockAiOperationDepth--; }
+        }
+
+        void ExecuteStockAiOrdersCore()
         {
             if (!CanFacilityOperate("stock_exchange")) return;
             var listed = stockExchange.Companies.OrderByDescending(c => c.Revenue15Days)

@@ -111,6 +111,36 @@ namespace Game.Domain
             return CommandResult.Success();
         }
 
+        /// <summary>Fulfills Director-owned Protection Charm stock from a provider or unspent Quest rewards.</summary>
+        public CommandResult ProvisionProtectionCharms(int units)
+        {
+            if (!useSupplyChain || station == null) return CommandResult.Rejected("Supply chain không khả dụng.");
+            if (units <= 0 || units > questConfig.MaximumProtectionCharmFulfillment)
+                return CommandResult.Rejected("protection_charm.fulfillment_limit");
+            var item = new InventoryItem(new ProductId("protection_charm"));
+            var stock = station.Stock.Get(item);
+            if ((long)stock.Available + stock.Reserved + stock.InProduction + units > int.MaxValue)
+                return CommandResult.Rejected("protection_charm.stock_overflow");
+            station.Stock.Add(item, units);
+            questTracker.ConsumeProtectionCharmEntitlements(units);
+            Raise(new SupplyStockChanged(now, "product:protection_charm", station.Stock.Get(item)));
+            return CommandResult.Success();
+        }
+
+        /// <summary>Trainer AI's deterministic purchase decision when preparing a risky enhancement.</summary>
+        public CommandResult TrainerPrepareEnhancementProtection(int trainerId, Game.Domain.Gear.GearItem item)
+        {
+            if (trainerId < 0 || trainerId >= trainers.Count) return CommandResult.Rejected("trainer.unknown");
+            if (item == null || item.IsDestroyed || item.EnhanceLevel >= Game.Domain.Gear.GearForge.MaxEnhance)
+                return CommandResult.Rejected("gear.invalid");
+            var model = new EnhancementModel();
+            if (item.EnhanceLevel + 1 < model.BreakFrom) return CommandResult.Success();
+            var charm = new ProductId("protection_charm");
+            if (ProductPrice(charm) >= questConfig.ProtectionCharmExpectedAvoidedLoss) return CommandResult.Success();
+            int needed = Math.Max(0, GearSettings.EnhanceProtectionCharmCost - trainers[trainerId].Inventory.Count(charm));
+            return needed == 0 ? CommandResult.Success() : PurchaseProduct(trainerId, charm.Value, needed);
+        }
+
         long BaseProductPrice(ProductId id)
         {
             var definition = MaterialCatalog.Default.Products.FirstOrDefault(x => x.Id == id);

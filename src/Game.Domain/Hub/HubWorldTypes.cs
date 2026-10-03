@@ -108,6 +108,7 @@ namespace Game.Domain
     public sealed record StockPriceChanged(int Minute, string CompanyId, double OldPrice, double NewPrice, double TrafficChange, double NetOrderFraction) : IDomainEvent;
     public sealed record StockTradeSettled(int Minute, string CompanyId, int BuyerId, int SellerId, long Shares,
         long Gross, long Fee, long RealizedProfit, long Tax, long BuyerTotal, long SellerNet, string TradeType) : IDomainEvent;
+    public sealed record DirectorStockOperationSettled(int Minute, string Operation) : IDomainEvent;
     public sealed record StockDividendPaid(int Minute, string CompanyId, int TrainerId, long Shares, long Gross, bool Paid) : IDomainEvent;
     public sealed record StockDailyRevenue(int Minute, string CompanyId, long Revenue, int DayNumber) : IDomainEvent;
     public sealed record ReverseLoanBalanceChanged(int Minute, int LenderTrainerId, long OldBalance, long NewBalance, long Amount, string Reason) : IDomainEvent;
