@@ -56,7 +56,7 @@ namespace Game.Domain.Monsters
         /// <summary>Chụp dữ liệu hiện tại; thay đổi thực thể sau đó không tác động ảnh chụp.</summary>
         public static MonsterSnapshot FromMonster(Monster monster, IEnumerable<string> skillIds,
             IReadOnlyDictionary<string, int> cooldowns = null, int totalMinutes = 0,
-            GearLoadout loadout = null, GearCatalog catalog = null)
+            GearLoadout loadout = null, GearCatalog catalog = null, GearStats trainerAura = null)
         {
             if (monster == null) throw new ArgumentNullException(nameof(monster));
             var stats = monster.CombatStatsAt(totalMinutes);
@@ -64,15 +64,22 @@ namespace Game.Domain.Monsters
             {
                 catalog = catalog ?? GearCatalog.Default;
                 var gear = GearLoadout.TotalStats(loadout.Equipped, catalog).Add(GearLoadout.SetBonus(loadout.Equipped, catalog));
-                stats = new MonsterStats(
-                    checked((long)Math.Min(long.MaxValue, Math.Ceiling(stats.Hp + gear.Hp))),
-                    stats.Attack + gear.Attack,
-                    stats.Defense + gear.Defense,
-                    stats.AttackSpeed + gear.AttackSpeed,
-                    Math.Min(1, stats.CriticalChance + gear.CriticalChance));
+                stats = AddGear(stats, gear, trainerAura);
             }
+            else if (trainerAura != null) stats = AddGear(stats, GearStats.Zero, trainerAura);
             return new MonsterSnapshot(monster.Id, monster.Element, stats, monster.CurrentHp,
                 skillIds, cooldowns, monster.Level, monster.Rarity, monster.RebellionReductionAt(totalMinutes), monster.Role);
+        }
+
+        static MonsterStats AddGear(MonsterStats stats, GearStats gear, GearStats aura)
+        {
+            aura = aura ?? GearStats.Zero;
+            double attack = (stats.Attack + gear.Attack) * aura.AuraAttackMultiplier + (aura.Attack);
+            double defense = (stats.Defense + gear.Defense) * aura.AuraDefenseMultiplier + (aura.Defense);
+            double hp = stats.Hp + gear.Hp + aura.Hp;
+            return new MonsterStats(checked((long)Math.Min(long.MaxValue, Math.Ceiling(hp))), attack, defense,
+                stats.AttackSpeed + gear.AttackSpeed + aura.AttackSpeed,
+                Math.Min(1, stats.CriticalChance + gear.CriticalChance + aura.CriticalChance + aura.AuraCritChance));
         }
     }
 }

@@ -68,8 +68,10 @@ namespace Game.Domain
         {
             if (trainer == null) throw new ArgumentNullException(nameof(trainer));
             var a = trainer.Attributes;
+            catalog = catalog ?? GearCatalog.Default;
+            var aura = GearEffects.AuraStats(trainer, catalog);
             var team = trainer.Roster.Members.Select(m => MonsterSnapshot.FromMonster(m,
-                m.CombatSkillIds, null, totalMinutes, m.Gear, catalog));
+                m.CombatSkillIds, null, totalMinutes, m.Gear, catalog, aura));
             return new TrainerSnapshot(trainer.Id, trainer.Rank, trainer.Level, trainer.Rarity, trainer.Personality,
                 new TrainerAttributes(a.Dexterity, a.Luck, a.Endurance, a.Leadership), trainer.HasNightVision, team, trainer.Roster.Active?.Id,
                 new SimTime(totalMinutes), trainer.Gold, trainer.Inventory.Products, trainer.LeadershipItemBonus,

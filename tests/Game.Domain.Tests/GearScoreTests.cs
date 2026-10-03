@@ -40,7 +40,8 @@ namespace Game.Domain.Tests
             var baseStats = Cat.GetBaseStats("monster.weapon", 2);
             double starMult = 1 + Cat.GetStarPct(3);
             double refineMult = Cat.GetRefineMultiplier((int)GearRefineGrade.Rare);
-            double expectedAttack = (baseStats.Attack * (1 + 4 * Cat.Config.EnhancePerLevelFraction)) * starMult * refineMult;
+            double perLevel = Cat.GetBaseStats("monster.weapon", 1).Attack;
+            double expectedAttack = (baseStats.Attack + perLevel * 4 * Cat.Config.EnhancePerLevelFraction) * starMult * refineMult;
             Assert.Equal(expectedAttack, stats.Attack, 9);
         }
 

@@ -7,9 +7,9 @@ Quy ước: tên code tiếng Anh, comment tiếng Việt có dấu, Domain thu�
 - 30 slot: Trainer Tiện ích 6 (Nón, Áo, Balo, Giày, Bình nước, Găng; Xưởng Dệt), Trainer Hào quang 6 (Còi, Huy hiệu, Áo choàng, Kính, Trang Sức, Vệ tinh; Tiệm Kim Hoàn), mỗi Monster 6 (Vũ khí, Giáp, Vòng cổ, Lục lạc, Guốc, Lõi Nguyên tố; Lò Rèn).
 - Mỗi slot chứa tối đa 1 món; món ở đúng loại slot.
 - Bán: Giám đốc chào hàng từng Trainer; Trainer chấp nhận theo Gear Score, giá, tiền còn lại. Đồ cũ biến mất trừ khi HUB yêu cầu mua lại.
-- Cường hóa +1..+20, flat stat, đốt Gold + Đá Cường hóa; từ +11 thất bại có xác suất vỡ; Bùa Bảo Hộ chống vỡ.
-- Nâng Sao 1..5, % chỉ số ẩn, hiến tế đồ "rác" cùng loại.
-- Tinh Luyện Normal→Mythic, cần Tinh Thể Boss Thế Giới + Nước Cất (giá x10).
+- Cường hóa +1..+20, flat stat, đốt Gold + Đá Cường hóa; từ +11 thất bại có xác suất vỡ; Bùa Bảo Hộ chống vỡ. Success/cost/break dùng bảng hiện có ở GDD 13 §4.
+- Nâng Sao 1..5, % chỉ số ẩn, hiến tế đồ "rác" cùng loại. Dùng xác suất 90/75/55/35% cho 4 lần nâng có thể đạt từ 1→5 sao; khi target star ≥3 thất bại rớt 1 sao. GDD 13 ghi thêm bước 5 / 20%, mâu thuẫn với trần 5 sao ở GDD 05; giữ giá trị này trong workbook dưới dạng TBD cần quyết định, không dùng để tạo sao thứ 6.
+- Tinh Luyện Normal→Mythic qua 4 bước, mỗi bước cần Tinh Thể Boss Thế Giới + Nước Cất (giá x10); dùng success 70/50/30/15% và cost 1,000×2.5^step từ GDD 13 §4. Thất bại mất chi phí và nguyên liệu nhưng không đổi grade.
 - Độ bền: Monster hao theo tung chiêu/bị đánh (sửa Lò Rèn); Tiện ích Trainer hao theo thời gian farm + thời tiết (sửa Xưởng Dệt); Hào quang không hao. Độ bền 0 = vô hiệu hóa (không tính chỉ số).
 - Set Bonus 2/4/6 món.
 - Kính từ một Tier trở lên có Nhìn đêm (thay cờ `Trainer.HasNightVision`).
@@ -21,8 +21,8 @@ Quy ước: tên code tiếng Anh, comment tiếng Việt có dấu, Domain thu�
 - Hao mòn: Monster mỗi action/hit trong `BattleResult`; Trainer theo phút farm (+ hệ số thời tiết = 1 đến khi SP6).
 - Sửa chữa: phí Gold tỉ lệ độ bền mất, trả cho HUB (Treasury) qua event; ngưỡng Trainer tự sửa khi về HUB.
 
-## 3. Tham số (Prototype/TBD)
-GDD không cho số: chỉ số gốc, hệ số mỗi cấp, %/sao, hệ số Refine, tỉ lệ Nâng Sao, hao mòn, phí sửa, ngưỡng Gear Score chấp nhận → `Prototype` hoặc `TBD`. `EnhancementModel` (+1..+20 success/cost/break) được kế thừa nhưng tách khỏi `System.Random`: dùng `SimRandom`. Tất cả vào workbook, sheet `Gear & Durability`, Id tiền tố `gear.`.
+## 3. Tham số (Locked/Prototype/TBD)
+Giá trị luật có nguồn GDD 05/13 (slot count, cấp tối đa, success/cost/break curves, recipe upgrade, wear group) là `Locked`; giá trị runtime được nêu trong GDD 13 là `Prototype`; số chưa định nghĩa trong GDD là `TBD` hoặc `Prototype` khi cần chạy mô phỏng. Mỗi tham số runtime phải có dòng `gear.*`, unit, status, source trong workbook `Gear & Durability`. `EnhancementModel` dùng `SimRandom`, không dùng `System.Random`. Các giá trị scale như unit stats, Gear Score weighting, set bonus, durability, wear và repair đều là Prototype cho tới khi cân bằng.
 
 ## 4. Ngoài phạm vi
 Thời tiết thực (SP6), Gem/Bùa mua bằng Gem (SP monetization), Set được "ép AI vứt bỏ" đã gồm trong chấp nhận theo Gear Score.

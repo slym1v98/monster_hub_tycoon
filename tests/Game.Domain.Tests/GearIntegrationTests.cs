@@ -73,5 +73,68 @@ namespace Game.Domain.Tests
             var stats = GearLoadout.TotalStats(loadout.Equipped, Cat);
             Assert.True(stats.NightVision);
         }
+
+        [Fact]
+        public void TrainerAuraStatsBoostMonsterSnapshot()
+        {
+            var def = MonsterCatalog.Default.Definitions.First();
+            var monster = Monster.Create(new MonsterId("m4"), def, Rarity.Common, MonsterIvGrade.C, 10, seed: 4);
+            var auraLoadout = new GearLoadout();
+            auraLoadout.Equip(new GearItem("whistle", Cat.GetSlot("aura.whistle"), 3, 100));
+            var aura = GearLoadout.TotalStats(auraLoadout.Equipped, Cat);
+            var snap = MonsterSnapshot.FromMonster(monster, monster.CombatSkillIds, trainerAura: aura);
+            Assert.True(snap.Stats.Attack > monster.Stats.Attack);
+        }
+
+        [Fact]
+        public void EnhancementAddsFlatTierOneIncrementBeforeStarAndRefineMultipliers()
+        {
+            var baseItem = new GearItem("base", Cat.GetSlot("monster.weapon"), 1, 100);
+            var enhanced = new GearItem("enh", Cat.GetSlot("monster.weapon"), 1, 100, null, enhanceLevel: 2);
+            double unit = Cat.GetBaseStats("monster.weapon", 1).Attack;
+            Assert.Equal(unit * Cat.Config.EnhancePerLevelFraction * 2,
+                GearScore.EffectiveStats(enhanced, Cat).Attack - GearScore.EffectiveStats(baseItem, Cat).Attack, 9);
+        }
+
+        [Fact]
+        public void WorkbookParametersHaveUniqueIdsAndSupportedStatuses()
+        {
+            var values = Cat.BalanceParameters.Concat(new EnhancementModel().BalanceParameters).ToArray();
+            Assert.Equal(values.Length, values.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count());
+            Assert.All(values, x => Assert.Contains(x.Status, new[] { "Locked", "Prototype", "TBD" }));
+            Assert.Contains(values, x => x.Id == "gear.star_probability_step_5_unreachable" && x.Status == "TBD");
+        }
+
+        [Fact]
+        public void AreaSkillWearsMonsterGearOncePerCastAndOncePerHit()
+        {
+            var trainer = new Trainer(new SimRandom(41));
+            var definition = MonsterCatalog.Default.Definitions.First();
+            var actor = Monster.Create(new MonsterId("gear_actor"), definition, Rarity.Common, MonsterIvGrade.C, 10, seed: 41);
+            trainer.Roster.Add(actor);
+            var weapon = new GearItem("aoe_weapon", Cat.GetSlot("monster.weapon"), 1, 100);
+            actor.Gear.Equip(weapon);
+
+            MonsterSnapshot Enemy(string id) => new MonsterSnapshot(new MonsterId(id), MonsterElement.Dark,
+                new MonsterStats(1000, 1, 100, 0.1, 0), 1000, new[] { "strike" });
+            var actorSnapshot = MonsterSnapshot.FromMonster(actor, new[] { "strike" }, loadout: actor.Gear, catalog: Cat);
+            var config = new CombatConfig(new SkillCatalog(new[]
+            {
+                new SkillDefinition("strike", actor.Element, 0.01, 0, SkillTargetRule.AllEnemies)
+            }), criticalMultiplier: 2, maxRounds: 1);
+            var battle = BattleResolver.Resolve(new BattleInput(new[] { actorSnapshot }, new[] { Enemy("enemy_a"), Enemy("enemy_b") }), config, new SimRandom(51));
+            int hitsToActor = battle.Actions.Count(x => x.TargetId == actor.Id && x.Damage > 0);
+            var world = new HubWorld(new SimConfig { TrainerCount = 1 }, 51);
+            var result = new ExpeditionResult(new[] { battle }, new ExpeditionLoot(Array.Empty<MaterialQuantity>(), Array.Empty<MaterialQuantity>(), 0, 0));
+            var wearEvents = new System.Collections.Generic.List<GearDurabilityChanged>();
+            world.EventRaised += e => { if (e is GearDurabilityChanged value) wearEvents.Add(value); };
+
+            world.ApplyGearWear(trainer, result, minutes: 0);
+
+            Assert.Equal(100 - Cat.Config.MonsterWearPerAction - hitsToActor * Cat.Config.MonsterWearPerHit, weapon.Durability);
+            Assert.Equal(1 + hitsToActor, wearEvents.Count);
+            Assert.Contains(wearEvents, x => x.Cause == "MonsterAction");
+            Assert.Equal(hitsToActor, wearEvents.Count(x => x.Cause == "MonsterHit"));
+        }
     }
 }

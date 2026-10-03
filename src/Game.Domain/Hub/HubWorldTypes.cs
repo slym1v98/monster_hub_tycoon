@@ -71,10 +71,12 @@ namespace Game.Domain
     public sealed record TrainerProductChanged(int Minute, int TrainerId, string ProductId, int Quantity, int NewCount) : IDomainEvent;
     public sealed record GearOffered(int Minute, int TrainerId, string SlotId, string CurrentItemId, string OfferedItemId, long Price, double CurrentScore, double OfferedScore, bool Accepted) : IDomainEvent;
     public sealed record GearEnhanced(int Minute, int TrainerId, string ItemId, int OldLevel, int NewLevel, bool Success, bool Broke, bool CharmUsed, long GoldSpent, int StoneSpent) : IDomainEvent;
-    public sealed record GearStarUp(int Minute, int TrainerId, string ItemId, int OldStars, int NewStars, string JunkId, bool Success) : IDomainEvent;
-    public sealed record GearRefined(int Minute, int TrainerId, string ItemId, Game.Domain.Gear.GearRefineGrade OldGrade, Game.Domain.Gear.GearRefineGrade NewGrade, int CrystalConsumed, int WaterConsumed, bool Success) : IDomainEvent;
+    public sealed record GearStarUp(int Minute, int TrainerId, string ItemId, int OldStars, int NewStars, string JunkId, bool Success, int StarsLost, long GoldSpent) : IDomainEvent;
+    public sealed record GearRefined(int Minute, int TrainerId, string ItemId, Game.Domain.Gear.GearRefineGrade OldGrade, Game.Domain.Gear.GearRefineGrade NewGrade, int CrystalConsumed, int WaterConsumed, bool Success, long GoldSpent) : IDomainEvent;
     public sealed record GearRepaired(int Minute, int TrainerId, string ItemId, int OldDurability, int NewDurability, long GoldSpent, bool Success) : IDomainEvent;
+    public sealed record GearDurabilityChanged(int Minute, int TrainerId, string ItemId, int OldDurability, int NewDurability, string Cause) : IDomainEvent;
     public sealed record GearBuyback(int Minute, int TrainerId, string ItemId, long SalePrice, long BuybackPrice, bool Success) : IDomainEvent;
+    public sealed record GearFodderPurchased(int Minute, int TrainerId, string ItemId, string SlotId, long Price, bool Success) : IDomainEvent;
     public sealed record ProductPurchased(int Minute, int TrainerId, string ProductId, int Units, long UnitPrice, long TotalPaid) : IDomainEvent;
 }
 
@@ -84,7 +86,7 @@ namespace Game.Domain
     public sealed record GearView(string OwnerId, string ItemId, string SlotId, int Tier, int EnhanceLevel, int Stars,
         Game.Domain.Gear.GearRefineGrade Refine, int Durability, int MaxDurability, string SetId, bool IsBroken)
     {
-        internal static GearView From(Game.Domain.Gear.GearItem item) => new GearView("", item.Id, item.Slot.Id, item.Tier,
+        internal static GearView From(Game.Domain.Gear.GearItem item, string ownerId) => new GearView(ownerId, item.Id, item.Slot.Id, item.Tier,
             item.EnhanceLevel, item.Stars, item.Refine, item.Durability, item.MaxDurability, item.SetId, item.IsBroken);
     }
 }

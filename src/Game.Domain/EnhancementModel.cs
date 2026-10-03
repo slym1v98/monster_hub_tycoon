@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Game.Domain
 {
@@ -10,6 +12,26 @@ namespace Game.Domain
         public double ScrollPrice = 0;      // Gold-tuong-duong cua 1 Bua Bao Ho (HUB ban cho AI)
         public int BreakFrom = 11;          // tu cap nay that bai co the vo do
         public double BreakChance = 0.30;   // xac suat vo khi that bai (khong co Bua)
+
+        /// <summary>Tham số Cường hóa có mã ổn định, trạng thái và nguồn để đối chiếu workbook.</summary>
+        public IReadOnlyList<BalanceParameter> BalanceParameters
+        {
+            get
+            {
+                const string source = "docs/designs/13 §4: enhancement success/cost/break starting values; GDD 05 locks +1..+20 and break threshold +11.";
+                var values = new List<BalanceParameter>
+                {
+                    new BalanceParameter("gear.enhance_cost_base", CostBase, "Gold", "Prototype", source),
+                    new BalanceParameter("gear.enhance_cost_growth", CostGrowth, "multiplier/level", "Prototype", source),
+                    new BalanceParameter("gear.enhance_scroll_price", ScrollPrice, "Gold-equivalent", "TBD", "GDD requires Protection Charm at break-risk levels but gives no price; this field is legacy expected-cost analysis only."),
+                    new BalanceParameter("gear.enhance_break_from", BreakFrom, "target level", "Locked", source),
+                    new BalanceParameter("gear.enhance_break_chance", BreakChance, "probability on failure", "Prototype", source)
+                };
+                for (int level = 1; level <= 20; level++)
+                    values.Add(new BalanceParameter("gear.enhance_success_" + level, Success(level), "probability", "Prototype", source));
+                return Array.AsReadOnly(values.ToArray());
+            }
+        }
 
         /// <summary>Ty le thanh cong de len tu level-1 len level (1..20).</summary>
         public double Success(int level)

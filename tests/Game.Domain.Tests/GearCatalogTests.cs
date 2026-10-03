@@ -30,6 +30,16 @@ namespace Game.Domain.Tests
         }
 
         [Fact]
+        public void TrainerAndThreeMonsterLoadoutsExposeExactlyThirtySlots()
+        {
+            var catalog = GearCatalog.Default;
+            int trainerSlots = catalog.Slots.Count(x => x.Group == GearGroup.TrainerUtility || x.Group == GearGroup.Aura);
+            int monsterSlots = catalog.Slots.Count(x => x.Group == GearGroup.MonsterCombat);
+            Assert.Equal(30, trainerSlots + Game.Domain.Monsters.MonsterRoster.Capacity * monsterSlots);
+            Assert.Contains(catalog.BalanceParameters, x => x.Id == "gear.total_equipment_slot_count" && x.Value == 30 && x.Status == "Locked");
+        }
+
+        [Fact]
         public void BaseStatsExistForEverySlotAndTier()
         {
             var catalog = GearCatalog.Default;

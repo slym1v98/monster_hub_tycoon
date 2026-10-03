@@ -23,8 +23,10 @@ Files: `GearScore.cs`, `GearStats.cs`; test `GearScoreTests.cs`.
 
 ## Task 3: Cường hóa / Nâng Sao / Tinh Luyện / Sửa chữa
 Files: `GearForge.cs`; test `GearForgeTests.cs`.
-- Enhance +1..+20 dùng `EnhancementModel` (bỏ `System.Random`), thất bại từ +11 có tỉ lệ vỡ; Bùa Bảo Hộ chặn vỡ; tiêu Gold + Đá.
-- Nâng Sao cần hiến tế đồ rác cùng slot/loại; Tinh Luyện cần Tinh Thể Boss + Nước Cất.
+- Enhance +1..+20 dùng `EnhancementModel` + `SimRandom`, curves từ GDD 13, thất bại từ +11 có tỉ lệ vỡ; Bùa Bảo Hộ chặn vỡ; tiêu Gold + Đá.
+- Nâng Sao dùng GDD 13 success 90/75/55/35% cho các bước tới trần 5 sao; fail từ target sao 3 rớt 1 sao; đồ hiến tế cùng slot bị tiêu thụ khi thử. GDD 13 ghi thêm bước 5/20%, được giữ trong workbook như xung đột tài liệu và không mở khóa sao 6.
+- Tinh Luyện qua bốn grade dùng success 70/50/30/15%, mỗi lần tiêu Gold theo 1000×2.5^step, Tinh Thể Boss và Nước Cất; thất bại giữ nguyên grade.
+- Gold/vật phẩm chỉ trừ sau khi xác thực affordability; lệnh/event ghi rõ thành công/thất bại/chi phí.
 - Repair: phí Gold theo độ bền thiếu, trả Treasury.
 - Test: tất định seed, vỡ +11, Bùa, sao/refine tiêu hao đúng, repair.
 
@@ -48,4 +50,5 @@ Files: sửa `HubWorld.*`, `HubWorldTypes.cs`, `events`; test `HubWorldGearTests
 - Scenario `gear`: mua/bán, cường hóa, hao mòn, sửa, đối soát Gold/vật phẩm = 0.
 
 ## Task 8: Workbook + docs
-- Sheet `Gear & Durability`; cập nhật `05`, `12`, `13`, `99`, `README`, plan checkboxes.
+- Sheet `Gear & Durability`; thêm đủ tunables runtime, Locked/Prototype/TBD, unit, nguồn và kiểm tra mọi `gear.*` từ config/scenario đều được ghi.
+- Cập nhật `05`, `12`, `13`, `99`, `README`, task report/checklist. So khớp hành vi với GDD, build/test, chạy `Game.Sim gear`, review conservation/determinism; commit sub-project.

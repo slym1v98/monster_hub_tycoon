@@ -17,7 +17,10 @@ namespace Game.Domain.Gear
     {
         public bool Success { get; }
         public GearItem ConsumedItem { get; }
-        internal StarUpResult(bool success, GearItem consumed) { Success = success; ConsumedItem = consumed; }
+        public int StarsLost { get; }
+        public long GoldSpent { get; }
+        internal StarUpResult(bool success, GearItem consumed, int starsLost = 0, long goldSpent = 0)
+        { Success = success; ConsumedItem = consumed; StarsLost = starsLost; GoldSpent = goldSpent; }
     }
 
     public sealed class RefineResult
@@ -25,7 +28,9 @@ namespace Game.Domain.Gear
         public bool Success { get; }
         public int CrystalConsumed { get; }
         public int WaterConsumed { get; }
-        internal RefineResult(bool success, int crystal, int water) { Success = success; CrystalConsumed = crystal; WaterConsumed = water; }
+        public long GoldSpent { get; }
+        internal RefineResult(bool success, int crystal, int water, long goldSpent = 0)
+        { Success = success; CrystalConsumed = crystal; WaterConsumed = water; GoldSpent = goldSpent; }
     }
 
     public sealed class RepairResult
@@ -56,37 +61,49 @@ namespace Game.Domain.Gear
             int target = item.EnhanceLevel + 1;
             long gold = checked((long)Math.Ceiling(model.AttemptCost(target)));
             bool success = random.NextDouble() < model.Success(target);
-            if (success) { item.EnhanceLevel = target; return new EnhanceResult(true, false, false, gold, 1); }
-            if (target < model.BreakFrom) return new EnhanceResult(false, false, false, gold, 1);
+            if (success) { item.EnhanceLevel = target; return new EnhanceResult(true, false, false, gold, config.EnhanceStoneCost); }
+            if (target < model.BreakFrom) return new EnhanceResult(false, false, false, gold, config.EnhanceStoneCost);
             bool wouldBreak = random.NextDouble() < model.BreakChance;
-            if (!wouldBreak) return new EnhanceResult(false, false, false, gold, 1);
-            if (protectionCharm) return new EnhanceResult(false, false, true, gold, 1);
+            if (!wouldBreak) return new EnhanceResult(false, false, false, gold, config.EnhanceStoneCost);
+            if (protectionCharm) return new EnhanceResult(false, false, true, gold, config.EnhanceStoneCost);
             item.IsDestroyed = true;
-            return new EnhanceResult(false, true, false, gold, 1);
+            return new EnhanceResult(false, true, false, gold, config.EnhanceStoneCost);
         }
 
-        /// <summary>Nâng Sao bằng cách hiến tế đồ rác cùng slot (không phải chính nó). Luôn thành công khi hợp lệ.</summary>
-        public static StarUpResult StarUp(GearItem item, GearItem junk)
+        /// <summary>Nâng Sao theo xác suất GDD 13; vật hiến tế và Gold bị tiêu thụ mỗi lần thử hợp lệ.</summary>
+        public static StarUpResult StarUp(GearItem item, GearItem junk, GearConfig config, SimRandom random)
         {
             if (item == null) throw new ArgumentNullException(nameof(item));
             if (junk == null) throw new ArgumentNullException(nameof(junk));
+            if (config == null) throw new ArgumentNullException(nameof(config));
+            if (random == null) throw new ArgumentNullException(nameof(random));
             if (ReferenceEquals(item, junk) || item.IsDestroyed || junk.IsDestroyed || item.Stars >= 5 ||
                 item.Slot.Id != junk.Slot.Id) return new StarUpResult(false, null);
-            item.Stars++;
-            junk.IsDestroyed = true;
-            return new StarUpResult(true, junk);
+            int target = item.Stars + 1;
+            long cost = config.StarAttemptCost(target);
+            if (random.NextDouble() < config.StarSuccess(target))
+            {
+                item.Stars = target; junk.IsDestroyed = true;
+                return new StarUpResult(true, junk, 0, cost);
+            }
+            int lost = target >= config.StarFailureDropFromTarget ? Math.Min(1, item.Stars - 1) : 0;
+            item.Stars -= lost; junk.IsDestroyed = true;
+            return new StarUpResult(false, junk, lost, cost);
         }
 
         /// <summary>Tinh Luyện một bậc; cần đủ Tinh Thể Boss Thế Giới và Nước Cất, nếu không thì không đổi gì.</summary>
-        public static RefineResult Refine(GearItem item, int worldBossCrystal, int distilledWater, GearConfig config)
+        public static RefineResult Refine(GearItem item, int worldBossCrystal, int distilledWater, long gold, GearConfig config, SimRandom random)
         {
             if (item == null) throw new ArgumentNullException(nameof(item));
             if (config == null) throw new ArgumentNullException(nameof(config));
+            if (random == null) throw new ArgumentNullException(nameof(random));
             if (item.IsDestroyed || item.Refine == GearRefineGrade.Mythic ||
-                worldBossCrystal < config.RefineCrystalCost || distilledWater < config.RefineWaterCost)
+                worldBossCrystal < config.RefineCrystalCost || distilledWater < config.RefineWaterCost || gold < config.RefineAttemptCost((int)item.Refine + 1))
                 return new RefineResult(false, 0, 0);
-            item.Refine = (GearRefineGrade)((int)item.Refine + 1);
-            return new RefineResult(true, config.RefineCrystalCost, config.RefineWaterCost);
+            long cost = config.RefineAttemptCost((int)item.Refine + 1);
+            bool success = random.NextDouble() < config.RefineSuccess((int)item.Refine + 1);
+            if (success) item.Refine = (GearRefineGrade)((int)item.Refine + 1);
+            return new RefineResult(success, config.RefineCrystalCost, config.RefineWaterCost, cost);
         }
 
         /// <summary>Sửa về độ bền tối đa; phí theo điểm thiếu. Hào quang không hao nên phí 0.</summary>

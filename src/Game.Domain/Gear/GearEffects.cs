@@ -1,10 +1,18 @@
 using System;
+using System.Linq;
 
 namespace Game.Domain.Gear
 {
     /// <summary>Hiệu ứng trang bị Trainer lên hành vi mô phỏng: sức chứa balo, nhìn đêm và giảm tụt nhu cầu.</summary>
     public static class GearEffects
     {
+        public static GearStats AuraStats(Game.Domain.Trainer t, GearCatalog catalog)
+        {
+            if (t == null || catalog == null || t.Gear.Equipped.Count == 0) return GearStats.Zero;
+            var aura = t.Gear.Equipped.Where(x => x.Slot.Group == GearGroup.Aura).ToArray();
+            return GearLoadout.TotalStats(aura, catalog).Add(GearLoadout.SetBonus(aura, catalog));
+        }
+
         public static GearStats TrainerStats(Game.Domain.Trainer t, GearCatalog catalog)
         {
             if (t == null || catalog == null || t.Gear.Equipped.Count == 0) return GearStats.Zero;

@@ -63,6 +63,8 @@ namespace Game.Domain
         public long Gold;
         public MonsterRoster Roster { get; }
         public TrainerInventory Inventory { get; } = new TrainerInventory();
+        /// <summary>Trang bị dự trữ dùng làm phôi Nâng Sao.</summary>
+        public GearInventory GearInventory { get; } = new GearInventory();
         /// <summary>Trang bị Tiện ích + Hào quang của Trainer (12 slot); chỉ số cộng dồn.</summary>
         public GearLoadout Gear { get; } = new GearLoadout();
         public int BackpackUnits;

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Game.Domain.Gear;
 using Game.Domain;
 using Xunit;
@@ -87,9 +88,24 @@ namespace Game.Domain.Tests
         {
             var item = Weapon(2, stars: 2);
             var junk = new GearItem("junk", Cat.GetSlot("monster.weapon"), 1, 100);
-            var r = GearForge.StarUp(item, junk);
+            int seed = Enumerable.Range(0, 1000).First(x => new SimRandom(x).NextDouble() < Cfg.StarSuccess(3));
+            var r = GearForge.StarUp(item, junk, Cfg, new SimRandom(seed));
             Assert.True(r.Success);
             Assert.Equal(3, item.Stars);
+            Assert.True(junk.IsDestroyed);
+            Assert.Equal(640, r.GoldSpent);
+        }
+
+        [Fact]
+        public void StarUpFailureAtThirdStarDropsOneStarAndConsumesSacrifice()
+        {
+            int seed = Enumerable.Range(0, 1000).First(x => new SimRandom(x).NextDouble() >= Cfg.StarSuccess(3));
+            var item = Weapon(2, stars: 2);
+            var junk = new GearItem("junk3", Cat.GetSlot("monster.weapon"), 1, 100);
+            var result = GearForge.StarUp(item, junk, Cfg, new SimRandom(seed));
+            Assert.False(result.Success);
+            Assert.Equal(1, item.Stars);
+            Assert.Equal(1, result.StarsLost);
             Assert.True(junk.IsDestroyed);
         }
 
@@ -98,32 +114,47 @@ namespace Game.Domain.Tests
         {
             var maxed = Weapon(2, stars: 5);
             var junk = new GearItem("junk", Cat.GetSlot("monster.weapon"), 1, 100);
-            Assert.False(GearForge.StarUp(maxed, junk).Success);
+            Assert.False(GearForge.StarUp(maxed, junk, Cfg, new SimRandom(1)).Success);
             Assert.False(junk.IsDestroyed);
             var armorJunk = new GearItem("a", Cat.GetSlot("monster.armor"), 1, 100);
-            Assert.False(GearForge.StarUp(Weapon(2), armorJunk).Success);
+            Assert.False(GearForge.StarUp(Weapon(2), armorJunk, Cfg, new SimRandom(1)).Success);
             var self = Weapon(2);
-            Assert.False(GearForge.StarUp(self, self).Success);
+            Assert.False(GearForge.StarUp(self, self, Cfg, new SimRandom(1)).Success);
         }
 
         [Fact]
         public void RefineRequiresMaterialsAndIncreasesGrade()
         {
             var item = Weapon(3, refine: GearRefineGrade.Normal);
-            var r = GearForge.Refine(item, worldBossCrystal: Cfg.RefineCrystalCost, distilledWater: Cfg.RefineWaterCost, Cfg);
+            int seed = Enumerable.Range(0, 1000).First(x => new SimRandom(x).NextDouble() < Cfg.RefineSuccess(1));
+            var r = GearForge.Refine(item, worldBossCrystal: Cfg.RefineCrystalCost, distilledWater: Cfg.RefineWaterCost, gold: 10000, Cfg, new SimRandom(seed));
             Assert.True(r.Success);
             Assert.Equal(GearRefineGrade.Refined, item.Refine);
             Assert.Equal(Cfg.RefineCrystalCost, r.CrystalConsumed);
             Assert.Equal(Cfg.RefineWaterCost, r.WaterConsumed);
+            Assert.Equal(1000, r.GoldSpent);
         }
 
         [Fact]
         public void RefineFailsWithoutMaterials()
         {
             var item = Weapon(3, refine: GearRefineGrade.Refined);
-            var r = GearForge.Refine(item, worldBossCrystal: 0, distilledWater: Cfg.RefineWaterCost, Cfg);
+            var r = GearForge.Refine(item, worldBossCrystal: 0, distilledWater: Cfg.RefineWaterCost, gold: 10000, Cfg, new SimRandom(1));
             Assert.False(r.Success);
             Assert.Equal(GearRefineGrade.Refined, item.Refine);
+        }
+
+        [Fact]
+        public void RefineFailureConsumesCostAndMaterialsButKeepsGrade()
+        {
+            int seed = Enumerable.Range(0, 1000).First(x => new SimRandom(x).NextDouble() >= Cfg.RefineSuccess(1));
+            var item = Weapon(3);
+            var result = GearForge.Refine(item, Cfg.RefineCrystalCost, Cfg.RefineWaterCost, 10000, Cfg, new SimRandom(seed));
+            Assert.False(result.Success);
+            Assert.Equal(GearRefineGrade.Normal, item.Refine);
+            Assert.Equal(Cfg.RefineCrystalCost, result.CrystalConsumed);
+            Assert.Equal(Cfg.RefineWaterCost, result.WaterConsumed);
+            Assert.Equal(1000, result.GoldSpent);
         }
 
         [Fact]

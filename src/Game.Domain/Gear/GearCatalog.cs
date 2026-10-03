@@ -26,6 +26,7 @@ namespace Game.Domain.Gear
         public IReadOnlyList<GearSlot> Slots { get; }
         public IReadOnlyList<GearSetDefinition> Sets { get; }
         public GearConfig Config { get; }
+        public IReadOnlyList<BalanceParameter> BalanceParameters { get; }
 
         public static GearCatalog Default { get; } = new GearCatalog(GearConfig.Prototype);
 
@@ -69,9 +70,47 @@ namespace Game.Domain.Gear
                     new GearSetBonus(6, new GearStats(AuraCritChance: 0.05))
                 })
             });
+            var parameters = new List<BalanceParameter>(config.BalanceParameters)
+            {
+                P("trainer_utility_slot_count", 6, "slots/Trainer", "Locked", "docs/designs/05 §1"),
+                P("trainer_aura_slot_count", 6, "slots/Trainer", "Locked", "docs/designs/05 §1"),
+                P("monster_slot_count", 6, "slots/Monster", "Locked", "docs/designs/05 §1"),
+                P("team_monster_count", Game.Domain.Monsters.MonsterRoster.Capacity, "Monsters/Trainer", "Locked", "docs/designs/04 §1"),
+                P("total_equipment_slot_count", 30, "slots/Trainer + 3 Monsters", "Locked", "docs/designs/05 §1"),
+                P("tier_count", 5, "tiers", "Locked", "docs/designs/12"),
+                P("enhance_max_level", GearForge.MaxEnhance, "level", "Locked", "docs/designs/05 §2"),
+                P("star_max", 5, "stars", "Locked", "docs/designs/05 §2"),
+                P("refine_grade_count", 5, "grades", "Locked", "docs/designs/05 §2"),
+                P("set_threshold_2", 2, "equipped items", "Locked", "docs/designs/05 §3"),
+                P("set_threshold_4", 4, "equipped items", "Locked", "docs/designs/05 §3"),
+                P("set_threshold_6", 6, "equipped items", "Locked", "docs/designs/05 §3"),
+                P("aura_wear_per_action", 0, "points/action", "Locked", "docs/designs/05 §3"),
+                P("broken_item_active", 0, "active multiplier", "Locked", "docs/designs/05 §3")
+            };
+            foreach (var set in Sets)
+                foreach (var bonus in set.Bonuses)
+                {
+                    string prefix = set.Id + "_" + bonus.RequiredCount + "_";
+                    AddBonus(parameters, prefix, bonus.Bonus);
+                }
+            BalanceParameters = Array.AsReadOnly(parameters.ToArray());
         }
 
         static GearSlot S(string id, GearGroup g, int i, string owner, GearStatKind k) => new GearSlot(id, g, i, owner, k);
+
+        static void AddBonus(List<BalanceParameter> list, string prefix, GearStats stats)
+        {
+            if (stats.Attack != 0) list.Add(P(prefix + "attack", stats.Attack, "Attack", "Prototype", "src/Game.Domain/Gear/GearCatalog.cs"));
+            if (stats.Defense != 0) list.Add(P(prefix + "defense", stats.Defense, "Defense", "Prototype", "src/Game.Domain/Gear/GearCatalog.cs"));
+            if (stats.Hp != 0) list.Add(P(prefix + "hp", stats.Hp, "HP", "Prototype", "src/Game.Domain/Gear/GearCatalog.cs"));
+            if (stats.CriticalChance != 0) list.Add(P(prefix + "critical_chance", stats.CriticalChance, "probability", "Prototype", "src/Game.Domain/Gear/GearCatalog.cs"));
+            if (stats.AuraAttackMultiplier != 1) list.Add(P(prefix + "attack_multiplier", stats.AuraAttackMultiplier, "multiplier", "Prototype", "src/Game.Domain/Gear/GearCatalog.cs"));
+            if (stats.AuraDefenseMultiplier != 1) list.Add(P(prefix + "defense_multiplier", stats.AuraDefenseMultiplier, "multiplier", "Prototype", "src/Game.Domain/Gear/GearCatalog.cs"));
+            if (stats.AuraCritChance != 0) list.Add(P(prefix + "crit", stats.AuraCritChance, "probability", "Prototype", "src/Game.Domain/Gear/GearCatalog.cs"));
+        }
+
+        static BalanceParameter P(string id, double value, string unit, string status, string source)
+            => new BalanceParameter("gear." + id, value, unit, status, source);
 
         public GearSlot GetSlot(string id)
             => Slots.FirstOrDefault(x => x.Id == id) ?? throw new ArgumentException("Unknown slot: " + id, nameof(id));
