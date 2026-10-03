@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace Game.Domain
 {
     /// <summary>Các quyết định thuần (không có trạng thái): có nên về HUB không, và nên dùng dịch vụ nào.</summary>
@@ -8,12 +10,15 @@ namespace Game.Domain
         /// Thứ tự: đình công, ban đêm không kính, Monster cạn HP, Balo đầy, rồi các thanh dưới ngưỡng tính cách.
         /// </summary>
         public static ReturnReason ShouldReturn(Trainer t, bool isNight)
+            => ShouldReturn(t, isNight, t.BackpackCapacity, t.HasNightVision);
+
+        public static ReturnReason ShouldReturn(Trainer t, bool isNight, int effectiveBackpackCapacity, bool hasNightVision)
         {
             PersonalityProfile p = PersonalityProfile.Of(t.Personality);
             if (t.IsOnStrike) return ReturnReason.Strike;
-            if (isNight && !t.HasNightVision) return ReturnReason.Night;
-            if (t.TeamHp <= 0) return ReturnReason.TeamDown;
-            if (t.BackpackUnits >= t.BackpackCapacity) return ReturnReason.BackpackFull;
+            if (isNight && !hasNightVision) return ReturnReason.Night;
+            if (!t.Roster.Members.Any(x => x.CurrentHp > 0)) return ReturnReason.TeamDown;
+            if (t.BackpackUnits >= effectiveBackpackCapacity) return ReturnReason.BackpackFull;
             if (t.Needs.Stamina < p.StaminaThreshold) return ReturnReason.Tired;
             if (t.Needs.Satiety < p.SatietyThreshold) return ReturnReason.Hungry;
             if (t.Needs.Hydration < p.StaminaThreshold) return ReturnReason.Thirsty;
@@ -26,11 +31,14 @@ namespace Game.Domain
         /// 4) Thanh thể chất thấp nhất dưới mức "đủ": công trình của thanh đó. 5) Stress cao: Bar.
         /// </summary>
         public static BuildingKind? PickService(Trainer t, SimConfig cfg, bool isNight, bool allowHospital)
+            => PickService(t, cfg, isNight, allowHospital, t.HasNightVision);
+
+        public static BuildingKind? PickService(Trainer t, SimConfig cfg, bool isNight, bool allowHospital, bool hasNightVision)
         {
             Needs n = t.Needs;
             if (n.Stress >= 100) return BuildingKind.Bar;
-            if (allowHospital && t.TeamHp < t.TeamHpMax) return BuildingKind.Hospital;
-            if (isNight && !t.HasNightVision && n.Stamina < cfg.NightSleepBelow) return BuildingKind.Inn;
+            if (allowHospital && t.Roster.TotalMissingHp > 0) return BuildingKind.Hospital;
+            if (isNight && !hasNightVision && n.Stamina < cfg.NightSleepBelow) return BuildingKind.Inn;
             if (n.LowestPhysical < cfg.SufficientNeed)
             {
                 bool staminaIsLowest = n.Stamina <= n.Satiety && n.Stamina <= n.Hydration;

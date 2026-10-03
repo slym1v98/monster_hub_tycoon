@@ -52,7 +52,21 @@ public class TrainerBrainTests
         var t = TestTrainers.Make();
         t.BackpackUnits = 30;
         Assert.Equal(ReturnReason.BackpackFull, TrainerBrain.ShouldReturn(t, false));
-        t.BackpackUnits = 0; t.TeamHp = 0;
+        t.BackpackUnits = 0; t.Roster.Active.SetCurrentHp(0);
+        Assert.Equal(ReturnReason.TeamDown, TrainerBrain.ShouldReturn(t, false));
+    }
+
+    [Fact]
+    public void ActiveFaintDoesNotReturnWhileAReserveCanStillFight()
+    {
+        var t = TestTrainers.Make();
+        var definition = Game.Domain.Monsters.MonsterCatalog.Default.Definitions[0];
+        var reserve = Game.Domain.Monsters.Monster.Create(new Game.Domain.Monsters.MonsterId("reserve"), definition,
+            Rarity.Common, Game.Domain.Monsters.MonsterIvGrade.B, 1, 7);
+        t.Roster.Add(reserve);
+        t.Roster.Active.SetCurrentHp(0);
+        Assert.Equal(ReturnReason.None, TrainerBrain.ShouldReturn(t, false));
+        reserve.SetCurrentHp(0);
         Assert.Equal(ReturnReason.TeamDown, TrainerBrain.ShouldReturn(t, false));
     }
 
@@ -78,7 +92,7 @@ public class TrainerBrainTests
     public void FullStressGoesToBarBeforeAnythingElse()
     {
         var t = TestTrainers.Make();
-        t.Needs.Stress = 100; t.TeamHp = 10; t.Needs.Satiety = 5;
+        t.Needs.Stress = 100; t.Roster.Active.SetCurrentHp(10); t.Needs.Satiety = 5;
         Assert.Equal(BuildingKind.Bar, TrainerBrain.PickService(t, Cfg, false, true));
     }
 
@@ -86,7 +100,7 @@ public class TrainerBrainTests
     public void MissingHpGoesToHospital()
     {
         var t = TestTrainers.Make();
-        t.TeamHp = 299; t.Needs.Satiety = 10;
+        t.Roster.Active.SetCurrentHp(299); t.Needs.Satiety = 10;
         Assert.Equal(BuildingKind.Hospital, TrainerBrain.PickService(t, Cfg, false, true));
     }
 
@@ -128,11 +142,11 @@ public class TrainerBrainTests
     public void StrikerWithMissingHpSkipsTheHospital()
     {
         var t = TestTrainers.Make();
-        t.TeamHp = 100; t.Needs.Satiety = 40;
+        t.Roster.Active.SetCurrentHp(100); t.Needs.Satiety = 40;
         Assert.Equal(BuildingKind.Hospital, TrainerBrain.PickService(t, Cfg, false, true));
         Assert.Equal(BuildingKind.Restaurant, TrainerBrain.PickService(t, Cfg, false, false));   // rơi xuống luật kế tiếp
 
-        t = TestTrainers.Make(); t.TeamHp = 100;
+        t = TestTrainers.Make(); t.Roster.Active.SetCurrentHp(100);
         Assert.Null(TrainerBrain.PickService(t, Cfg, false, false));
     }
 }

@@ -18,7 +18,21 @@ namespace Game.Domain
         PaydayDue,          // 23:59 ngày 30: RunFor dừng tại đây
         MerchantRouteStep,
         ProductionComplete,
-        MarketRetry
+        DormitoryUpgradeComplete,
+        TownHallUpgradeComplete,
+        FacilityUpgradeComplete,
+        FacilityRepairComplete,
+        BlackFridayStart,
+        RandomCrisisCheck,
+        LaborInspectionResolve,
+        MonsterFluEnd,
+        BreedingSeasonEnd,
+        BreedingSeasonDemand,
+        MonsterSiegeResolve,
+        WorldBossResolve,
+        BuildingRepairComplete,
+        MarketRetry,
+        MonsterRecoveryDone
     }
 
     /// <summary>Một sự kiện đã hẹn giờ. <see cref="Token"/> dùng để bỏ qua sự kiện cũ khi Trainer bị ngắt giữa chừng.</summary>

@@ -1,6 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Game.Domain.Combat;
 using Game.Domain.Production;
 using Game.Domain.Supply;
+using Game.Domain.Monsters;
+using Game.Domain.Materials;
 
 namespace Game.Domain
 {
@@ -35,9 +40,44 @@ namespace Game.Domain
         public bool StartWithNightVision = false;
         public long StartTreasury = 20000;
         public long StartTrainerGold = 200;
-        public int StartBuildingLevel = 5;
+        public int StartBuildingLevel = 1;
+        /// <summary>Optional deterministic fixture overrides. By default only GDD facilities marked rebuilt start at level one.</summary>
+        public IDictionary<string, int> StartingFacilityLevels = new Dictionary<string, int>(StringComparer.Ordinal);
         /// <summary>Phút bắt đầu: 06:00 sáng ngày đầu tiên.</summary>
         public int StartMinute = SimClock.DawnMinute;
+
+        // --- Chỉ số và tiến trình Prototype của Monster/Trainer ---
+        public MonsterStatConfig MonsterStatSettings = MonsterStatConfig.Prototype;
+        public TrainerAttributeConfig TrainerAttributeSettings = TrainerAttributeConfig.Prototype;
+        public TrainerProgressionConfig TrainerProgressionSettings = TrainerProgressionConfig.Prototype;
+        public HubProgressionConfig HubProgressionSettings = HubProgressionConfig.Prototype;
+        public HubReputationConfig HubReputationSettings = HubReputationConfig.Prototype;
+        public HubEventConfig EventSettings = HubEventConfig.Prototype;
+        public ZoneCatalog ZoneCatalogSettings = ZoneCatalog.Default;
+        public ZoneSelectionConfig ZoneSelectionSettings = ZoneSelectionConfig.Prototype;
+        public LootConfig LootSettings = LootConfig.Prototype;
+        public ExpeditionConfig ExpeditionSettings = ExpeditionConfig.Prototype;
+        public ConsumablePriceConfig ConsumablePrices = ConsumablePriceConfig.Prototype;
+        public ConsumablePolicyConfig ConsumablePolicySettings = ConsumablePolicyConfig.Prototype;
+        public MonsterItemConfig MonsterItemSettings = MonsterItemConfig.Prototype;
+        public VeterinaryHospitalConfig VeterinaryHospitalSettings = VeterinaryHospitalConfig.Prototype;
+        public GeneBankConfig GeneBankSettings = GeneBankConfig.Prototype;
+        public TrainerLoanConfig TrainerLoanSettings = TrainerLoanConfig.Prototype;
+        public ReverseLoanConfig ReverseLoanSettings = ReverseLoanConfig.Prototype;
+        public StockExchangeConfig StockExchangeSettings = StockExchangeConfig.Prototype;
+        public HubQuestConfig QuestSettings = HubQuestConfig.Prototype;
+        /// <summary>Optional initial Trainer ranks for restored games and deterministic scenarios.</summary>
+        public int[] StartingTrainerRanks;
+        /// <summary>Optional restored/scenario rarity profile; normal recruitment rarity rules are owned by progression.</summary>
+        public Rarity[] StartingTrainerRarities;
+        public MonsterStorageConfig MonsterStorageSettings = MonsterStorageConfig.Prototype;
+        public GeneticLabConfig GeneticLabSettings = GeneticLabConfig.Prototype;
+        public UpgradeConfig RarityUpgradeSettings = UpgradeConfig.Prototype;
+        public EvolutionCatalog EvolutionCatalogSettings = EvolutionCatalog.Empty;
+        /// <summary>Progression unlock is owned by Sub-project 6; default campaign begins in Zone 1.</summary>
+        public string[] UnlockedZoneIds = { "zone_1" };
+        public int StartTownHallLevel = 1;
+        public int StartDormitoryLevel = 1;
 
         // --- Nhu cầu (mỗi giờ) ---
         public double FieldStaminaPerHour = 6, FieldSatietyPerHour = 5, FieldHydrationPerHour = 6, FieldStressPerHour = 0.5;
@@ -53,18 +93,19 @@ namespace Game.Domain
         /// <summary>Stress cộng thêm = hệ số x (giá/giá hợp lý - 1) x độ nhạy giá.</summary>
         public double PriceStressFactor = 10;
 
-        // --- Farm và chợ (tạm, sub-project 2 và 3 thay thế) ---
+        // --- Expedition timing, backpack and market ---
         public int FarmChunkMinutes = 30;
         public int ZoneTravelMinutes = 30;
-        public int FarmMaterialsPerChunk = 3;
-        public long FarmGoldPerChunk = 2;
-        public long FarmHpLostPerChunk = 3;
         public int BackpackCapacity = 30;
-        public long TeamHpMax = 300;
+        public long StarterMonsterHp = 300;
         public long MaterialPrice = 10;
         public double TaxRate = 0.20;
         public MerchantConfig MerchantSettings = MerchantConfig.Prototype;
         public ProductionConfig ProductionSettings = new ProductionConfig();
+        /// <summary>Optional seeded HUB construction inventory for campaign saves and deterministic fixtures.</summary>
+        public IDictionary<ProductId, int> StartingConstructionStock;
+        /// <summary>Optional seeded station product inventory for deterministic campaign fixtures.</summary>
+        public IDictionary<ProductId, int> StartingProductStock;
 
         // --- Dịch vụ ---
         public double ServiceCogs = 0.25;
@@ -97,6 +138,107 @@ namespace Game.Domain
             double wage = BaseWage * Math.Pow(RarityGrowth, (int)rarity);
             if (personality == Personality.Capitalist) wage *= CapitalistWageMultiplier;
             return (long)Math.Round(wage);
+        }
+    }
+
+    /// <summary>Local storage capacity is a prototype policy independent of Gene Bank beds.</summary>
+    public sealed class MonsterStorageConfig
+    {
+        public static MonsterStorageConfig Prototype { get; } = new MonsterStorageConfig();
+        public int Capacity { get; }
+        public IReadOnlyList<BalanceParameter> BalanceParameters { get; }
+        public MonsterStorageConfig(int capacity = 500)
+        {
+            if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+            Capacity = capacity;
+            BalanceParameters = Array.AsReadOnly(new[] { new BalanceParameter("monster.local_storage_capacity", capacity,
+                "Monsters", "Prototype", "Task 15 integration: local storage cap is unspecified; prototype safety limit.") });
+        }
+    }
+
+    /// <summary>Hệ số chỉ số Prototype; IV theo GDD cố định và không thuộc cấu hình này.</summary>
+    public sealed class MonsterStatConfig
+    {
+        public const string BalanceStatus = "Prototype";
+        public IReadOnlyList<double> RarityMultipliers { get; }
+        public double GrowthFactor { get; }
+        public static MonsterStatConfig Prototype { get; } = new MonsterStatConfig(new[] { 1.0, 1.2, 1.4, 1.6, 1.8 });
+
+        public MonsterStatConfig(IEnumerable<double> rarityMultipliers, double growthFactor = 1)
+        {
+            var factors = (rarityMultipliers ?? throw new ArgumentNullException(nameof(rarityMultipliers))).ToArray();
+            if (factors.Length != 5) throw new ArgumentException("Cần hệ số cho đủ năm bậc Rarity.", nameof(rarityMultipliers));
+            foreach (var factor in factors)
+                if (double.IsNaN(factor) || double.IsInfinity(factor) || factor <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(rarityMultipliers));
+            if (double.IsNaN(growthFactor) || double.IsInfinity(growthFactor) || growthFactor < 0)
+                throw new ArgumentOutOfRangeException(nameof(growthFactor));
+            RarityMultipliers = Array.AsReadOnly(factors);
+            GrowthFactor = growthFactor;
+        }
+    }
+
+    /// <summary>Khoảng sinh chỉ số Prototype liên tục; hai đầu bằng nhau cho giá trị cố định.</summary>
+    public sealed class TrainerAttributeRange
+    {
+        public double Minimum { get; }
+        public double Maximum { get; }
+        public TrainerAttributeRange(double minimum, double maximum)
+        {
+            if (double.IsNaN(minimum) || double.IsInfinity(minimum) || minimum < 0)
+                throw new ArgumentOutOfRangeException(nameof(minimum));
+            if (double.IsNaN(maximum) || double.IsInfinity(maximum) || maximum < minimum)
+                throw new ArgumentOutOfRangeException(nameof(maximum));
+            Minimum = minimum;
+            Maximum = maximum;
+        }
+    }
+
+    /// <summary>Bốn khoảng chỉ số Prototype; chưa nối hiệu ứng nhu cầu hoặc chiến đấu ở tác vụ này.</summary>
+    public sealed class TrainerAttributeConfig
+    {
+        public const string BalanceStatus = "Prototype";
+        public TrainerAttributeRange Dexterity { get; }
+        public TrainerAttributeRange Luck { get; }
+        public TrainerAttributeRange Endurance { get; }
+        public TrainerAttributeRange Leadership { get; }
+        public static TrainerAttributeConfig Prototype { get; } = new TrainerAttributeConfig(
+            new TrainerAttributeRange(8, 12), new TrainerAttributeRange(8, 12),
+            new TrainerAttributeRange(90, 110), new TrainerAttributeRange(18, 22));
+
+        public TrainerAttributeConfig(TrainerAttributeRange dexterity, TrainerAttributeRange luck,
+            TrainerAttributeRange endurance, TrainerAttributeRange leadership)
+        {
+            Dexterity = dexterity ?? throw new ArgumentNullException(nameof(dexterity));
+            Luck = luck ?? throw new ArgumentNullException(nameof(luck));
+            Endurance = endurance ?? throw new ArgumentNullException(nameof(endurance));
+            Leadership = leadership ?? throw new ArgumentNullException(nameof(leadership));
+        }
+    }
+
+    /// <summary>Đường cong PrototypeLinear: EXP lên cấp = cơ sở + bước × (cấp hiện tại − 1).</summary>
+    public sealed class TrainerProgressionConfig
+    {
+        public const string BalanceStatus = "Prototype";
+        public string CurveId => "PrototypeLinear";
+        public long BaseExperience { get; }
+        public long ExperiencePerLevel { get; }
+        public static TrainerProgressionConfig Prototype { get; } = new TrainerProgressionConfig();
+
+        public TrainerProgressionConfig(long baseExperience = 100, long experiencePerLevel = 25)
+        {
+            if (baseExperience <= 0) throw new ArgumentOutOfRangeException(nameof(baseExperience));
+            if (experiencePerLevel < 0) throw new ArgumentOutOfRangeException(nameof(experiencePerLevel));
+            // Chỉ cần ngưỡng tới Lv100; phép kiểm tra chặn cấu hình gây tràn số trước khi đổi trạng thái.
+            _ = checked(baseExperience + 98 * experiencePerLevel);
+            BaseExperience = baseExperience;
+            ExperiencePerLevel = experiencePerLevel;
+        }
+
+        public long ExperienceToNextLevel(int level)
+        {
+            if (level < 1 || level >= 100) throw new ArgumentOutOfRangeException(nameof(level));
+            return checked(BaseExperience + (level - 1) * ExperiencePerLevel);
         }
     }
 }

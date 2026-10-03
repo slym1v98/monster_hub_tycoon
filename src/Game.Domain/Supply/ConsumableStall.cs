@@ -52,6 +52,28 @@ namespace Game.Domain.Supply
             return new ShopSaleResult(sold, requestedUnits - sold, gross);
         }
 
+        /// <summary>Buys the entire requested quantity or changes neither cash ledger nor stock.</summary>
+        public bool TryPurchaseToTrainer(string trainerAccount, ProductId product, int units, long unitPrice,
+            long trainerSpendingLimit, out ShopSaleResult result)
+        {
+            if (string.IsNullOrWhiteSpace(trainerAccount)) throw new ArgumentException("Thiếu tài khoản Trainer.", nameof(trainerAccount));
+            if (units <= 0) throw new ArgumentOutOfRangeException(nameof(units));
+            if (unitPrice < 0) throw new ArgumentOutOfRangeException(nameof(unitPrice));
+            if (trainerSpendingLimit < 0) throw new ArgumentOutOfRangeException(nameof(trainerSpendingLimit));
+            EnsureListed(product);
+            long gross;
+            try { gross = checked((long)units * unitPrice); }
+            catch (OverflowException) { result = new ShopSaleResult(0, units, 0); return false; }
+            var item = new InventoryItem(product);
+            if (inventory.Get(item).Available < units || trainerSpendingLimit < gross)
+            { result = new ShopSaleResult(0, units, 0); return false; }
+            // Record can fail before state mutation (overflow/invalid ledger state); the following operations were prevalidated.
+            ledger.Record(trainerAccount, "hub:treasury", "world:tax-sink", gross, 0, "consumable stall purchase");
+            inventory.Remove(item, units);
+            result = new ShopSaleResult(units, 0, gross);
+            return true;
+        }
+
         private void EnsureListed(ProductId product)
         {
             if (!definition.Products.Contains(product)) throw new ArgumentException("Sản phẩm không được bán tại quầy này.", nameof(product));

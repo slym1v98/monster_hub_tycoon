@@ -6,7 +6,7 @@ using Game.Domain;
 using Game.Domain.Materials;
 using Game.Domain.Production;
 
-// Console runner mô phỏng cân bằng. Chạy: dotnet run --project tools/Game.Sim [core|market|ladders|stock]
+// Console runner mô phỏng cân bằng. Chạy: dotnet run --project tools/Game.Sim [core|market|ladders|stock|monster|expedition]
 static class Program
 {
     static double[] Geo(double a, double r, int n) => Enumerable.Range(0, n).Select(i => a * Math.Pow(r, i)).ToArray();
@@ -361,10 +361,15 @@ static class Program
     static void Main(string[] args)
     {
         string mode = args.Length > 0 ? args[0] : "core";
+        if (mode == "monster" || mode == "expedition") { MonsterScenarios.Run(mode, Console.Out); return; }
+        if (mode == "finance") { FinanceScenarios.Run(Console.Out); return; }
+        if (mode == "progression") { ProgressionEventScenarios.Run(Console.Out); return; }
+        if (mode == "quest-kpi") { QuestKpiScenarios.Run(Console.Out); return; }
+        if (mode == "gear") { GearScenarios.Run(Console.Out); return; }
         if (mode == "core") { Core(); return; }
         if (mode == "market") { Market(); return; }
         if (mode == "ladders") { Ladders(); return; }
         if (mode == "stock") { Stock(); return; }
-        Console.WriteLine("Dùng: dotnet run --project tools/Game.Sim [core|market|ladders|stock]");
+        Console.WriteLine("Dùng: dotnet run --project tools/Game.Sim [core|market|ladders|stock|monster|expedition|gear|finance|progression|quest-kpi]");
     }
 }

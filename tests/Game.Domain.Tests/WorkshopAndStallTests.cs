@@ -33,7 +33,7 @@ namespace Game.Domain.Tests
         public void StallSellsOnlyProducedStockAndPostsMoneyExactlyOnce()
         {
             var catalog = MaterialCatalog.Default;
-            var stallDefinition = Assert.Single(ConsumableStallCatalog.Default.Stalls, x => x.ShopId == "hospital");
+            var stallDefinition = Assert.Single(ConsumableStallCatalog.Default.Stalls, x => x.ShopId == "veterinary_hospital");
             var stock = new Inventory();
             var potion = new InventoryItem(new ProductId("potion"));
             var food = new InventoryItem(new ProductId("food_drink"));
@@ -66,6 +66,21 @@ namespace Game.Domain.Tests
         {
             var bottle = Assert.Single(MaterialCatalog.Default.Products, x => x.Id.Value == "monster_buff_bottle");
             Assert.Equal(ProductEffectKind.TemporaryMonsterStatBuff, bottle.EffectKind);
+        }
+
+        [Fact]
+        public void ExactStallPurchaseRejectsPartialStockOrCashWithoutMutation()
+        {
+            var definition = Assert.Single(ConsumableStallCatalog.Default.Stalls, x => x.ShopId == "veterinary_hospital");
+            var stock = new Inventory(); var potion = new ProductId("potion"); var item = new InventoryItem(potion);
+            stock.Add(item, 1); var ledger = new MoneyLedger(); var stall = new ConsumableStall(definition, stock, ledger);
+            Assert.False(stall.TryPurchaseToTrainer("trainer:1", potion, 2, 10, 100, out var unavailable));
+            Assert.Equal(0, unavailable.UnitsSold); Assert.Equal(1, stock.Get(item).Available); Assert.Empty(ledger.Transactions);
+            Assert.False(stall.TryPurchaseToTrainer("trainer:1", potion, 1, 10, 9, out var unaffordable));
+            Assert.Equal(0, unaffordable.UnitsSold); Assert.Equal(1, stock.Get(item).Available); Assert.Empty(ledger.Transactions);
+            Assert.True(stall.TryPurchaseToTrainer("trainer:1", potion, 1, 10, 10, out var bought));
+            Assert.Equal(1, bought.UnitsSold); Assert.Equal(0, stock.Get(item).Available);
+            Assert.Equal(-10, ledger.BalanceOf("trainer:1")); Assert.Equal(10, ledger.BalanceOf("hub:treasury"));
         }
     }
 }

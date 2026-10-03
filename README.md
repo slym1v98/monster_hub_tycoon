@@ -30,8 +30,11 @@ Cần **.NET 8 SDK**. Repo không có file solution, nên build và test từng 
 dotnet test tests/Game.Domain.Tests                 # unit test Domain
 dotnet run --project tools/Game.Sim                 # core: 10 Trainer, 3 tháng, dòng tiền, thời gian và chuỗi cung ứng
 dotnet run --project tools/Game.Sim -- market        # thị trường: 10/30 Trainer x 30/90 ngày
+dotnet run --project tools/Game.Sim -- monster       # vòng đời Monster, đối soát sở hữu và Gold
+dotnet run --project tools/Game.Sim -- expedition    # chuyến farm: Zone, chiến đấu, loot
 dotnet run --project tools/Game.Sim -- ladders      # chi phí kỳ vọng Nâng Sao, Tinh Luyện, tăng tư chất
 dotnet run --project tools/Game.Sim -- stock        # tần suất sự kiện cổ phiếu
+dotnet run --project tools/Game.Sim -- finance      # 360 ngày vay nợ, Gene Bank, cổ phiếu và đối soát
 ```
 
 Các tham số kinh tế trong `core` và `market` là **Prototype/TBD, chưa cân bằng**. `market` chạy bốn quy mô/thời lượng cố định; mục tiêu mua và sản xuất trong kịch bản được suy ra từ tổng sức chứa balo, còn giá lấy từ `SimConfig`. Đây là phép thử luồng và đối soát, không phải mục tiêu lợi nhuận. Các con số trước đây của mô hình kinh tế gộp theo ngày không đại diện cho chuỗi cung ứng mới. Xem [13_Balance_Parameters](docs/designs/13_Balance_Parameters.md).
@@ -46,7 +49,7 @@ Mỗi sub-project có spec ([docs/superpowers/specs](docs/superpowers/specs)) v�
 |---|---|---|
 | 1 | Lõi thời gian và Trainer: đồng hồ sự kiện, FSM, 4 nhu cầu, công trình dịch vụ, Payday, đình công, `RunUntilPayday` | Xong |
 | 2 | Chuỗi cung ứng: Trạm Giao Thương, Thương nhân, kho, các xưởng chế tạo | Prototype Domain; còn TBD về loot theo Zone, tiêu dùng AI và cân bằng |
-| 3 | Monster và chiến đấu | Chưa làm |
+| 3 | Monster và chiến đấu: roster, trận tất định, Zone/loot, bắt thú, Thú Y, Ngân Hàng Gene, tiến hóa | Prototype Domain; còn Payday Gene Bank (SP5), mở Zone (SP6), độ bền (SP4) |
 | 4 | Trang bị và các thang nâng cấp | Chưa làm |
 | 5 | Tài chính: hợp đồng lương, vay nợ, chứng khoán | Chưa làm |
 | 6 | Tiến trình và sự kiện: Tòa Thị Chính, Ký túc xá, mở Zone, Danh tiếng, Truy Nã, World Boss | Chưa làm |

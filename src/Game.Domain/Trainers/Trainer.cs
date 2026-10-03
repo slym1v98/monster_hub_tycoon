@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Game.Domain.Materials;
+using Game.Domain.Gear;
+using Game.Domain.Monsters;
 
 namespace Game.Domain
 {
@@ -8,7 +10,7 @@ namespace Game.Domain
     public enum TrainerState { AtHub, Traveling, Farming, Returning, Queued, InService, WaitingForMoney, WaitingForMarket }
 
     /// <summary>Lý do Trainer quyết định về HUB. <see cref="None"/> nghĩa là tiếp tục farm.</summary>
-    public enum ReturnReason { None, Strike, Night, TeamDown, BackpackFull, Tired, Hungry, Thirsty }
+    public enum ReturnReason { None, Strike, Night, TeamDown, BackpackFull, Tired, Hungry, Thirsty, EventCall }
 
     /// <summary>Bốn thanh nhu cầu, thang 0-100. Thể lực/No nê/Nước hồi ở dịch vụ; Stress càng cao càng tệ.</summary>
     public sealed class Needs
@@ -33,24 +35,46 @@ namespace Game.Domain
 
     /// <summary>
     /// Dữ liệu phẳng của một Trainer. Chỉ chứa dữ liệu; logic nằm ở TrainerBrain và HubWorld.
-    /// Trainer không có HP riêng: <see cref="TeamHp"/> là HP gộp của 3 Monster (tạm, sub-project 3 thay).
+    /// Trainer không có HP riêng; HP thuộc từng Monster trong Roster.
     /// </summary>
     public sealed class Trainer
     {
         public int Id;
         public Rarity Rarity;
-        public int Rank = 1;
-        public int Level = 1;
+        int rank = 1;
+        int level = 1;
+        public int Rank
+        {
+            get => rank;
+            set { MonsterProgression.UpdateLevels(this, value, level); rank = value; }
+        }
+        public int Level
+        {
+            get => level;
+            set { MonsterProgression.UpdateLevels(this, rank, value); level = value; }
+        }
+        /// <summary>EXP còn lại tới cấp kế tiếp; Lv100 bỏ phần dư, chưa thực hiện Rebirth.</summary>
+        public long Experience { get; internal set; }
+        public TrainerAttributes Attributes { get; }
+        public TrainerClass Class { get; internal set; } = TrainerClass.None;
+
         public Personality Personality;
         public readonly Needs Needs = new Needs();
         public long Gold;
-        public long TeamHp;
-        public long TeamHpMax;
+        public MonsterRoster Roster { get; }
+        public TrainerInventory Inventory { get; } = new TrainerInventory();
+        /// <summary>Trang bị dự trữ dùng làm phôi Nâng Sao.</summary>
+        public GearInventory GearInventory { get; } = new GearInventory();
+        /// <summary>Trang bị Tiện ích + Hào quang của Trainer (12 slot); chỉ số cộng dồn.</summary>
+        public GearLoadout Gear { get; } = new GearLoadout();
         public int BackpackUnits;
         public readonly Dictionary<MaterialId, int> BackpackMaterials = new Dictionary<MaterialId, int>();
         public int BackpackCapacity;
         /// <summary>Cờ tạm thay cho slot Kính (sub-project 4).</summary>
         public bool HasNightVision;
+        public string CurrentZoneId;
+        public double LeadershipItemBonus;
+        public int BagSynergyExpiresAtMinute = -1;
 
         // --- Lương ---
         public long ContractWage;
@@ -58,6 +82,14 @@ namespace Game.Domain
         public long WageOwed;
         /// <summary>Trainer đã ứng trước, trừ vào Payday kế tiếp.</summary>
         public long WageAdvance;
+        /// <summary>Principal and accrued interest owed to the HUB lender.</summary>
+        public long HubLoanBalance { get; internal set; }
+        /// <summary>Consecutive Payday count with loan balance above the credit limit.</summary>
+        public int HubLoanOverLimitPaydays { get; internal set; }
+        /// <summary>HUB balance owed to this Rank V Trainer through reverse borrowing.</summary>
+        public long ReverseLoanBalance { get; internal set; }
+        public int ReverseLoanPaydaysRemaining { get; internal set; }
+        public bool ReverseLoanOverdue { get; internal set; }
         public int StrikeDaysLeft;
 
         public TrainerState State;
@@ -71,6 +103,13 @@ namespace Game.Domain
         public int WaitingSinceMinute;
         public int MarketWaitSinceMinute;
         public BuildingKind PendingService;
+
+        public Trainer(SimRandom random = null, TrainerAttributeConfig attributeConfig = null)
+        {
+            Roster = new MonsterRoster(this);
+            Attributes = TrainerAttributes.Generate(random ?? new SimRandom(0),
+                attributeConfig ?? TrainerAttributeConfig.Prototype);
+        }
 
         public bool IsOnStrike => StrikeDaysLeft > 0;
     }

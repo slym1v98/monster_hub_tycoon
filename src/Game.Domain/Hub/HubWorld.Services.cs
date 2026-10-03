@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using Game.Domain.Monsters;
 
 namespace Game.Domain
 {
@@ -8,10 +10,11 @@ namespace Game.Domain
         void RequestService(Trainer t, BuildingKind kind)
         {
             ServiceBuilding b = buildings[(int)kind];
-            PersonalityProfile profile = PersonalityProfile.Of(t.Personality);
-            long price = b.PriceFor(profile, t.TeamHpMax - t.TeamHp);
+            long price = PriceForTrainer(t, b);
             bool freeInDebtMode = payroll.DebtMode && kind == BuildingKind.Restaurant && t.WageOwed > 0;
-            if (!freeInDebtMode && t.Gold < price) { BeginWaitForMoney(t, kind); return; }
+            bool reverseLoanService = t.ReverseLoanOverdue && t.ReverseLoanBalance > 0;
+            if (!freeInDebtMode && !reverseLoanService) EnsureTrainerCanPayFromLoan(t, price);
+            if (!freeInDebtMode && !reverseLoanService && t.Gold < price) { BeginWaitForMoney(t, kind); return; }
 
             SetState(t, TrainerState.Queued, kind.ToString());
             b.Enqueue(t.Id);
@@ -35,11 +38,13 @@ namespace Game.Domain
         {
             Settle(t);   // cộng nốt Stress xếp hàng
             PersonalityProfile profile = PersonalityProfile.Of(t.Personality);
-            long normalPrice = b.PriceFor(profile, t.TeamHpMax - t.TeamHp);
-            bool free = payroll.DebtMode && b.Kind == BuildingKind.Restaurant && t.WageOwed > 0;
+            long normalPrice = PriceForTrainer(t, b);
+            bool freeInDebtMode = payroll.DebtMode && b.Kind == BuildingKind.Restaurant && t.WageOwed > 0;
+            bool reverseLoanService = t.ReverseLoanOverdue && t.ReverseLoanBalance > 0;
+            bool free = freeInDebtMode || reverseLoanService;
             long paid = free ? 0 : normalPrice;
 
-            if (t.Gold < paid)   // giá bị Giám đốc đẩy lên trong lúc chờ
+            if (!free && t.Gold < paid)   // giá bị Giám đốc đẩy lên trong lúc chờ
             {
                 b.Leave(t.Id);
                 BeginWaitForMoney(t, b.Kind);
@@ -48,7 +53,22 @@ namespace Game.Domain
 
             if (free)
             {
-                t.WageOwed = Math.Max(0, t.WageOwed - normalPrice);   // giá trị dịch vụ trừ vào nợ lương
+                long remainingServiceValue = normalPrice;
+                if (freeInDebtMode)
+                {
+                    long wageOffset = Math.Min(t.WageOwed, remainingServiceValue);
+                    t.WageOwed -= wageOffset;
+                    remainingServiceValue -= wageOffset;
+                }
+                if (reverseLoanService)
+                {
+                    long oldBalance = t.ReverseLoanBalance;
+                    long offset = Math.Min(oldBalance, remainingServiceValue);
+                    t.ReverseLoanBalance -= offset;
+                    if (t.ReverseLoanBalance == 0) { t.ReverseLoanOverdue = false; t.ReverseLoanPaydaysRemaining = 0; }
+                    Raise(new ReverseLoanBalanceChanged(now, t.Id, oldBalance, t.ReverseLoanBalance, offset, "FreeServiceOffset"));
+                    Raise(new ReverseLoanServiceOffset(now, t.Id, b.Kind, offset, t.ReverseLoanBalance));
+                }
             }
             else
             {
@@ -56,6 +76,7 @@ namespace Game.Domain
                 long cogs = (long)Math.Round(paid * cfg.ServiceCogs);
                 AddTreasury(paid - cogs, "Service");
             }
+            if (paid > 0) stockExchange.RecordRevenue(b.Kind.ToString(), paid);
 
             double priceRatio = (double)b.Price / b.FairPrice;
             double stressAdded = cfg.PriceStressFactor * Math.Max(0.0, priceRatio - 1.0) * profile.PriceSensitivity;
@@ -63,8 +84,18 @@ namespace Game.Domain
             t.Needs.Clamp();
 
             SetState(t, TrainerState.InService, b.Kind.ToString());
-            queue.Schedule(now + b.ServiceMinutesFor(now), SimEventKind.ServiceDone, t.Id, t.Token, (int)b.Kind);
+            int fainted = b.Kind == BuildingKind.Hospital ? t.Roster.Members.Count(x => x.CurrentHp == 0) : 0;
+            int multiplier = fainted > 0 ? (cfg.VeterinaryHospitalSettings ?? VeterinaryHospitalConfig.Prototype).FaintedRecoveryMultiplier : 1;
+            queue.Schedule(now + b.ServiceMinutesFor(now, multiplier), SimEventKind.ServiceDone, t.Id, t.Token, (int)b.Kind);
             Raise(new ServiceUsed(now, t.Id, b.Kind, paid, b.Price, b.FairPrice, stressAdded));
+        }
+
+        long PriceForTrainer(Trainer t, ServiceBuilding building)
+        {
+            int fainted = building.Kind == BuildingKind.Hospital ? t.Roster.Members.Count(x => x.CurrentHp == 0) : 0;
+            long surcharge = building.Kind == BuildingKind.Hospital
+                ? (cfg.VeterinaryHospitalSettings ?? VeterinaryHospitalConfig.Prototype).FaintedSurcharge : 0;
+            return building.PriceFor(PersonalityProfile.Of(t.Personality), t.Roster.TotalMissingHp, fainted, surcharge);
         }
 
         /// <summary>Dùng xong dịch vụ: hồi nhu cầu tương ứng, nhả chỗ, gọi người kế tiếp.</summary>
@@ -76,7 +107,7 @@ namespace Game.Domain
                 case BuildingKind.Inn: t.Needs.Stamina = 100; break;
                 case BuildingKind.Restaurant: t.Needs.Satiety = 100; t.Needs.Hydration = 100; break;
                 case BuildingKind.Bar: t.Needs.Stress = cfg.BarStressTarget; break;
-                case BuildingKind.Hospital: t.TeamHp = t.TeamHpMax; break;
+                case BuildingKind.Hospital: t.Roster.RestoreAllHp(); break;
             }
             b.Leave(t.Id);
             SeatWaiting(b);
@@ -108,7 +139,7 @@ namespace Game.Domain
         {
             Settle(t);
             ServiceBuilding b = buildings[(int)t.PendingService];
-            long needed = b.PriceFor(PersonalityProfile.Of(t.Personality), t.TeamHpMax - t.TeamHp);
+            long needed = PriceForTrainer(t, b);
 
             if (t.Gold >= needed)
             {

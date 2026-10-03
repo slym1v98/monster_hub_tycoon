@@ -17,9 +17,11 @@ namespace Game.Domain.Tests
         public void DefaultCatalogContainsRefineryAndReactorRecipesAsData()
         {
             var catalog = MaterialCatalog.Default;
-            Assert.Equal(15, catalog.Recipes.Count(recipe => recipe.Producer.Value == "refinery"));
+            Assert.Equal(18, catalog.Recipes.Count(recipe => recipe.Producer.Value == "refinery"));
             Assert.Equal(45, catalog.Recipes.Count(recipe => recipe.Producer.Value == "reactor"));
-            Assert.Equal(39, catalog.Products.Count);
+            Assert.Equal(44, catalog.Products.Count);
+            Assert.Contains(catalog.Products, product => product.Id.Value == "gene_fragment");
+            Assert.Contains(catalog.Products, product => product.Id.Value == "protection_charm");
             Assert.DoesNotContain(catalog.Products, product => product.Id.Value == "blank");
             Assert.Contains(catalog.Recipes, recipe => recipe.Inputs.Any(input => input.Material == Ore) && recipe.Outputs.Any(output => output.Product == Blank));
             Assert.Contains(catalog.Recipes, recipe => recipe.Inputs.Any(input => input.Product == Blank) && recipe.Outputs.Any(output => output.Product == Stone));
@@ -57,6 +59,29 @@ namespace Game.Domain.Tests
             Assert.Single(ledger.Transactions);
             Assert.Equal(3, ledger.Transactions[0].Gross);
             Assert.Equal(0, ledger.TotalBalance);
+        }
+
+        [Fact]
+        public void ProducerPowerOffPausesRunningJobsAndResumesTheirRemainingTime()
+        {
+            var inventory = new Inventory();
+            inventory.Add(new InventoryItem(Ore), 1);
+            var controller = CreateController(inventory, jobDuration: 8);
+            controller.SetTarget(Blank, 1, now: 10);
+            var job = Assert.Single(controller.ActiveJobs);
+
+            controller.SetProducerState(new ProducerId("refinery"), 1, 0);
+            Assert.Equal(ProductionJobState.Paused, job.State);
+            Assert.Empty(controller.ActiveJobs);
+            controller.AdvanceTo(100);
+            Assert.Equal(0, inventory.Get(new InventoryItem(Blank)).Available);
+
+            controller.SetProducerState(new ProducerId("refinery"), 1, 1);
+            Assert.Equal(108, job.FinishMinute);
+            controller.AdvanceTo(107);
+            Assert.Equal(0, inventory.Get(new InventoryItem(Blank)).Available);
+            controller.AdvanceTo(108);
+            Assert.Equal(1, inventory.Get(new InventoryItem(Blank)).Available);
         }
 
         [Fact]

@@ -1,0 +1,148 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Game.Domain.Gear;
+
+namespace Game.Domain.Monsters
+{
+    /// <summary>Monster sở hữu HP và gen riêng; việc đổi đội hoặc gửi kho không sinh lại dữ liệu.</summary>
+    public sealed class Monster
+    {
+        public MonsterId Id { get; }
+        public MonsterDefinition Definition { get; private set; }
+        public string SpeciesId => Definition.Id;
+        public MonsterElement Element => Definition.Element;
+        public MonsterRole Role => Definition.Role;
+        public Rarity Rarity { get; private set; }
+        public MonsterIvGrade Iv { get; }
+        public bool IsIvAppraised { get; private set; }
+        public MonsterIvGrade? KnownIv => IsIvAppraised ? Iv : (MonsterIvGrade?)null;
+        public int Level { get; private set; }
+        public bool IsSoulBound { get; }
+        public MonsterCustody Custody { get; internal set; } = MonsterCustody.Unassigned;
+        /// <summary>Năm giá trị gen cố định theo thứ tự HP, ATK, DEF, ASPD, CRIT trong [0, 1).</summary>
+        public IReadOnlyList<double> Genes { get; }
+        public IReadOnlyList<string> CombatSkillIds { get; private set; }
+        public MonsterStats Stats { get; private set; }
+        /// <summary>Trang bị chiến đấu của Monster (6 slot Lò Rèn); không đổi Stats gốc, chỉ cộng khi chụp ảnh.</summary>
+        public GearLoadout Gear { get; } = new GearLoadout();
+        public long CurrentHp { get; private set; }
+        public long MaxHp => Stats.Hp;
+        public MonsterLifeState LifeState => Custody == MonsterCustody.Hospital ? MonsterLifeState.Recovering : IsStored || Custody == MonsterCustody.GeneBank ? MonsterLifeState.Stored :
+            CurrentHp == 0 ? MonsterLifeState.Fainted : MonsterLifeState.Ready;
+
+        internal MonsterRoster Owner { get; set; }
+        internal bool IsStored { get; set; }
+
+        readonly MonsterStatConfig statConfig;
+        readonly List<(double attack, double defense, double critical, double rebellionReduction, int expiresAt)> temporaryEffects
+            = new List<(double, double, double, double, int)>();
+
+        Monster(MonsterId id, MonsterDefinition definition, Rarity rarity, MonsterIvGrade iv, int level,
+            int seed, bool isSoulBound, MonsterStatConfig statConfig)
+        {
+            Id = id;
+            Definition = definition;
+            Rarity = rarity;
+            Iv = iv;
+            Level = level;
+            IsSoulBound = isSoulBound;
+            var random = new SimRandom(seed);
+            Genes = Array.AsReadOnly(new[] { random.NextDouble(), random.NextDouble(), random.NextDouble(),
+                random.NextDouble(), random.NextDouble() });
+            this.statConfig = statConfig;
+            Stats = MonsterStatsCalculator.Calculate(definition, rarity, iv, level, statConfig);
+            CombatSkillIds = Array.AsReadOnly(new[] { definition.Element.ToString().ToLowerInvariant() + "_strike" });
+            CurrentHp = MaxHp;
+        }
+
+        public static Monster Create(MonsterId id, MonsterDefinition definition, Rarity rarity,
+            MonsterIvGrade iv, int level, int seed, bool isSoulBound = false, MonsterStatConfig statConfig = null)
+        {
+            if (string.IsNullOrWhiteSpace(id.Value)) throw new ArgumentException("Mã Monster không được rỗng.", nameof(id));
+            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            definition.Validate();
+            if (!Enum.IsDefined(typeof(Rarity), rarity)) throw new ArgumentOutOfRangeException(nameof(rarity));
+            if (!Enum.IsDefined(typeof(MonsterIvGrade), iv)) throw new ArgumentOutOfRangeException(nameof(iv));
+            if (level < 1 || level > 100) throw new ArgumentOutOfRangeException(nameof(level));
+            return new Monster(id, definition, rarity, iv, level, seed, isSoulBound, statConfig ?? MonsterStatConfig.Prototype);
+        }
+
+        internal MonsterStats StatsAtLevel(int targetLevel) => targetLevel <= Level ? null :
+            MonsterStatsCalculator.Calculate(Definition, Rarity, Iv, targetLevel, statConfig);
+
+        /// <summary>Tăng cấp giữ nguyên HP hiện tại, kể cả trạng thái ngất; gen không đổi.</summary>
+        internal void ApplyLevel(int targetLevel, MonsterStats stats)
+        {
+            if (stats == null) return;
+            Level = targetLevel;
+            Stats = stats;
+            CurrentHp = Math.Min(CurrentHp, MaxHp);
+        }
+
+        internal void RevealIv() => IsIvAppraised = true;
+
+        internal void ApplyRarity(Rarity rarity)
+        {
+            if ((int)rarity != (int)Rarity + 1 || !Enum.IsDefined(typeof(Rarity), rarity))
+                throw new ArgumentOutOfRangeException(nameof(rarity));
+            double hpFraction = (double)CurrentHp / MaxHp;
+            var updated = MonsterStatsCalculator.Calculate(Definition, rarity, Iv, Level, statConfig);
+            Rarity = rarity;
+            Stats = updated;
+            CurrentHp = Math.Min(MaxHp, (long)Math.Floor(MaxHp * hpFraction));
+        }
+
+        internal void ApplyEvolution(MonsterDefinition definition, IEnumerable<string> skillIds)
+        {
+            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            definition.Validate();
+            var skills = (skillIds ?? throw new ArgumentNullException(nameof(skillIds))).ToArray();
+            if (skills.Length == 0 || skills.Any(string.IsNullOrWhiteSpace) || skills.Distinct(StringComparer.Ordinal).Count() != skills.Length)
+                throw new ArgumentException("Evolution must provide unique skills.", nameof(skillIds));
+            double hpFraction = (double)CurrentHp / MaxHp;
+            var updated = MonsterStatsCalculator.Calculate(definition, Rarity, Iv, Level, statConfig);
+            Definition = definition;
+            Stats = updated;
+            CombatSkillIds = Array.AsReadOnly(skills);
+            CurrentHp = Math.Min(MaxHp, (long)Math.Floor(MaxHp * hpFraction));
+        }
+
+        public long RestoreHp(long amount)
+        {
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
+            long restored = Math.Min(amount, MaxHp - CurrentHp);
+            CurrentHp += restored;
+            return restored;
+        }
+
+        public void ApplyTemporaryCombatEffects(double attackMultiplier, double defenseMultiplier,
+            double criticalBonus, double managementReduction, int expiresAtMinute)
+        {
+            if (double.IsNaN(attackMultiplier) || double.IsInfinity(attackMultiplier) || attackMultiplier < 1) throw new ArgumentOutOfRangeException(nameof(attackMultiplier));
+            if (double.IsNaN(defenseMultiplier) || double.IsInfinity(defenseMultiplier) || defenseMultiplier < 1) throw new ArgumentOutOfRangeException(nameof(defenseMultiplier));
+            if (double.IsNaN(criticalBonus) || double.IsInfinity(criticalBonus) || criticalBonus < 0) throw new ArgumentOutOfRangeException(nameof(criticalBonus));
+            if (double.IsNaN(managementReduction) || double.IsInfinity(managementReduction) || managementReduction < 0) throw new ArgumentOutOfRangeException(nameof(managementReduction));
+            temporaryEffects.Add((attackMultiplier, defenseMultiplier, criticalBonus, managementReduction, expiresAtMinute));
+        }
+
+        internal MonsterStats CombatStatsAt(int minute)
+        {
+            var active = temporaryEffects.Where(x => x.expiresAt > minute).ToArray();
+            if (active.Length == 0) return Stats;
+            return new MonsterStats(Stats.Hp, Stats.Attack * active.Aggregate(1d, (n, x) => n * x.attack),
+                Stats.Defense * active.Aggregate(1d, (n, x) => n * x.defense), Stats.AttackSpeed,
+                Math.Min(1, Stats.CriticalChance + active.Sum(x => x.critical)));
+        }
+        internal double RebellionReductionAt(int minute) => temporaryEffects.Where(x => x.expiresAt > minute).Sum(x => x.rebellionReduction);
+        internal bool HasCombatEffectAt(int minute) => temporaryEffects.Any(x => x.expiresAt > minute);
+        internal bool HasRebellionEffectAt(int minute) => temporaryEffects.Any(x => x.expiresAt > minute && x.rebellionReduction > 0);
+
+        /// <summary>Cập nhật HP của chính Monster; HP bằng 0 là ngất, không mất danh tính.</summary>
+        public void SetCurrentHp(long hp)
+        {
+            if (hp < 0 || hp > MaxHp) throw new ArgumentOutOfRangeException(nameof(hp));
+            CurrentHp = hp;
+        }
+    }
+}

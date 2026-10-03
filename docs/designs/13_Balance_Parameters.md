@@ -181,3 +181,6 @@ Chạy bằng `dotnet run --project tools/Game.Sim -- core` hoặc `-- market`. 
 | Đối soát và runtime | Chênh giữa delta Kho bạc phát sự kiện và delta suy ra từ sổ giao dịch supply; thời gian chạy trên máy hiện tại. |
 
 Kết quả chạy hiện tại đối soát Kho bạc supply khớp sổ giao dịch (chênh 0 ở cả `core` và bốn run `market`). Runtime và kết quả số đầy đủ được in ở mỗi lần chạy; chúng là quan sát theo prototype, không dùng làm mục tiêu cân bằng. Hạn mức chờ, vốn/sức chứa Merchant, giá, thuế runtime, target tồn, hiệu suất và thời lượng job vẫn cần được xác nhận/cân bằng trong [workbook](../balance/MonsterHUB_Balance.xlsx). Loot Quặng tier 1 hiện chỉ là ánh xạ tạm của `SimpleFarmResolver`; chưa có dữ liệu để cân bằng nhiều nhóm nguyên liệu hay nhu cầu AI mua hàng.
+
+## 14. Tham số Monster, chiến đấu, Zone (Sub-project 3)
+Các tham số Monster, chiến đấu, bắt thú, Zone, loot, Bệnh Viện Thú Y, Ngân Hàng Gene, PTN và hiệu ứng vật phẩm được ghi trong `docs/balance/MonsterHUB_Balance.xlsx` (sheet `Monster Catalog`, `Combat & Capture`, `Zones & Loot`, `Monster Lifecycle`). Giá trị GDD đã chốt đánh dấu **Locked**; giá trị suy ra để chạy mô phỏng đánh dấu **Prototype** và chưa cân bằng.

@@ -2,6 +2,9 @@ using System;
 using Game.Domain.Materials;
 using Game.Domain.Supply;
 using System.Linq;
+using Game.Domain.Combat;
+using Game.Domain.Monsters;
+using Game.Domain.Gear;
 
 namespace Game.Domain
 {
@@ -23,9 +26,9 @@ namespace Game.Domain
             bool outside = t.State == TrainerState.Traveling || t.State == TrainerState.Farming || t.State == TrainerState.Returning;
             if (outside)
             {
-                n.Stamina -= cfg.FieldStaminaPerHour * hours;
+                n.Stamina -= GearEffects.StaminaDecayPerHour(t, GearCat, cfg.FieldStaminaPerHour) * hours;
                 n.Satiety -= cfg.FieldSatietyPerHour * p.SatietyDecayMult * hours;
-                n.Hydration -= cfg.FieldHydrationPerHour * hours;
+                n.Hydration -= GearEffects.HydrationDecayPerHour(t, GearCat, cfg.FieldHydrationPerHour) * hours;
                 n.Stress += cfg.FieldStressPerHour * hours;
             }
             else if (t.State != TrainerState.InService)   // đang được phục vụ thì không tụt
@@ -54,9 +57,29 @@ namespace Game.Domain
         void OnDecide(Trainer t)
         {
             Settle(t);
+            int defenseFinish = Math.Max(monsterSiegeFinishMinute, worldBossFinishMinute);
+            if (defenseFinish > now)
+            {
+                t.Token++;
+                SetState(t, TrainerState.AtHub, "EventDefense");
+                queue.Schedule(defenseFinish, SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
             bool isNight = SimClock.IsNight(now);
 
-            BuildingKind? need = TrainerBrain.PickService(t, cfg, isNight, !t.IsOnStrike);   // đình công: không vào Bệnh Viện
+            if (t.Roster.Members.Any(m => m.Custody == MonsterCustody.Hospital))
+            {
+                SetState(t, TrainerState.AtHub, "MonsterRecovery");
+                queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
+            BuildingKind? need = TrainerBrain.PickService(t, cfg, isNight, !t.IsOnStrike, GearEffects.HasNightVision(t, GearCat, t.HasNightVision));   // đình công: không vào Bệnh Viện
+            if (need.HasValue)
+            {
+                string facilityId = need.Value == BuildingKind.Inn ? "inn" : need.Value == BuildingKind.Restaurant ? "restaurant"
+                    : need.Value == BuildingKind.Bar ? "bar" : "veterinary_hospital";
+                if (!CanFacilityOperate(facilityId)) need = null;
+            }
             if (need.HasValue) { RequestService(t, need.Value); return; }
 
             if (t.IsOnStrike)
@@ -71,8 +94,25 @@ namespace Game.Domain
                 queue.Schedule(SimClock.NextMinuteOfDay(now, SimClock.DawnMinute), SimEventKind.TrainerDecide, t.Id, t.Token);
                 return;
             }
+            if (t.Roster.Members.Count == 0)
+            {
+                SetState(t, TrainerState.AtHub, "NoFieldMonster");
+                queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
+            var unlocked = unlockedZoneIds.OrderBy(id => id, StringComparer.Ordinal)
+                .Select(id => cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == id)).Where(z => z != null).ToArray();
+            var zone = new ZoneSelector(cfg.ZoneSelectionSettings).Select(TrainerSnapshot.FromTrainer(t, now), unlocked, Array.Empty<ZoneIncomeModifier>());
+            if (zone == null)
+            {
+                SetState(t, TrainerState.AtHub, "NoEligibleZone");
+                queue.Schedule(now + 60, SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
+            BuyExpeditionSupplies(t, zone);
+            t.CurrentZoneId = zone.Id;
             SetState(t, TrainerState.Traveling, "Farm");
-            queue.Schedule(now + cfg.ZoneTravelMinutes, SimEventKind.TrainerArriveZone, t.Id, t.Token);
+            queue.Schedule(now + zone.WalkMinutes, SimEventKind.TrainerArriveZone, t.Id, t.Token);
         }
 
         void OnArriveZone(Trainer t)
@@ -86,30 +126,104 @@ namespace Game.Domain
         void OnFarmChunk(Trainer t)
         {
             Settle(t);
-            FarmResult r = farm.Resolve(t, cfg.FarmChunkMinutes);
-            if (payroll.DebtMode)   // chế độ cấn nợ: farm ít hơn
-                r = new FarmResult((int)(r.MaterialUnits * cfg.DebtModeFarmMultiplier), (long)(r.Gold * cfg.DebtModeFarmMultiplier), r.HpLost, r.Material);
-
-            int gained = Math.Min(t.BackpackCapacity - t.BackpackUnits, r.MaterialUnits);
-            t.BackpackUnits += gained;
-            if (gained > 0)
+            var zone = cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == t.CurrentZoneId)
+                ?? throw new InvalidOperationException("Trainer đang farm nhưng Zone hiện tại không còn trong catalog.");
+            if (t.Roster.Members.Count == 0 || t.Roster.Members.Any(m => m.Custody == MonsterCustody.Hospital))
             {
-                MaterialId material = r.Material ?? new MaterialId("legacy_untyped");
-                t.BackpackMaterials[material] = checked(t.BackpackMaterials.TryGetValue(material, out int held) ? held + gained : gained);
+                StartReturn(t, ReturnReason.TeamDown);
+                return;
             }
-            t.Gold += r.Gold;                                  // Gold quái rơi là nguồn tiền từ ngoài vào
-            t.TeamHp = Math.Max(0, t.TeamHp - r.HpLost);
+            UseAvailableExpeditionItems(t);
+            ExpeditionResult result = expeditions.Resolve(TrainerSnapshot.FromTrainer(t, now), zone, cfg.FarmChunkMinutes, rng);
+            var loot = result.Loot;
+            foreach (var battle in result.Battles)
+                foreach (var state in battle.FinalMonsters.Where(x => x.Side == BattleSide.Team))
+                {
+                    var monster = t.Roster.Members.FirstOrDefault(x => x.Id == state.Id);
+                    if (monster != null) monster.SetCurrentHp(state.CurrentHp);
+                }
+            foreach (var state in result.FinalMonsterHp)
+            {
+                var monster = t.Roster.Members.FirstOrDefault(x => x.Id == state.Key);
+                if (monster != null) monster.SetCurrentHp(state.Value);
+            }
+            var finalActive = result.Battles.LastOrDefault()?.ActiveId;
+            if (finalActive.HasValue && t.Roster.Members.Any(m => m.Id == finalActive.Value && m.CurrentHp > 0))
+                t.Roster.SetActive(finalActive.Value);
+            ApplyGearWear(t, result, cfg.FarmChunkMinutes);
+            int available = Math.Max(0, GearEffects.BackpackCapacity(t, GearCat, t.BackpackCapacity) - t.BackpackUnits);
+            var collected = new System.Collections.Generic.List<MaterialQuantity>();
+            var dropped = new System.Collections.Generic.List<MaterialQuantity>(loot.Dropped);
+            foreach (var lot in loot.Collected.OrderBy(x => x.MaterialId.Value, StringComparer.Ordinal))
+            {
+                int requested = payroll.DebtMode ? (int)(lot.Quantity * cfg.DebtModeFarmMultiplier) : lot.Quantity;
+                int gained = Math.Min(available, requested); available -= gained; t.BackpackUnits += gained;
+                if (gained > 0) collected.Add(new MaterialQuantity(lot.MaterialId, gained));
+                if (requested > gained) dropped.Add(new MaterialQuantity(lot.MaterialId, requested - gained));
+                if (gained > 0) t.BackpackMaterials[lot.MaterialId] = checked(t.BackpackMaterials.TryGetValue(lot.MaterialId, out var held) ? held + gained : gained);
+            }
+            long goldGained = payroll.DebtMode ? (long)(loot.Gold * cfg.DebtModeFarmMultiplier) : loot.Gold;
+            ReceiveTrainerIncome(t, goldGained, "ExpeditionGold");
+            TrainerProgression.AddExperience(t, result.TrainerExperience, cfg.TrainerProgressionSettings);
+            Raise(new ExpeditionCompleted(now, t.Id, zone.Id, result.Battles, collected.AsReadOnly(), dropped.AsReadOnly(),
+                goldGained, result.TrainerExperience, t.Level));
 
-            ReturnReason reason = TrainerBrain.ShouldReturn(t, SimClock.IsNight(now));
+            ReturnReason reason = TrainerBrain.ShouldReturn(t, SimClock.IsNight(now), GearEffects.BackpackCapacity(t, GearCat, t.BackpackCapacity), GearEffects.HasNightVision(t, GearCat, t.HasNightVision));
             if (reason != ReturnReason.None) StartReturn(t, reason);
             else queue.Schedule(now + cfg.FarmChunkMinutes, SimEventKind.FarmChunk, t.Id, t.Token);
+        }
+
+        void BuyExpeditionSupplies(Trainer t, ZoneDefinition zone)
+        {
+            if (!useSupplyChain || cfg.ConsumablePolicySettings == null || t.Roster.Members.Count == 0) return;
+            var rebellion = t.Roster.Members.Count(m => RebellionModel.IsRebellious(m.Level, m.Rarity,
+                t.Rank, t.Level, t.Rarity, t.LeadershipItemBonus));
+            var risk = new CombatRiskSnapshot(t.Roster.Members.Count(m => m.CurrentHp < m.MaxHp),
+                rebelliousMonsterCount: rebellion, hasEligibleReserve: t.Roster.Members.Count > 1,
+                expectedCombatRisk: zone.EncounterProfile.ExpectedEncountersPerHour * cfg.FarmChunkMinutes / 60.0);
+            var plan = ConsumablePolicy.DecidePurchases(TrainerSnapshot.FromTrainer(t, now), ConsumableStock,
+                risk, cfg.ConsumablePolicySettings);
+            foreach (var purchase in plan) PurchaseProduct(t.Id, purchase.Product.Value, purchase.Units);
+        }
+
+        void UseAvailableExpeditionItems(Trainer t)
+        {
+            var active = t.Roster.Active;
+            if (active == null) return;
+            var config = cfg.MonsterItemSettings ?? MonsterItemConfig.Prototype;
+            void TryUse(string id, Monster target, double management = 0, double leadership = 0,
+                bool reserve = false, bool hasLock = false)
+            {
+                var product = new ProductId(id);
+                if (target == null || t.Inventory.Count(product) == 0) return;
+                var result = MonsterItemEffects.Apply(product, target, config, now, management, leadership, reserve, hasLock);
+                if (!result.Applied || result.ConsumedUnits == 0 || !t.Inventory.TryConsume(product, result.ConsumedUnits)) return;
+                if (result.LeadershipBonus > 0) t.LeadershipItemBonus += result.LeadershipBonus;
+                if (result.BagSynergyEnabled) t.BagSynergyExpiresAtMinute = result.ExpiresAtMinute;
+                Raise(new TrainerProductChanged(now, t.Id, id, -result.ConsumedUnits, t.Inventory.Count(product)));
+            }
+
+            foreach (var monster in t.Roster.Members.Where(m => m.CurrentHp < m.MaxHp).OrderBy(m => m.Id.Value, StringComparer.Ordinal))
+                TryUse("potion", monster);
+            TryUse("monster_buff_bottle", active);
+            double leadership = RebellionModel.LeadershipScore(t.Rank, t.Level, t.Rarity, t.LeadershipItemBonus);
+            foreach (var monster in t.Roster.Members.Where(m =>
+                RebellionModel.ManagementScore(m.Level, m.Rarity) - m.RebellionReductionAt(now) > leadership)
+                .OrderBy(m => m.Id.Value, StringComparer.Ordinal))
+                TryUse("reward_cake", monster, RebellionModel.ManagementScore(monster.Level, monster.Rarity), leadership);
+            bool stillRebellious = t.Roster.Members.Any(m =>
+                RebellionModel.ManagementScore(m.Level, m.Rarity) - m.RebellionReductionAt(now) > leadership);
+            if (stillRebellious) TryUse("pet_communication_lock", active, hasLock: t.LeadershipItemBonus > 0);
+            bool synergyActive = t.BagSynergyExpiresAtMinute > now;
+            if (!synergyActive) TryUse("tactics_book", active, reserve: t.Roster.Members.Count > 1);
         }
 
         /// <summary>Bắt đầu đường về HUB. Gọi sau <see cref="Settle"/>.</summary>
         void StartReturn(Trainer t, ReturnReason reason)
         {
             SetState(t, TrainerState.Returning, reason.ToString());
-            queue.Schedule(now + cfg.ZoneTravelMinutes, SimEventKind.TrainerArriveHub, t.Id, t.Token);
+            var zone = cfg.ZoneCatalogSettings.Definitions.FirstOrDefault(z => z.Id == t.CurrentZoneId);
+            queue.Schedule(now + (zone?.WalkMinutes ?? cfg.ZoneTravelMinutes), SimEventKind.TrainerArriveHub, t.Id, t.Token);
         }
 
         /// <summary>Ngắt việc đang làm của Trainer (hủy sự kiện cũ bằng token) và cho về HUB.</summary>
@@ -124,7 +238,16 @@ namespace Game.Domain
         void OnArriveHub(Trainer t)
         {
             Settle(t);
-            SetState(t, TrainerState.AtHub, "Arrived");
+            bool calledForDefense = defenseCalledTrainerIds.Contains(t.Id);
+            bool defenseActive = monsterSiegeFinishMinute >= 0 || worldBossFinishMinute >= 0;
+            SetState(t, TrainerState.AtHub, calledForDefense && defenseActive ? ReturnReason.EventCall.ToString() : "Arrived");
+            if (calledForDefense && defenseActive)
+            {
+                t.Token++;
+                queue.Schedule(Math.Max(monsterSiegeFinishMinute, worldBossFinishMinute), SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
+            if (calledForDefense) defenseCalledTrainerIds.Remove(t.Id);
             if (t.BackpackUnits > 0 && useSupplyChain)
             {
                 if (SellBackpack(t)) { SetState(t, TrainerState.AtHub, "MarketSettled"); OnDecide(t); }
@@ -135,7 +258,7 @@ namespace Game.Domain
             else if (t.BackpackUnits > 0)
             {
                 SaleResult sale = market.Quote(t, t.BackpackUnits);
-                t.Gold += sale.GrossToTrainer - sale.Tax;
+                ReceiveTrainerIncome(t, sale.GrossToTrainer - sale.Tax, "MaterialSale");
                 AddTreasury(sale.Tax, "TradeTax");
                 t.BackpackUnits = 0;
                 t.BackpackMaterials.Clear();
@@ -152,7 +275,7 @@ namespace Game.Domain
                 {
                     long before = treasury.Balance;
                     SaleBreakdown direct = station.BuyFromTrainer("trainer:" + t.Id, lot.Key, remaining, request);
-                    t.Gold = checked(t.Gold + direct.NetToSeller);
+                    ReceiveTrainerIncome(t, direct.NetToSeller, "StationMaterialSale");
                     remaining = direct.UnsoldUnits;
                     if (direct.StationUnits > 0) Raise(new MaterialTradeSettled(now, t.Id, lot.Key.Value, "Station",
                         direct.StationUnits, direct.Gross, direct.Tax, direct.NetToSeller));
@@ -165,7 +288,7 @@ namespace Game.Domain
                 {
                     SaleBreakdown merchantSale = merchantFleet.Current.BuyFromTrainer("trainer:" + t.Id, lot.Key, remaining,
                         marketReferencePrice, marketTaxRate, long.MaxValue - treasury.Balance);
-                    t.Gold = checked(t.Gold + merchantSale.NetToSeller);
+                    ReceiveTrainerIncome(t, merchantSale.NetToSeller, "MerchantMaterialSale");
                     if (merchantSale.MerchantUnits > 0) Raise(new MaterialTradeSettled(now, t.Id, lot.Key.Value, "Merchant",
                         merchantSale.MerchantUnits, merchantSale.Gross, merchantSale.Tax, merchantSale.NetToSeller));
                     if (merchantSale.Tax > 0)
