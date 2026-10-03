@@ -58,6 +58,28 @@ public sealed class ProtectionCharmMarketTests
     }
 
     [Fact]
+    public void TrainerEnhancementActionRunsCharmDecisionBeforeEnhancing()
+    {
+        var world = new HubWorld(new SimConfig
+        {
+            TrainerCount = 1,
+            StartTreasury = 100_000,
+            StartTrainerGold = 100_000,
+            QuestSettings = new HubQuestConfig(maximumProtectionCharmFulfillment: 10)
+        }.WithServiceFacilities(), 9001);
+        var item = new GearItem("ai+10", GearCatalog.Default.GetSlot("trainer.gloves"), 2, 100, enhanceLevel: 10);
+        Assert.True(world.OfferGear(0, item, 1).Ok);
+        Assert.True(world.ProvisionProtectionCharms(1).Ok);
+        world.GrantProductForTest(0, "enhancement_stone", 1);
+
+        Assert.True(world.TrainerEnhanceGear(0, item).Ok);
+
+        Assert.Equal(0, world.SupplyStocks.Where(x => x.ItemId == "product:protection_charm").Select(x => x.Available).DefaultIfEmpty(0).Single());
+        Assert.Equal(1, world.Quests.WeeklyKpis.Single(x => x.Id == "kpi.weekly.risk_insurance").Progress);
+        Assert.InRange(item.EnhanceLevel, 10, 11); // attempt may fail; the action must have purchased before resolving it
+    }
+
+    [Fact]
     public void PriceChangesApplyToProtectionCharmPurchase()
     {
         var world = CreateWorld();

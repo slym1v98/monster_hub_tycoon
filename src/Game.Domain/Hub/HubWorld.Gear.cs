@@ -123,6 +123,17 @@ namespace Game.Domain
             return CommandResult.Success();
         }
 
+        /// <summary>Hành động AI: cân nhắc mua Bùa theo giá trị tránh tổn thất rồi thực hiện lần Cường hóa.</summary>
+        public CommandResult TrainerEnhanceGear(int trainerId, GearItem item)
+        {
+            if (!ValidGearInput(trainerId, item)) return CommandResult.Rejected("Thiếu tham số trang bị hợp lệ.");
+            if (trainers[trainerId].Inventory.Count(new ProductId("enhancement_stone")) < GearSettings.EnhanceStoneCost)
+                return CommandResult.Rejected("Không có Đá Cường hóa.");
+            TrainerPrepareEnhancementProtection(trainerId, item);
+            bool useProtection = trainers[trainerId].Inventory.Count(new ProductId("protection_charm")) >= GearSettings.EnhanceProtectionCharmCost;
+            return EnhanceGear(trainerId, item, useProtection);
+        }
+
         /// <summary>Cường hóa +1: đốt Gold và 1 Đá Cường hóa; từ +11 có thể vỡ trừ khi dùng Bùa Bảo Hộ.</summary>
         public CommandResult EnhanceGear(int trainerId, GearItem item, bool useProtectionCharm)
         {

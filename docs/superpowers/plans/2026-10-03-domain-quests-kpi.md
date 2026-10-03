@@ -121,10 +121,11 @@
 - [x] Run `/Users/nofine/.dotnet/dotnet test tests/Game.Domain.Tests/Game.Domain.Tests.csproj --no-restore` and record the exact pass/fail count.
 - [x] Run `/Users/nofine/.dotnet/dotnet run --project tools/Game.Sim --no-restore -- quest-kpi` and verify repeatable output and balanced Gold/item/reward ledgers.
 - [x] Audit every numeric Quest/KPI setting against `Quest & KPI` workbook rows and verify every row has a value, unit, status, and source; run `git diff --check`.
-- [ ] Perform an independent code review against the approved spec and GDD 02, 07, 08, 12, and 13; resolve findings before close-out.
-- [ ] Stage only Quest/KPI implementation, tests, plan/review docs, scenario, and workbook changes; commit locally with `feat(domain): complete quests and KPI sub-project`.
+- [x] Perform an independent code review against the approved spec and GDD 02, 07, 08, 12, and 13; resolve findings before close-out. The reviewer found that the Charm decision had no enhancement action caller. Added `TrainerEnhanceGear`, which invokes that decision before enhancement; reviewer confirmed resolution and reported no remaining finding.
+- [x] Stage only Quest/KPI implementation, tests, plan/review docs, scenario, and workbook changes; commit locally with `feat(domain): complete quests and KPI sub-project` (implementation commit `edf99f4`; final review/fix close-out is recorded in a follow-up local commit).
 
 ## Close-out
 
 - Spec approved on 2026-10-03 and committed locally as `410adf8`.
-- The plan was approved; Implementation is complete pending final review and commit.
+- The plan was approved. Implementation and independent review are complete.
+- Final verification: `dotnet test tests/Game.Domain.Tests/Game.Domain.Tests.csproj --no-restore` — 733 passed, 0 failed; `dotnet run --project tools/Game.Sim --no-restore -- quest-kpi` passed; `git diff --check` clean. The new AI enhancement entrypoint is covered by `TrainerEnhancementActionRunsCharmDecisionBeforeEnhancing`.
