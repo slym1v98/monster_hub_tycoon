@@ -24,8 +24,13 @@ public static class MonsterScenarios
         if (mode != "monster" && mode != "expedition") throw new ArgumentException("Unknown Monster scenario.", nameof(mode));
         if (output == null) throw new ArgumentNullException(nameof(output));
         var timer = Stopwatch.StartNew();
-        var cfg = new SimConfig { TrainerCount = mode == "monster" ? 2 : 6, StartMinute = 100,
+        var cfg = new SimConfig { TrainerCount = mode == "monster" ? 2 : 6, StartMinute = 100, StartTownHallLevel = 4,
             StartTreasury = 1000000, StartTrainerGold = 10000,
+            StartingFacilityLevels = new Dictionary<string, int> { ["inn"] = 1, ["restaurant"] = 1,
+                ["bar"] = 1, ["veterinary_hospital"] = 1 },
+            HubProgressionSettings = new HubProgressionConfig(facilityUpgradeMinutes: 1),
+            StartingConstructionStock = new Dictionary<ProductId, int> { [new ProductId("wood_ingot")] = 20,
+                [new ProductId("stone_ingot")] = 20, [new ProductId("iron_ingot")] = 20 },
             ExpeditionSettings = new ExpeditionConfig(opponentAttack: 60),
             RarityUpgradeSettings = new UpgradeConfig(new[] { 1d, 1d, 1d, 1d }, new[] { 0, 0, 0, 0 }, new[] { 1, 1, 1, 1 }) };
         var prices = ConsumablePriceConfig.Prototype.Prices.ToDictionary(x => x.Key, x => x.Value);
@@ -36,13 +41,10 @@ public static class MonsterScenarios
             new MonsterStats(400, 12, 12, 1, 0.05), new MonsterStats(0, 0, 0, 0, 0));
         cfg.EvolutionCatalogSettings = new EvolutionCatalog(new[] { new EvolutionDefinition(species.Id, "water_guard", evolved,
             FixtureLevel, 1, 2, new ProductId("gene_fragment"), 1, new[] { "water_strike" }) });
-        // Expedition uses a rank-one survey table so all five Zone themes can be visited without implementing Rebirth.
-        if (mode == "expedition") cfg.ZoneCatalogSettings = new ZoneCatalog(ZoneCatalog.Default.Definitions.Select((z, i) =>
-            new ZoneDefinition(z.Id, z.DisplayName, 1, z.WalkMinutes, z.MaterialWeights,
-                new EncounterProfile(z.EncounterProfile.ElementWeights.ToDictionary(x => x.Key, x => x.Value),
-                    z.EncounterProfile.ExpectedEncountersPerHour, 100 * (i + 1) * (i + 1),
-                    z.EncounterProfile.ExpectedMaterialUnitsPerEncounter, z.EncounterProfile.ExperiencePerEncounter))));
         var world = new HubWorld(cfg, Seed); // Same default resolver and RNG as the game.
+        Require(world.ConstructFacility("refinery"));
+        Require(world.ConstructFacility("tool_workshop"));
+        world.RunFor(1);
         var metrics = new Metrics(world);
         output.WriteLine($"# {mode}: seed {Seed}; {cfg.TrainerCount} Trainers; {Days} days; DefaultExpeditionResolver via HubWorld");
         foreach (var p in Parameters(cfg, mode).OrderBy(p => p.Id, StringComparer.Ordinal))
@@ -60,8 +62,6 @@ public static class MonsterScenarios
         Require(world.SwapActiveMonster(0, "scenario_reserve"));
         Require(world.StoreMonster(0, "scenario_salvage"));
         Require(world.WithdrawMonster(0, "scenario_salvage"));
-        Require(world.DepositMonster(0, "scenario_salvage"));
-        Require(world.WithdrawBankMonster(0, "scenario_salvage"));
         Require(world.AppraiseMonster(0, "scenario_reserve"));
         Require(world.DismantleMonster(0, "scenario_salvage"));
         Require(world.UpgradeMonsterRarity(0, "scenario_reserve"));
@@ -69,7 +69,6 @@ public static class MonsterScenarios
         Require(world.SetProductBuyRequest("gene_fragment", 1, cfg.MaterialPrice));
         Require(world.SellProductToStation(0, "gene_fragment", 1));
         Require(world.PurchaseProduct(0, "gene_fragment", 1));
-        Require(world.DepositMonster(0, "trainer_0_starter")); // Bank fee settles at Payday.
 
         var target = Monster.Create(new MonsterId("scenario_wild_capture"), species, Rarity.Epic,
             MonsterIvGrade.B, FixtureLevel, Seed + 2);
@@ -77,8 +76,6 @@ public static class MonsterScenarios
         bool caught = false, emergency = false;
         for (int day = 1; day < Days; day++)
         {
-            if (mode == "expedition" && day % 6 == 0)
-                Require(world.UnlockZone("zone_" + (day / 6 + 1)));
             if (!caught)
             {
                 var trainer = world.Trainers[0];

@@ -31,6 +31,15 @@ namespace Game.Domain
         bool IsSoulBound = false);
 
     public sealed record ZoneView(string Id, string DisplayName, int MinimumRank, int WalkMinutes, bool IsUnlocked);
+    public sealed record HubProgressionView(int TownHallLevel, int TownHallTier, int DormitoryLevel,
+        int PopulationCapacity, int CurrentPopulation, int? TownHallUpgradeFinishMinute, int? DormitoryUpgradeFinishMinute);
+    public sealed record FacilityUpgradeScheduled(int Minute, string FacilityId, int FromLevel, int ToLevel, long GoldCost, int FinishMinute) : IDomainEvent;
+    public sealed record ConstructionMaterialsConsumed(int Minute, string FacilityId, int WoodIngots, int StoneIngots, int IronIngots) : IDomainEvent;
+    public sealed record FacilityUpgradeCompleted(int Minute, string FacilityId, int FromLevel, int ToLevel) : IDomainEvent;
+    public sealed record FacilityPowerChanged(int Minute, string FacilityId, bool PoweredOn) : IDomainEvent;
+    public sealed record FacilityMaintenanceChanged(int Minute, string FacilityId, bool Maintained) : IDomainEvent;
+    public sealed record FacilityRepairScheduled(int Minute, string FacilityId, long GoldCost, int FinishMinute) : IDomainEvent;
+    public sealed record FacilityRepairCompleted(int Minute, string FacilityId) : IDomainEvent;
     public sealed record MonsterRecoveryView(int RecoveryId, int TrainerId, MonsterView Monster, int CompleteAtMinute,
         long Fee, bool IsCapturedMonster);
     public sealed record VeterinaryHospitalView(int RecoveryBedCapacity, int EmergencyBedCapacity,
@@ -62,7 +71,16 @@ namespace Game.Domain
     /// <summary>Ảnh chụp chỉ đọc của một công trình dịch vụ cho UI.</summary>
     public sealed record BuildingView(
         BuildingKind Kind, int Level, int Slots, int Occupied, int QueueLength, int MaxQueueLength,
-        long Price, long FairPrice, bool Maintained);
+        long Price, long FairPrice, bool Maintained, bool PoweredOn, bool Damaged,
+        int FullSlots, double QualityMultiplier, int? RepairFinishMinute);
+    public sealed record BuildingPowerChanged(int Minute, BuildingKind Building, bool PoweredOn) : IDomainEvent;
+    public sealed record BuildingRepairScheduled(int Minute, BuildingKind Building, long GoldCost,
+        int WoodIngots, int StoneIngots, int IronIngots, int FinishMinute) : IDomainEvent;
+    public sealed record BuildingRepairCompleted(int Minute, BuildingKind Building) : IDomainEvent;
+    public sealed record ReputationChanged(int Minute, double PreviousScore, HubReputationView Current) : IDomainEvent;
+    public enum HubEventKind { BlackFriday, BreedingSeason, MonsterFlu, LaborInspection, MonsterSiege, WorldBossRaid }
+    public sealed record HubEventView(HubEventKind Kind, int StartMinute, int EndMinute, bool IsActive);
+    public sealed record HubEventChanged(int Minute, HubEventKind Kind, string Phase, long GoldDelta, int AffectedEntities) : IDomainEvent;
 
     public sealed record MaterialStockView(string ItemId, int Available, int Reserved, int InProduction);
     public sealed record BuyRequestView(string MaterialId, int TargetStock, long BidPrice, bool Enabled, int Deficit);
@@ -79,6 +97,7 @@ namespace Game.Domain
     public sealed record GearBuyback(int Minute, int TrainerId, string ItemId, long SalePrice, long BuybackPrice, bool Success) : IDomainEvent;
     public sealed record GearFodderPurchased(int Minute, int TrainerId, string ItemId, string SlotId, long Price, bool Success) : IDomainEvent;
     public sealed record ProductPurchased(int Minute, int TrainerId, string ProductId, int Units, long UnitPrice, long TotalPaid) : IDomainEvent;
+    public sealed record ProductPriceChanged(int Minute, string ProductId, long PreviousPrice, long NewPrice) : IDomainEvent;
     public sealed record GeneBankFeeSettled(int Minute, int TrainerId, long Assessed, long Paid, long Unpaid, string ConfiscatedMonsterId) : IDomainEvent;
     public sealed record TrainerLoanBalanceChanged(int Minute, int TrainerId, long OldBalance, long NewBalance, long Amount, string Reason) : IDomainEvent;
     public sealed record TrainerLoanRepaid(int Minute, int TrainerId, long Amount, string IncomeSource) : IDomainEvent;

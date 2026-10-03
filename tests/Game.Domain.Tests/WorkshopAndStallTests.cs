@@ -33,7 +33,7 @@ namespace Game.Domain.Tests
         public void StallSellsOnlyProducedStockAndPostsMoneyExactlyOnce()
         {
             var catalog = MaterialCatalog.Default;
-            var stallDefinition = Assert.Single(ConsumableStallCatalog.Default.Stalls, x => x.ShopId == "hospital");
+            var stallDefinition = Assert.Single(ConsumableStallCatalog.Default.Stalls, x => x.ShopId == "veterinary_hospital");
             var stock = new Inventory();
             var potion = new InventoryItem(new ProductId("potion"));
             var food = new InventoryItem(new ProductId("food_drink"));
@@ -71,7 +71,7 @@ namespace Game.Domain.Tests
         [Fact]
         public void ExactStallPurchaseRejectsPartialStockOrCashWithoutMutation()
         {
-            var definition = Assert.Single(ConsumableStallCatalog.Default.Stalls, x => x.ShopId == "hospital");
+            var definition = Assert.Single(ConsumableStallCatalog.Default.Stalls, x => x.ShopId == "veterinary_hospital");
             var stock = new Inventory(); var potion = new ProductId("potion"); var item = new InventoryItem(potion);
             stock.Add(item, 1); var ledger = new MoneyLedger(); var stall = new ConsumableStall(definition, stock, ledger);
             Assert.False(stall.TryPurchaseToTrainer("trainer:1", potion, 2, 10, 100, out var unavailable));

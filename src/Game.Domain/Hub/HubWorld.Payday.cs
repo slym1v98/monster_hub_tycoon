@@ -31,11 +31,15 @@ namespace Game.Domain
         {
             if (!paydayPending) throw new InvalidOperationException("Payday chưa tới, chưa thể xử lý.");
 
+            int currentPayday = SimClock.PaydayMinute(paydayIndex);
+            if (HubEventCalendar.IsBlackFriday(now - 1, currentPayday, cfg.EventSettings))
+                Raise(new HubEventChanged(now, HubEventKind.BlackFriday, "Ended", 0, trainers.Count));
             var balancesBeforePayroll = trainers.ToDictionary(t => t.Id, t => t.Gold);
             PaydayOutcome outcome = payroll.Resolve(trainers, treasury, cfg);
             paydayPending = false;
             paydayIndex++;
             queue.Schedule(SimClock.PaydayMinute(paydayIndex), SimEventKind.PaydayDue);
+            ScheduleBlackFridayStart(SimClock.PaydayMinute(paydayIndex));
             if (outcome.TotalPaid > 0) Raise(new TreasuryChanged(now, -outcome.TotalPaid, treasury.Balance, "Payday"));
             Raise(new PaydayResolved(now, outcome));
             foreach (var trainer in trainers)

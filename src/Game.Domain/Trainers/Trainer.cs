@@ -10,7 +10,7 @@ namespace Game.Domain
     public enum TrainerState { AtHub, Traveling, Farming, Returning, Queued, InService, WaitingForMoney, WaitingForMarket }
 
     /// <summary>Lý do Trainer quyết định về HUB. <see cref="None"/> nghĩa là tiếp tục farm.</summary>
-    public enum ReturnReason { None, Strike, Night, TeamDown, BackpackFull, Tired, Hungry, Thirsty }
+    public enum ReturnReason { None, Strike, Night, TeamDown, BackpackFull, Tired, Hungry, Thirsty, EventCall }
 
     /// <summary>Bốn thanh nhu cầu, thang 0-100. Thể lực/No nê/Nước hồi ở dịch vụ; Stress càng cao càng tệ.</summary>
     public sealed class Needs

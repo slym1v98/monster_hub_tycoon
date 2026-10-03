@@ -11,10 +11,10 @@ public sealed class HubWorldStockTests
     {
         var world = new HubWorld(new SimConfig
         {
-            TrainerCount = 1, StartMinute = SimClock.DawnMinute,
+            TrainerCount = 1, StartMinute = SimClock.DawnMinute, StartBuildingLevel = 5, StartTownHallLevel = 5,
             StartTrainerGold = 100000, StartTreasury = 1000000,
             UnlockedZoneIds = Array.Empty<string>(), ForcedPersonality = Personality.Timid
-        }, 20261003);
+        }.WithServiceFacilities().WithTierThreeFacilities("stock_exchange"), 20261003);
         var events = new List<IDomainEvent>();
         world.EventRaised += events.Add;
         world.RunFor(15 * SimClock.MinutesPerDay + 1); // Include the midnight close at the 15-day boundary.
@@ -50,10 +50,10 @@ public sealed class HubWorldStockTests
     {
         var world = new HubWorld(new SimConfig
         {
-            TrainerCount = 2, StartMinute = SimClock.DawnMinute,
+            TrainerCount = 2, StartMinute = SimClock.DawnMinute, StartBuildingLevel = 5, StartTownHallLevel = 5,
             StartTrainerGold = 100000, StartTreasury = 1000000,
             UnlockedZoneIds = Array.Empty<string>(), ForcedPersonality = Personality.Warlike
-        }, 20261004);
+        }.WithServiceFacilities().WithTierThreeFacilities("stock_exchange"), 20261004);
         world.RunFor(15 * SimClock.MinutesPerDay + 1);
         Assert.True(world.IpoBuildingStock(BuildingKind.Restaurant).Ok);
         var company = Assert.Single(world.StockCompanies);

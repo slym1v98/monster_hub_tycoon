@@ -8,14 +8,15 @@ public sealed class TrainerLoanTests
     static HubWorld Create(TrainerLoanConfig settings = null) => new HubWorld(new SimConfig
     {
         TrainerCount = 1, StartTreasury = 100000, StartTrainerGold = 0,
-        UnlockedZoneIds = System.Array.Empty<string>(), TrainerLoanSettings = settings ?? TrainerLoanConfig.Prototype
-    }, 411);
+        UnlockedZoneIds = System.Array.Empty<string>(), UpkeepPerBuildingPerDay = 0,
+        TrainerLoanSettings = settings ?? TrainerLoanConfig.Prototype
+    }.WithServiceFacilities(), 411);
 
     static HubWorld CreateRankFiveLender() => new HubWorld(new SimConfig
     {
         TrainerCount = 1, StartTreasury = 100000, StartTrainerGold = 1000,
         UnlockedZoneIds = System.Array.Empty<string>(), StartingTrainerRanks = new[] { 5 }
-    }, 412);
+    }.WithServiceFacilities(), 412);
 
     [Fact]
     public void DirectorLoanTransfersTreasuryGoldAndEnforcesLimit()

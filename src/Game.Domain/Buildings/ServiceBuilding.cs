@@ -18,22 +18,26 @@ namespace Game.Domain
         /// <summary>Giá Giám đốc đặt. Bệnh Viện: giá trên mỗi 10 HP.</summary>
         public long Price;
         public readonly int BaseServiceMinutes;
-        public readonly long UpkeepPerDay;
+        readonly long baseUpkeepPerLevelOne;
+        public long UpkeepPerDay => checked(baseUpkeepPerLevelOne * Level);
         /// <summary>false khi thiếu tiền vận hành (Thiếu bảo trì): số chỗ chia đôi.</summary>
         public bool Maintained = true;
+        public bool PoweredOn = true;
+        public bool Damaged;
 
         public ServiceBuilding(BuildingSpec spec, int level, long upkeepPerDay)
         {
             if (spec == null) throw new ArgumentNullException(nameof(spec));
-            if (level < 1) throw new ArgumentOutOfRangeException(nameof(level));
+            if (level < 0) throw new ArgumentOutOfRangeException(nameof(level));
             Kind = spec.Kind; Level = level;
             FairPrice = spec.FairPrice; Price = spec.FairPrice;
-            BaseServiceMinutes = spec.ServiceMinutes; UpkeepPerDay = upkeepPerDay;
+            BaseServiceMinutes = spec.ServiceMinutes; baseUpkeepPerLevelOne = upkeepPerDay;
         }
 
         /// <summary>Số chỗ khi vận hành bình thường: 5 + floor(0.8 x cấp), tính bằng số nguyên.</summary>
-        public int FullSlots => 5 + (Level * 4) / 5;
-        public int Slots => Maintained ? FullSlots : FullSlots / 2;
+        public int FullSlots => Level <= 0 ? 0 : 5 + (Level * 4) / 5;
+        public int Slots => !PoweredOn ? 0 : Maintained && !Damaged ? FullSlots : FullSlots / 2;
+        public double QualityMultiplier => !PoweredOn ? 0 : Maintained && !Damaged ? 1 : 0.5;
         public int Occupied => occupants.Count;
         public int QueueLength => waiting.Count;
         /// <summary>Độ dài hàng đợi lớn nhất từng gặp (dùng cho báo cáo Game.Sim).</summary>

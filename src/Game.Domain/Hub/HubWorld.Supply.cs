@@ -82,6 +82,7 @@ namespace Game.Domain
             var definition = MaterialCatalog.Default.Products.FirstOrDefault(x => x.Id == id);
             if (definition == null) return CommandResult.Rejected("Product is not in the catalog.");
             productStalls.TryGetValue(id, out var stall);
+            if (stall != null && !CanFacilityOperate(stall.ShopId)) return CommandResult.Rejected("facility.unavailable");
             var trainer = trainers[trainerId];
             if (!trainer.Inventory.CanAdd(id, units)) return CommandResult.Rejected("Số lượng vượt giới hạn kho Trainer.");
             int available = stall != null ? stall.Available(id) : station.Stock.Get(new InventoryItem(id)).Available;
@@ -110,7 +111,7 @@ namespace Game.Domain
             return CommandResult.Success();
         }
 
-        long ProductPrice(ProductId id)
+        long BaseProductPrice(ProductId id)
         {
             var definition = MaterialCatalog.Default.Products.FirstOrDefault(x => x.Id == id);
             if (definition == null) throw new KeyNotFoundException("Product is not in the catalog.");
@@ -121,6 +122,31 @@ namespace Game.Domain
             }
             if (!(cfg.ConsumablePrices ?? ConsumablePriceConfig.Prototype).TryGetPrice(id, out var price)) throw new KeyNotFoundException("Product price is not configured.");
             return price;
+        }
+
+        long ProductPrice(ProductId id)
+            => productPriceOverrides.TryGetValue(id, out var price) ? price : BaseProductPrice(id);
+
+        public CommandResult SetProductPrice(string productId, long price)
+        {
+            if (string.IsNullOrWhiteSpace(productId)) return CommandResult.Rejected("product.unknown");
+            var id = new ProductId(productId);
+            if (!MaterialCatalog.Default.Products.Any(x => x.Id == id)) return CommandResult.Rejected("product.unknown");
+            if (price < 0) return CommandResult.Rejected("product.invalid_price");
+            long basePrice;
+            try { basePrice = BaseProductPrice(id); }
+            catch (Exception ex) when (ex is OverflowException || ex is KeyNotFoundException) { return CommandResult.Rejected("product.price_unavailable"); }
+            if (productId == "capture_ball" || productId == "trap")
+            {
+                decimal maximum = decimal.Ceiling(basePrice * (decimal)cfg.EventSettings.BreedingSeasonPriceCapMultiplier);
+                if (price > maximum) return CommandResult.Rejected("product.seasonal_price_cap");
+            }
+            long previous;
+            try { previous = ProductPrice(id); }
+            catch { previous = basePrice; }
+            productPriceOverrides[id] = price;
+            Raise(new ProductPriceChanged(now, productId, previous, price));
+            return CommandResult.Success();
         }
 
         public CommandResult SetProductBuyRequest(string productId, int targetStock, long bidPrice, bool enabled = true)
@@ -192,9 +218,16 @@ namespace Game.Domain
             if (targetStock < 0) return CommandResult.Rejected("Mức tồn mục tiêu không được âm.");
             try
             {
+                var product = new ProductId(productId);
+                var producer = MaterialCatalog.Default.Recipes.Where(r => r.Outputs.Any(o => o.Product == product))
+                    .Select(r => r.Producer.Value).FirstOrDefault();
+                var facility = producer == null ? null : HubFacilityCatalog.Definitions
+                    .FirstOrDefault(d => ProducerForFacility(d.Id) == producer)?.Id;
+                if (facility != null && targetStock > 0 && !CanFacilityOperate(facility))
+                    return CommandResult.Rejected("facility.unavailable");
                 var previous = new HashSet<long>(production.ActiveJobs.Select(x => x.Id));
                 long treasuryBefore = treasury.Balance;
-                production.SetTarget(new ProductId(productId), targetStock, now);
+                production.SetTarget(product, targetStock, now);
                 EmitProductionTreasuryChange(treasuryBefore);
                 EmitRestockDemandChanges();
                 EmitStartedJobs(previous);
@@ -217,6 +250,7 @@ namespace Game.Domain
             if (double.IsNaN(rate) || rate < 0 || rate > 1) return CommandResult.Rejected("Thuế phải trong khoảng 0..1.");
             marketTaxRate = rate;
             station.SetTaxRate(rate);
+            CheckLaborInspectionTrigger();
             return CommandResult.Success();
         }
 

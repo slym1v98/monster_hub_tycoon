@@ -57,6 +57,14 @@ namespace Game.Domain
         void OnDecide(Trainer t)
         {
             Settle(t);
+            int defenseFinish = Math.Max(monsterSiegeFinishMinute, worldBossFinishMinute);
+            if (defenseFinish > now)
+            {
+                t.Token++;
+                SetState(t, TrainerState.AtHub, "EventDefense");
+                queue.Schedule(defenseFinish, SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
             bool isNight = SimClock.IsNight(now);
 
             if (t.Roster.Members.Any(m => m.Custody == MonsterCustody.Hospital))
@@ -66,6 +74,12 @@ namespace Game.Domain
                 return;
             }
             BuildingKind? need = TrainerBrain.PickService(t, cfg, isNight, !t.IsOnStrike, GearEffects.HasNightVision(t, GearCat, t.HasNightVision));   // đình công: không vào Bệnh Viện
+            if (need.HasValue)
+            {
+                string facilityId = need.Value == BuildingKind.Inn ? "inn" : need.Value == BuildingKind.Restaurant ? "restaurant"
+                    : need.Value == BuildingKind.Bar ? "bar" : "veterinary_hospital";
+                if (!CanFacilityOperate(facilityId)) need = null;
+            }
             if (need.HasValue) { RequestService(t, need.Value); return; }
 
             if (t.IsOnStrike)
@@ -224,7 +238,16 @@ namespace Game.Domain
         void OnArriveHub(Trainer t)
         {
             Settle(t);
-            SetState(t, TrainerState.AtHub, "Arrived");
+            bool calledForDefense = defenseCalledTrainerIds.Contains(t.Id);
+            bool defenseActive = monsterSiegeFinishMinute >= 0 || worldBossFinishMinute >= 0;
+            SetState(t, TrainerState.AtHub, calledForDefense && defenseActive ? ReturnReason.EventCall.ToString() : "Arrived");
+            if (calledForDefense && defenseActive)
+            {
+                t.Token++;
+                queue.Schedule(Math.Max(monsterSiegeFinishMinute, worldBossFinishMinute), SimEventKind.TrainerDecide, t.Id, t.Token);
+                return;
+            }
+            if (calledForDefense) defenseCalledTrainerIds.Remove(t.Id);
             if (t.BackpackUnits > 0 && useSupplyChain)
             {
                 if (SellBackpack(t)) { SetState(t, TrainerState.AtHub, "MarketSettled"); OnDecide(t); }

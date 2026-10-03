@@ -6,7 +6,7 @@ using Game.Domain.Supply;
 
 namespace Game.Domain.Production
 {
-    public enum ProductionJobState { Running, Completed, Cancelled }
+    public enum ProductionJobState { Running, Paused, Completed, Cancelled }
 
     /// <summary>Tham số chạy xưởng; mọi số hiện tại là prototype, chưa cân bằng.</summary>
     public sealed class ProductionConfig
@@ -58,8 +58,8 @@ namespace Game.Domain.Production
         public long Id { get; }
         public Recipe Recipe { get; }
         public int ProducerLevel { get; }
-        public int StartMinute { get; }
-        public int FinishMinute { get; }
+        public int StartMinute { get; internal set; }
+        public int FinishMinute { get; internal set; }
         public ProductionJobState State { get; internal set; }
         public IReadOnlyList<InventoryItemQuantity> Inputs { get; }
         public IReadOnlyList<InventoryItemQuantity> BaseOutputs { get; }
@@ -86,11 +86,13 @@ namespace Game.Domain.Production
             public ProducerDefinition Definition;
             public int Level = 1;
             public int Capacity;
+            public decimal Efficiency = 1m;
         }
 
         private readonly Dictionary<ProductId, int> targets = new Dictionary<ProductId, int>();
         private readonly HashSet<ProductId> pausedTargets = new HashSet<ProductId>();
         private readonly Dictionary<ProducerId, ProducerRuntime> producers;
+        private readonly Dictionary<long, int> pausedJobMinutesRemaining = new Dictionary<long, int>();
         private readonly Recipe[] recipes;
         private readonly HashSet<ProductId> knownProducts;
         private readonly Inventory inventory;
@@ -134,9 +136,35 @@ namespace Game.Domain.Production
         {
             if (!producers.TryGetValue(producer, out var runtime)) throw new ArgumentException("Xưởng không tồn tại.", nameof(producer));
             if (level < 1 || level > 5) throw new ArgumentOutOfRangeException(nameof(level));
-            if (concurrentJobs <= 0) throw new ArgumentOutOfRangeException(nameof(concurrentJobs));
-            runtime.Level = level; runtime.Capacity = concurrentJobs;
+            if (concurrentJobs < 0) throw new ArgumentOutOfRangeException(nameof(concurrentJobs));
+            runtime.Level = level;
+            if (runtime.Capacity > 0 && concurrentJobs == 0)
+            {
+                foreach (var job in ActiveJobs.Where(x => x.Recipe.Producer == producer).ToArray())
+                {
+                    pausedJobMinutesRemaining[job.Id] = Math.Max(1, job.FinishMinute - CurrentMinute);
+                    job.State = ProductionJobState.Paused;
+                }
+            }
+            else if (runtime.Capacity == 0 && concurrentJobs > 0)
+            {
+                foreach (var job in jobs.Where(x => x.State == ProductionJobState.Paused && x.Recipe.Producer == producer).ToArray())
+                {
+                    job.StartMinute = CurrentMinute;
+                    job.FinishMinute = checked(CurrentMinute + pausedJobMinutesRemaining[job.Id]);
+                    pausedJobMinutesRemaining.Remove(job.Id);
+                    job.State = ProductionJobState.Running;
+                }
+            }
+            runtime.Capacity = concurrentJobs;
             Reconcile();
+        }
+
+        public void SetProducerEfficiency(ProducerId producer, decimal efficiency)
+        {
+            if (!producers.TryGetValue(producer, out var runtime)) throw new ArgumentException("Xưởng không tồn tại.", nameof(producer));
+            if (efficiency < 0 || efficiency > 1) throw new ArgumentOutOfRangeException(nameof(efficiency));
+            runtime.Efficiency = efficiency;
         }
 
         public void SetTarget(ProductId product, int target, int now)
@@ -270,7 +298,7 @@ namespace Game.Domain.Production
                 if (output.Item.Value.StartsWith("product:blank_", StringComparison.Ordinal))
                 {
                     var key = YieldKey(job.Recipe, output.Item);
-                    var exact = output.Quantity * Efficiency(job.Recipe, job.ProducerLevel)
+                var exact = output.Quantity * Efficiency(job.Recipe, job.ProducerLevel) * producers[job.Recipe.Producer].Efficiency
                         + (yieldRemainders.TryGetValue(key, out var remainder) ? remainder : 0m);
                     quantity = decimal.ToInt32(decimal.Floor(exact));
                     nextRemainders[key] = exact - quantity;

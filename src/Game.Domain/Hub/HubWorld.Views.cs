@@ -7,6 +7,29 @@ namespace Game.Domain
 {
     public sealed partial class HubWorld
     {
+        public HubReputationView Reputation => HubReputation.Calculate(buildings, trainers, Bankruptcies, cfg.HubReputationSettings);
+        public IReadOnlyList<HubEventView> ActiveEvents
+        {
+            get
+            {
+                int payday = SimClock.PaydayMinute(paydayIndex);
+                var events = new System.Collections.Generic.List<HubEventView>();
+                if (HubEventCalendar.IsBlackFriday(now, payday, cfg.EventSettings))
+                    events.Add(new HubEventView(HubEventKind.BlackFriday,
+                        payday - cfg.EventSettings.BlackFridayDays * SimClock.MinutesPerDay, payday, true));
+                if (inspectionFinishMinute >= 0)
+                    events.Add(new HubEventView(HubEventKind.LaborInspection, now, inspectionFinishMinute, true));
+                if (monsterFluFinishMinute >= 0)
+                    events.Add(new HubEventView(HubEventKind.MonsterFlu, monsterFluStartMinute, monsterFluFinishMinute, true));
+                if (breedingSeasonFinishMinute >= 0)
+                    events.Add(new HubEventView(HubEventKind.BreedingSeason, breedingSeasonStartMinute, breedingSeasonFinishMinute, true));
+                if (monsterSiegeFinishMinute >= 0)
+                    events.Add(new HubEventView(HubEventKind.MonsterSiege, monsterSiegeStartMinute, monsterSiegeFinishMinute, true));
+                if (worldBossFinishMinute >= 0)
+                    events.Add(new HubEventView(HubEventKind.WorldBossRaid, worldBossStartMinute, worldBossFinishMinute, true));
+                return Array.AsReadOnly(events.ToArray());
+            }
+        }
         public IReadOnlyList<StockCompanyView> StockCompanies => stockExchange.Companies;
         public IReadOnlyList<StockHoldingView> StockHoldingsForTrainer(int trainerId)
             => trainerId < 0 || trainerId >= trainers.Count ? Array.Empty<StockHoldingView>() : stockExchange.HoldingsFor(trainerId);
@@ -48,6 +71,47 @@ namespace Game.Domain
             .OrderBy(z => z.Id, StringComparer.Ordinal).Select(z => new ZoneView(z.Id, z.DisplayName,
                 z.MinimumRank, z.WalkMinutes, unlockedZoneIds.Contains(z.Id))).ToArray());
 
+        public IReadOnlyList<HubFacilityView> Facilities => Array.AsReadOnly(HubFacilityCatalog.Definitions
+            .Select(definition =>
+            {
+                bool zoneReady = definition.RequiredZone <= 1 || unlockedZoneIds.Contains("zone_" + definition.RequiredZone);
+                bool unlocked = townHallLevel >= definition.TownHallUnlockLevel && zoneReady;
+                int maxAllowed = !unlocked ? 0 : definition.Id == "dormitory"
+                    ? Math.Min(definition.MaxLevel, 1 + townHallLevel / cfg.HubProgressionSettings.TownHallLevelsPerTier)
+                    : definition.MaxLevel == 5
+                        ? Math.Min(definition.MaxLevel, (townHallLevel - 1) / cfg.HubProgressionSettings.TownHallLevelsPerTier + 1)
+                        : Math.Min(definition.MaxLevel, townHallLevel);
+                int level = unlocked ? FacilityLevel(definition.Id, definition.StartsRebuilt) : 0;
+                facilityStates.TryGetValue(definition.Id, out var runtime);
+                BuildingKind? serviceKind = ServiceBuildingForFacility(definition.Id);
+                bool powered = serviceKind.HasValue ? buildings[(int)serviceKind.Value].Level > 0 && buildings[(int)serviceKind.Value].PoweredOn : runtime?.PoweredOn ?? false;
+                bool maintained = serviceKind.HasValue ? buildings[(int)serviceKind.Value].Maintained : runtime?.Maintained ?? true;
+                bool damaged = serviceKind.HasValue ? buildings[(int)serviceKind.Value].Damaged : runtime?.Damaged ?? false;
+                string state = !unlocked ? "Locked" : runtime?.PendingLevel >= 0 ? "ConstructionInProgress"
+                    : level == 0 ? "Available" : !powered ? "PoweredOff"
+                    : !maintained ? "MaintenanceDeficit" : damaged ? "Damaged" : "Operational";
+                return new HubFacilityView(definition.Id, level, definition.MaxLevel, maxAllowed,
+                    definition.TownHallUnlockLevel, definition.RequiredZone, unlocked, definition.StartsRebuilt, state,
+                    runtime?.CompletionMinute >= 0 ? runtime.CompletionMinute : runtime?.RepairFinishMinute >= 0 ? runtime.RepairFinishMinute : null,
+                    powered, maintained, damaged);
+            }).ToArray());
+
+        int FacilityLevel(string id, bool startsRebuilt)
+        {
+            if (id == "town_hall") return townHallLevel;
+            if (id == "dormitory") return dormitoryLevel;
+            BuildingKind? kind = id == "inn" ? BuildingKind.Inn : id == "restaurant" ? BuildingKind.Restaurant :
+                id == "bar" ? BuildingKind.Bar : id == "veterinary_hospital" ? BuildingKind.Hospital : (BuildingKind?)null;
+            if (kind.HasValue) return buildings[(int)kind.Value].Level;
+            return facilityStates.TryGetValue(id, out var state) ? state.Level : startsRebuilt ? 1 : 0;
+        }
+
+        public HubProgressionView Progression => new HubProgressionView(townHallLevel,
+            (townHallLevel - 1) / cfg.HubProgressionSettings.TownHallLevelsPerTier + 1, dormitoryLevel,
+            cfg.HubProgressionSettings.PopulationCaps.Where((_, index) => unlockedZoneIds.Contains("zone_" + (index + 1))).DefaultIfEmpty(0).Max(),
+            trainers.Count, townHallUpgradeFinishMinute < 0 ? (int?)null : townHallUpgradeFinishMinute,
+            dormitoryUpgradeFinishMinute < 0 ? (int?)null : dormitoryUpgradeFinishMinute);
+
         public VeterinaryHospitalView VeterinaryHospital => new VeterinaryHospitalView(veterinaryHospital.RecoveryBedCapacity,
             veterinaryHospital.EmergencyBedCapacity, veterinaryHospital.OccupiedRecoveryBeds, veterinaryHospital.OccupiedEmergencyBeds,
             Array.AsReadOnly(veterinaryHospital.Recoveries.Select(r => new MonsterRecoveryView(r.RecoveryId, r.TrainerId,
@@ -66,7 +130,9 @@ namespace Game.Domain
             {
                 var list = new List<BuildingView>(buildings.Length);
                 foreach (ServiceBuilding b in buildings)
-                    list.Add(new BuildingView(b.Kind, b.Level, b.Slots, b.Occupied, b.QueueLength, b.MaxQueueLength, b.Price, b.FairPrice, b.Maintained));
+                    list.Add(new BuildingView(b.Kind, b.Level, b.Slots, b.Occupied, b.QueueLength, b.MaxQueueLength,
+                        b.Price, b.FairPrice, b.Maintained, b.PoweredOn, b.Damaged, b.FullSlots, b.QualityMultiplier,
+                        buildingRepairFinishMinutes[(int)b.Kind] < 0 ? (int?)null : buildingRepairFinishMinutes[(int)b.Kind]));
                 return list.AsReadOnly();
             }
         }

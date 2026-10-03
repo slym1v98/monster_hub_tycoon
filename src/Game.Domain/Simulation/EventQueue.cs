@@ -18,6 +18,19 @@ namespace Game.Domain
         PaydayDue,          // 23:59 ngày 30: RunFor dừng tại đây
         MerchantRouteStep,
         ProductionComplete,
+        DormitoryUpgradeComplete,
+        TownHallUpgradeComplete,
+        FacilityUpgradeComplete,
+        FacilityRepairComplete,
+        BlackFridayStart,
+        RandomCrisisCheck,
+        LaborInspectionResolve,
+        MonsterFluEnd,
+        BreedingSeasonEnd,
+        BreedingSeasonDemand,
+        MonsterSiegeResolve,
+        WorldBossResolve,
+        BuildingRepairComplete,
         MarketRetry,
         MonsterRecoveryDone
     }

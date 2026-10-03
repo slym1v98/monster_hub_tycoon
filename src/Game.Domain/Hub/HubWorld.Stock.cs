@@ -16,6 +16,7 @@ namespace Game.Domain
 
         public CommandResult SetStockExchangeLevel(int level)
         {
+            if (!CanFacilityOperate("stock_exchange")) return CommandResult.Rejected("facility.unavailable");
             int old = stockExchange.ExchangeLevel;
             if (!stockExchange.SetExchangeLevel(level)) return CommandResult.Rejected("Cấp Sàn Chứng Khoán chỉ tăng từ 1 đến 10.");
             if (old != level) Raise(new StockExchangeLevelChanged(now, old, level));
@@ -24,6 +25,7 @@ namespace Game.Domain
 
         public CommandResult IpoBuildingStock(BuildingKind building)
         {
+            if (!CanFacilityOperate("stock_exchange")) return CommandResult.Rejected("facility.unavailable");
             if (!StockMarketOpen) return CommandResult.Rejected("Sàn Chứng Khoán chỉ mở cửa ban ngày.");
             if ((int)building < 0 || (int)building >= buildings.Length) return CommandResult.Rejected("Công trình không hợp lệ.");
             if (!stockExchange.TryIpo(building.ToString(), buildings[(int)building].Level, out var listing))
@@ -35,6 +37,7 @@ namespace Game.Domain
 
         public CommandResult BuyIpoShares(int trainerId, string companyId, long shares)
         {
+            if (!CanFacilityOperate("stock_exchange")) return CommandResult.Rejected("facility.unavailable");
             if (!ValidStockTrainer(trainerId) || !StockMarketOpen) return CommandResult.Rejected("Trainer không hợp lệ hoặc Sàn đang đóng cửa.");
             StockTradeQuote quote;
             try { quote = stockExchange.QuoteIpoPurchase(companyId, shares); }
@@ -55,6 +58,7 @@ namespace Game.Domain
         /// <summary>Immediate trainer-to-trainer order; the buyer pays the exchange fee and seller gains are taxed.</summary>
         public CommandResult TradeStockShares(int sellerTrainerId, int buyerTrainerId, string companyId, long shares)
         {
+            if (!CanFacilityOperate("stock_exchange")) return CommandResult.Rejected("facility.unavailable");
             if (!ValidStockTrainer(sellerTrainerId) || !ValidStockTrainer(buyerTrainerId) || !StockMarketOpen)
                 return CommandResult.Rejected("Trainer không hợp lệ hoặc Sàn đang đóng cửa.");
             StockTradeQuote quote;
@@ -81,6 +85,7 @@ namespace Game.Domain
         /// <summary>Director sells Treasury-held public float; only shares purchased from Trainers can be resold.</summary>
         public CommandResult DirectorSellStock(string companyId, int buyerTrainerId, long shares)
         {
+            if (!CanFacilityOperate("stock_exchange")) return CommandResult.Rejected("facility.unavailable");
             if (!ValidStockTrainer(buyerTrainerId) || !StockMarketOpen) return CommandResult.Rejected("Trainer không hợp lệ hoặc Sàn đang đóng cửa.");
             StockTradeQuote quote;
             try { quote = stockExchange.QuoteDirectorSale(companyId, buyerTrainerId, shares); }
@@ -101,6 +106,7 @@ namespace Game.Domain
         /// <summary>Director buys public float from a Trainer and pays realized-profit tax and the exchange fee to HUB.</summary>
         public CommandResult DirectorBuyStock(string companyId, int sellerTrainerId, long shares)
         {
+            if (!CanFacilityOperate("stock_exchange")) return CommandResult.Rejected("facility.unavailable");
             if (!ValidStockTrainer(sellerTrainerId) || !StockMarketOpen) return CommandResult.Rejected("Trainer không hợp lệ hoặc Sàn đang đóng cửa.");
             StockTradeQuote quote;
             try { quote = stockExchange.QuoteDirectorPurchase(companyId, sellerTrainerId, shares); }
@@ -144,6 +150,7 @@ namespace Game.Domain
         /// <summary>Daily seeded-market AI orders follow the rarity and personality tendencies in GDD 02 §3.</summary>
         void ExecuteStockAiOrders()
         {
+            if (!CanFacilityOperate("stock_exchange")) return;
             var listed = stockExchange.Companies.OrderByDescending(c => c.Revenue15Days)
                 .ThenBy(c => c.CompanyId, StringComparer.Ordinal).ToArray();
             if (listed.Length == 0) return;

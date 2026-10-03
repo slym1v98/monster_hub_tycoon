@@ -9,7 +9,7 @@ public static class FinanceScenarios
     public static void Run(System.IO.TextWriter output)
     {
         const int seed = 20261003, days = 360;
-        var config = new SimConfig { TrainerCount = 2, StartMinute = SimClock.DawnMinute, StartBuildingLevel = 5,
+        var config = new SimConfig { TrainerCount = 2, StartMinute = SimClock.DawnMinute, StartBuildingLevel = 5, StartTownHallLevel = 5,
             StartTrainerGold = 100000, StartTreasury = 1000000, StartingTrainerRanks = new[] { 1, 5 } };
         var world = new HubWorld(config, seed);
         var events = new List<IDomainEvent>();

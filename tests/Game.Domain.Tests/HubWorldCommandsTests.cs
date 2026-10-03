@@ -16,7 +16,7 @@ public class HubWorldCommandsTests
     [Fact]
     public void DonateMovesGoldFromTreasuryToTrainer()
     {
-        var w = new HubWorld(SimConfig.Default, 1);
+        var w = new HubWorld(SimConfig.Default.WithServiceFacilities(), 1);
         long before = w.Treasury, goldBefore = w.Trainers[0].Gold;
         var r = w.Donate(0, 500);
         Assert.True(r.Ok);
@@ -27,7 +27,7 @@ public class HubWorldCommandsTests
     [Fact]
     public void DonateIsRejectedForBadArguments()
     {
-        var w = new HubWorld(SimConfig.Default, 1);
+        var w = new HubWorld(SimConfig.Default.WithServiceFacilities(), 1);
         Assert.False(w.Donate(99, 10).Ok);
         Assert.False(w.Donate(-1, 10).Ok);
         Assert.False(w.Donate(0, 0).Ok);
@@ -40,7 +40,7 @@ public class HubWorldCommandsTests
     [Fact]
     public void AdvanceWageLendsGoldAndLowersNextPayroll()
     {
-        var w = new HubWorld(SimConfig.Default, 1);
+        var w = new HubWorld(SimConfig.Default.WithServiceFacilities(), 1);
         long dueBefore = w.Forecast.WagesDue;
         Assert.True(w.AdvanceWage(0, 400).Ok);
         Assert.Equal(dueBefore - 400, w.Forecast.WagesDue);
@@ -50,7 +50,7 @@ public class HubWorldCommandsTests
     [Fact]
     public void AdvanceWageIsRejectedForBadArguments()
     {
-        var w = new HubWorld(SimConfig.Default, 1);
+        var w = new HubWorld(SimConfig.Default.WithServiceFacilities(), 1);
         Assert.False(w.AdvanceWage(50, 10).Ok);
         Assert.False(w.AdvanceWage(0, 0).Ok);
         Assert.False(w.AdvanceWage(0, w.Treasury + 1).Ok);
@@ -60,7 +60,7 @@ public class HubWorldCommandsTests
     [Fact]
     public void SetPriceChangesListPriceAndRejectsNonPositive()
     {
-        var w = new HubWorld(SimConfig.Default, 1);
+        var w = new HubWorld(SimConfig.Default.WithServiceFacilities(), 1);
         Assert.True(w.SetPrice(BuildingKind.Inn, 90).Ok);
         Assert.Equal(90, w.Buildings[(int)BuildingKind.Inn].Price);
         Assert.Equal(45, w.Buildings[(int)BuildingKind.Inn].FairPrice);
@@ -72,7 +72,7 @@ public class HubWorldCommandsTests
     [Fact]
     public void DoubleFairPriceAddsStressToServiceUses()
     {
-        var w = new HubWorld(SimConfig.Default, 7);
+        var w = new HubWorld(new SimConfig().WithServiceFacilities(), 7);
         w.SetPrice(BuildingKind.Inn, 90);   // gấp đôi giá hợp lý
         var events = Capture(w);
         w.RunFor(3 * 1440);
@@ -85,7 +85,7 @@ public class HubWorldCommandsTests
     [Fact]
     public void NobodyWaitsForMoneyLongerThanTwentyFourHours()
     {
-        var cfg = new SimConfig { MaterialPrice = 1, StartTrainerGold = 0, TrainerCount = 10 };   // Trainer rất nghèo
+        var cfg = new SimConfig { MaterialPrice = 1, StartTrainerGold = 0, TrainerCount = 10 }.WithServiceFacilities();   // Trainer rất nghèo
         var w = new HubWorld(cfg, 21);
         var events = Capture(w);
         for (int m = 0; m < 3; m++) { w.RunUntilPayday(); w.ResolvePayday(); }
@@ -96,8 +96,8 @@ public class HubWorldCommandsTests
     [Fact]
     public void DirectorDonationWakesATrainerWaitingForMoney()
     {
-        var cfg = new SimConfig { StartTrainerGold = 0, TrainerCount = 1, ForcedPersonality = Personality.Timid, PatronChancePerHour = 0, MaterialPrice = 1,
-            TrainerLoanSettings = new TrainerLoanConfig(monthlyWageLimitMultiplier: 0.000001) };
+        var cfg = new SimConfig { StartTrainerGold = 0, TrainerCount = 1, ForcedPersonality = Personality.Timid, PatronChancePerHour = 0, MaterialPrice = 1, StartTownHallLevel = 4,
+            TrainerLoanSettings = new TrainerLoanConfig(monthlyWageLimitMultiplier: 0.000001) }.WithServiceFacilities();
         var w = new HubWorld(cfg, 2);
         // Trainer tự về HUB khi thấp nhu cầu rồi kẹt vì hết tiền; chạy cho tới khi kẹt.
         TrainerView stuck = null;
@@ -115,9 +115,9 @@ public class HubWorldCommandsTests
     [Fact]
     public void PartialDonationDoesNotRestartTheTwentyFourHourWait()
     {
-        var cfg = new SimConfig { StartTrainerGold = 0, TrainerCount = 1, ForcedPersonality = Personality.Timid,
+        var cfg = new SimConfig { StartTrainerGold = 0, TrainerCount = 1, ForcedPersonality = Personality.Timid, StartTownHallLevel = 4,
                                   PatronChancePerHour = 0, MaterialPrice = 1,
-                                  TrainerLoanSettings = new TrainerLoanConfig(monthlyWageLimitMultiplier: 0.000001) };
+                                  TrainerLoanSettings = new TrainerLoanConfig(monthlyWageLimitMultiplier: 0.000001) }.WithServiceFacilities();
         var w = new HubWorld(cfg, 2);
         foreach (BuildingKind kind in new[] { BuildingKind.Inn, BuildingKind.Restaurant, BuildingKind.Bar, BuildingKind.Hospital })
             w.SetPrice(kind, 1000);   // giá quá cao: quyên góp lẻ không bao giờ đủ
@@ -148,7 +148,7 @@ public class HubWorldCommandsTests
     [Fact]
     public void InvariantsHoldThroughThreeMonthsWithManyTrainers()
     {
-        var w = new HubWorld(new SimConfig { TrainerCount = 30, StartBuildingLevel = 3 }, 13);
+        var w = new HubWorld(new SimConfig { TrainerCount = 30, StartBuildingLevel = 3 }.WithServiceFacilities(), 13);
         for (int m = 0; m < 3; m++)
         {
             for (int step = 0; step < 30; step++)
@@ -176,7 +176,7 @@ public class HubWorldCommandsTests
     public void InvariantsHoldMinuteByMinuteIncludingQueuedTrainers()
     {
         // Cấp 1 + 30 Trainer: hàng đợi xuất hiện thường xuyên. Kiểm tra dày để bắt cả trạng thái Queued.
-        var w = new HubWorld(new SimConfig { TrainerCount = 30, StartBuildingLevel = 1 }, 17);
+        var w = new HubWorld(new SimConfig { TrainerCount = 30, StartBuildingLevel = 1 }.WithServiceFacilities(), 17);
         int queuedSamples = 0;
         for (int i = 0; i < 4 * 1440 / 7; i++)
         {

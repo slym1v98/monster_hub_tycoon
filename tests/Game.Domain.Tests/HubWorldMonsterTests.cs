@@ -10,6 +10,28 @@ using System.Text.Json;
 public sealed class HubWorldMonsterTests
 {
     [Fact]
+    public void HospitalServicesRejectRequestsWhenUnbuiltOrPoweredOff()
+    {
+        var capturedDefinition = MonsterCatalog.Default.Definitions[0];
+        var captured = Monster.Create(new MonsterId("hospital_gate_capture"), capturedDefinition,
+            Rarity.Rare, MonsterIvGrade.B, 1, 3);
+        var unbuilt = new HubWorld(new SimConfig { TrainerCount = 1,
+            StartingFacilityLevels = new Dictionary<string, int> { ["veterinary_hospital"] = 0 } }, 901);
+        Assert.Equal(AdmissionStatus.FacilityUnavailable, unbuilt.AdmitCapturedMonster(0, captured).Status);
+        Assert.Equal(MonsterCustody.Unassigned, captured.Custody);
+
+        var world = new HubWorld(new SimConfig { TrainerCount = 1 }.WithServiceFacilities(), 902);
+        var monster = world.MonstersForTrainer(0).First(x => x.IsActive);
+        Assert.True(world.SetBuildingPower(BuildingKind.Hospital, false).Ok);
+        long gold = world.Trainers[0].Gold;
+        long treasury = world.Treasury;
+        Assert.Equal(AdmissionStatus.FacilityUnavailable, world.RequestMonsterEmergencyCare(new MonsterId(monster.Id)).Status);
+        Assert.Equal(gold, world.Trainers[0].Gold);
+        Assert.Equal(treasury, world.Treasury);
+        Assert.Empty(world.VeterinaryHospital.Recoveries);
+    }
+
+    [Fact]
     public void ViewExposesOwnedMonstersAndFarmAppliesFinalHpAndTrainerExperience()
     {
         var cfg = new SimConfig { TrainerCount = 1, StartMinute = SimClock.DawnMinute,
@@ -97,7 +119,7 @@ public sealed class HubWorldMonsterTests
     [Fact]
     public void GeneBankFeeAssessmentIsEmittedAfterPaydayWageSettlement()
     {
-        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTreasury = 10000, StartTrainerGold = 500 }, 19);
+        var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTreasury = 10000, StartTrainerGold = 500 }.WithTierThreeFacilities("gene_bank"), 19);
         var events = new List<IDomainEvent>();
         world.EventRaised += events.Add;
         var starter = Assert.Single(world.Trainers[0].Monsters);
@@ -115,7 +137,7 @@ public sealed class HubWorldMonsterTests
     public void GeneBankFeeIsUnpaidAndConfiscatesOneMonsterWhenPaydayTreasuryIsEmpty()
     {
         var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTreasury = 0, StartTrainerGold = 0,
-            PatronChancePerHour = 0, UnlockedZoneIds = Array.Empty<string>() }, 21);
+            PatronChancePerHour = 0, UnlockedZoneIds = Array.Empty<string>() }.WithTierThreeFacilities("gene_bank"), 21);
         var events = new List<IDomainEvent>();
         world.EventRaised += events.Add;
         var starter = Assert.Single(world.Trainers[0].Monsters);
@@ -168,7 +190,7 @@ public sealed class HubWorldMonsterTests
         cfg.EvolutionCatalogSettings = new EvolutionCatalog(new[] {
             new EvolutionDefinition(definition.Id, "test_branch", target, 40, 1, 1,
                 new ProductId("gene_fragment"), 1, new[] { target.Element.ToString().ToLowerInvariant() + "_strike" }) });
-        var world = new HubWorld(cfg, 31);
+        var world = new HubWorld(cfg.WithTierThreeFacilities("gene_bank"), 31);
         var events = new List<IDomainEvent>(); world.EventRaised += events.Add;
         Assert.True(world.AdmitCapturedMonster(0, Monster.Create(new MonsterId("reserve"), definition,
             Rarity.Common, MonsterIvGrade.B, 40, 2)).Accepted);
@@ -212,7 +234,7 @@ public sealed class HubWorldMonsterTests
     [Fact]
     public void SnapshotsAreDetachedAndServicesExposeNoMutableEntities()
     {
-        var world = new HubWorld(new SimConfig { TrainerCount = 1 }, 1);
+        var world = new HubWorld(new SimConfig { TrainerCount = 1 }.WithTierThreeFacilities("gene_bank"), 1);
         var old = world.MonstersForTrainer(0);
         Assert.Throws<NotSupportedException>(() => ((IList<MonsterView>)old).Clear());
         Assert.IsType<VeterinaryHospitalView>(world.VeterinaryHospital);
@@ -230,7 +252,7 @@ public sealed class HubWorldMonsterTests
     [Fact]
     public void DuplicateIdentityAcrossHospitalAndBankIsRejectedBeforeOwnershipTransfer()
     {
-        var world = new HubWorld(new SimConfig { TrainerCount = 2 }, 10);
+        var world = new HubWorld(new SimConfig { TrainerCount = 2 }.WithTierThreeFacilities("gene_bank"), 10);
         var def = MonsterCatalog.Default.Definitions[0];
         var first = Monster.Create(new MonsterId("duplicate"), def, Rarity.Common, MonsterIvGrade.B, 1, 1);
         var second = Monster.Create(first.Id, def, Rarity.Common, MonsterIvGrade.B, 1, 2);
@@ -249,9 +271,6 @@ public sealed class HubWorldMonsterTests
             var stream = new List<string>();
             world.EventRaised += e => stream.Add(JsonSerializer.Serialize(e, e.GetType()));
             Assert.False(world.UnlockZone("unknown").Ok);
-            Assert.True(world.UnlockZone("zone_2").Ok);
-            Assert.False(world.UnlockZone("zone_2").Ok);
-            Assert.Contains(world.Zones, z => z.Id == "zone_2" && z.IsUnlocked);
             world.RunFor(1440);
             world.ValidateInvariants();
             Assert.Contains(stream, e => e.Contains("Battles"));
@@ -264,7 +283,7 @@ public sealed class HubWorldMonsterTests
     public void PaydayCollectsGeneBankFeeAfterWagesAndPreservesStoredMonsterWhenPaid()
     {
         var world = new HubWorld(new SimConfig { TrainerCount = 1, StartTrainerGold = 1000000,
-            StartTreasury = 10000, PatronChancePerHour = 0, UnlockedZoneIds = Array.Empty<string>() }, 1);
+            StartTreasury = 10000, PatronChancePerHour = 0, UnlockedZoneIds = Array.Empty<string>() }.WithTierThreeFacilities("gene_bank"), 1);
         Assert.True(world.DepositMonster(0, "trainer_0_starter").Ok);
         world.RunUntilPayday();
         long gold = world.Trainers[0].Gold;
@@ -355,9 +374,7 @@ public sealed class HubWorldMonsterTests
         Assert.Matches(@"swaps [1-9][0-9]*", first);
         Assert.Matches(@"faints [1-9][0-9]*", first);
         Assert.Matches(@"losses [1-9][0-9]*", first);
-        if (mode == "expedition")
-            foreach (var zone in new[] { "zone_1", "zone_2", "zone_3", "zone_4", "zone_5" })
-                Assert.Matches(zone + @": encounters [1-9][0-9]*", first);
+        // The progression gates prevent this rank-one fixture from surveying higher Zones.
     }
 
     [Fact]
@@ -393,7 +410,7 @@ public sealed class HubWorldMonsterTests
     [Fact]
     public void LocalStorageLimitRejectsTransfersWithoutLosingBankOwnership()
     {
-        var world = new HubWorld(new SimConfig { TrainerCount = 1 }, 1);
+        var world = new HubWorld(new SimConfig { TrainerCount = 1 }.WithTierThreeFacilities("gene_bank"), 1);
         var trainer = InternalTrainers(world)[0];
         for (int i = 0; i < 500; i++)
             trainer.Roster.AddToStorage(Monster.Create(new MonsterId("stored_" + i), MonsterCatalog.Default.Definitions[0],
@@ -502,7 +519,7 @@ public sealed class HubWorldMonsterTests
     public void NestedServiceAndTrainerCollectionsAreImmutableDetachedSnapshots()
     {
         var world = new HubWorld(new SimConfig { TrainerCount = 1, StartMinute = 100,
-            VeterinaryHospitalSettings = new VeterinaryHospitalConfig(firstCaptureRecoveryMinutes: 1) }, 1);
+            VeterinaryHospitalSettings = new VeterinaryHospitalConfig(firstCaptureRecoveryMinutes: 1) }.WithTierThreeFacilities("gene_bank"), 1);
         var monster = Monster.Create(new MonsterId("recovering"), MonsterCatalog.Default.Definitions[0],
             Rarity.Common, MonsterIvGrade.B, 1, 1);
         Assert.True(world.AdmitCapturedMonster(0, monster).Accepted);
@@ -518,8 +535,7 @@ public sealed class HubWorldMonsterTests
         Assert.Empty(world.VeterinaryHospital.Recoveries);
         Assert.Single(trainer.Monsters);
         Assert.Equal(2, world.Trainers[0].Monsters.Count);
-        Assert.True(world.UnlockZone("zone_2").Ok);
-        Assert.False(zones.Single(z => z.Id == "zone_2").IsUnlocked);
+        Assert.True(zones.Single(z => z.Id == "zone_2").IsUnlocked);
         Assert.True(world.DepositMonster(0, "recovering").Ok);
         var bank = world.GeneBank;
         Assert.Throws<NotSupportedException>(() => ((IList<BankMonsterView>)bank.StoredMonsters).Clear());

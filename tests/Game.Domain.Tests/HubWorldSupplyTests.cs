@@ -10,6 +10,10 @@ public class HubWorldSupplyTests
     public void TrainerSaleUsesStationRequestTaxAndSharedTreasury()
     {
         var config = new SimConfig { TrainerCount = 1, StartTreasury = 1000, StartTrainerGold = 1000,
+            StartTownHallLevel = 3,
+            HubProgressionSettings = new HubProgressionConfig(facilityUpgradeMinutes: 1),
+            StartingConstructionStock = new Dictionary<ProductId, int> { [new ProductId("wood_ingot")] = 5,
+                [new ProductId("stone_ingot")] = 5, [new ProductId("iron_ingot")] = 5 },
             BackpackCapacity = 1, FarmChunkMinutes = 30, ZoneTravelMinutes = 30 };
         var world = new HubWorld(config, 1, new TypedFarm(1), null);
         var events = new List<IDomainEvent>();
@@ -29,10 +33,15 @@ public class HubWorldSupplyTests
     [Fact]
     public void ProductionStartsWhenStationStockArrivesAndCompletesOnScheduledMinute()
     {
-        var config = new SimConfig { TrainerCount = 1, StartTreasury = 1000, StartTrainerGold = 1000,
+        var config = new SimConfig { TrainerCount = 1, StartTreasury = 1000, StartTrainerGold = 1000, StartTownHallLevel = 3,
+            HubProgressionSettings = new HubProgressionConfig(facilityUpgradeMinutes: 1),
+            StartingConstructionStock = new Dictionary<ProductId, int> { [new ProductId("wood_ingot")] = 5,
+                [new ProductId("stone_ingot")] = 5, [new ProductId("iron_ingot")] = 5 },
             BackpackCapacity = 2, FarmChunkMinutes = 30, ZoneTravelMinutes = 30,
             ProductionSettings = new Game.Domain.Production.ProductionConfig(defaultOperatingCost: 3) };
         var world = new HubWorld(config, 2, new TypedFarm(2), null);
+        Assert.True(world.ConstructFacility("refinery").Ok);
+        world.RunFor(1);
         var events = new List<IDomainEvent>();
         world.EventRaised += events.Add;
 

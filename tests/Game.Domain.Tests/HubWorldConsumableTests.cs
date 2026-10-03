@@ -38,6 +38,9 @@ namespace Game.Domain.Tests
                     operatingCostPerTrip: 5, startingCash: 1000, routeCycleMinutes: 60,
                     replacementDelayMinutes: 60, maximumWaitMinutes: 120),
                 ProductionSettings = new Game.Domain.Production.ProductionConfig(defaultJobDurationMinutes: 5) };
+            config.StartTownHallLevel = 4;
+            config.StartingFacilityLevels = new System.Collections.Generic.Dictionary<string, int>
+            { ["veterinary_hospital"] = 1, ["inn"] = 1, ["restaurant"] = 1, ["bar"] = 1 };
             var world = new HubWorld(config, 3);
             Assert.True(world.SetBuyRequest("herb_tier_1", 1, 10).Ok);
             Assert.True(world.SetProductionTarget("potion", 1).Ok);

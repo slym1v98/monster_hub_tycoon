@@ -40,7 +40,7 @@ namespace Game.Domain.Monsters
             "veterinary." + name, value, unit, "Prototype", "docs/designs/02_HUB_Economy_Infrastructure.md §1.4; exact recovery duration/surcharge are unspecified.");
     }
 
-    public enum AdmissionStatus { Accepted, NoMissingHp, Full, UnknownTrainer, AlreadyOwned, AlreadyAdmitted, InsufficientFunds, UnknownRecovery }
+    public enum AdmissionStatus { Accepted, NoMissingHp, Full, UnknownTrainer, AlreadyOwned, AlreadyAdmitted, InsufficientFunds, UnknownRecovery, FacilityUnavailable }
     public sealed class AdmissionResult
     {
         public AdmissionStatus Status { get; }

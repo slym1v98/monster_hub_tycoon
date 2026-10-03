@@ -5,6 +5,7 @@ using Game.Domain.Combat;
 using Game.Domain.Production;
 using Game.Domain.Supply;
 using Game.Domain.Monsters;
+using Game.Domain.Materials;
 
 namespace Game.Domain
 {
@@ -39,7 +40,9 @@ namespace Game.Domain
         public bool StartWithNightVision = false;
         public long StartTreasury = 20000;
         public long StartTrainerGold = 200;
-        public int StartBuildingLevel = 5;
+        public int StartBuildingLevel = 1;
+        /// <summary>Optional deterministic fixture overrides. By default only GDD facilities marked rebuilt start at level one.</summary>
+        public IDictionary<string, int> StartingFacilityLevels = new Dictionary<string, int>(StringComparer.Ordinal);
         /// <summary>Phút bắt đầu: 06:00 sáng ngày đầu tiên.</summary>
         public int StartMinute = SimClock.DawnMinute;
 
@@ -47,6 +50,9 @@ namespace Game.Domain
         public MonsterStatConfig MonsterStatSettings = MonsterStatConfig.Prototype;
         public TrainerAttributeConfig TrainerAttributeSettings = TrainerAttributeConfig.Prototype;
         public TrainerProgressionConfig TrainerProgressionSettings = TrainerProgressionConfig.Prototype;
+        public HubProgressionConfig HubProgressionSettings = HubProgressionConfig.Prototype;
+        public HubReputationConfig HubReputationSettings = HubReputationConfig.Prototype;
+        public HubEventConfig EventSettings = HubEventConfig.Prototype;
         public ZoneCatalog ZoneCatalogSettings = ZoneCatalog.Default;
         public ZoneSelectionConfig ZoneSelectionSettings = ZoneSelectionConfig.Prototype;
         public LootConfig LootSettings = LootConfig.Prototype;
@@ -69,6 +75,8 @@ namespace Game.Domain
         public EvolutionCatalog EvolutionCatalogSettings = EvolutionCatalog.Empty;
         /// <summary>Progression unlock is owned by Sub-project 6; default campaign begins in Zone 1.</summary>
         public string[] UnlockedZoneIds = { "zone_1" };
+        public int StartTownHallLevel = 1;
+        public int StartDormitoryLevel = 1;
 
         // --- Nhu cầu (mỗi giờ) ---
         public double FieldStaminaPerHour = 6, FieldSatietyPerHour = 5, FieldHydrationPerHour = 6, FieldStressPerHour = 0.5;
@@ -93,6 +101,10 @@ namespace Game.Domain
         public double TaxRate = 0.20;
         public MerchantConfig MerchantSettings = MerchantConfig.Prototype;
         public ProductionConfig ProductionSettings = new ProductionConfig();
+        /// <summary>Optional seeded HUB construction inventory for campaign saves and deterministic fixtures.</summary>
+        public IDictionary<ProductId, int> StartingConstructionStock;
+        /// <summary>Optional seeded station product inventory for deterministic campaign fixtures.</summary>
+        public IDictionary<ProductId, int> StartingProductStock;
 
         // --- Dịch vụ ---
         public double ServiceCogs = 0.25;

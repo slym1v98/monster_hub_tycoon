@@ -62,7 +62,7 @@ namespace Game.Domain.Production
 
         public static ConsumableStallCatalog Default { get; } = new ConsumableStallCatalog(new[]
         {
-            Stall("hospital", "hospital", "potion", "vaccine", "tranquilizer"),
+            Stall("veterinary_hospital", "hospital", "potion", "vaccine", "tranquilizer"),
             Stall("restaurant", "restaurant", "food_drink", "reward_cake"),
             Stall("bar", "bar", "liquor"),
             Stall("tool_workshop", "tool_workshop", "raincoat", "gas_mask", "capture_ball", "trap", "tactics_book"),

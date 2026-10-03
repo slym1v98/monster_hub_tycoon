@@ -124,10 +124,15 @@ namespace Game.Domain.Materials
                 Product("trainer_utility_gear", "Trang bị Tiện ích Trainer", "trainer_textile_workshop"),
                 Product("aura_gear", "Trang bị Hào quang", "aura_jeweler"),
                 Product("mutation_core", "Lõi Đột Biến", null), Product("gene_fragment", "Gene Fragments", null),
-                Product("world_boss_crystal", "Tinh Thể Boss Thế Giới", null), Product("broken_relic", "Cổ vật vỡ", null)
+                Product("world_boss_crystal", "Tinh Thể Boss Thế Giới", null), Product("boss_core", "Lõi Boss", null), Product("broken_relic", "Cổ vật vỡ", null),
+                Product("wood_ingot", "Phôi Gỗ", "refinery"), Product("stone_ingot", "Phôi Đá", "refinery"),
+                Product("iron_ingot", "Phôi Sắt", "refinery")
             };
             var blanks = new List<ProductDefinition>();
             var recipes = new List<Recipe>();
+            AddIngotRecipe(recipes, "wood_ingot", "wood_tier_1", "Tinh chế Gỗ thành Phôi Gỗ");
+            AddIngotRecipe(recipes, "stone_ingot", "ore_tier_1", "Tinh chế Quặng Tier 1 thành Phôi Đá");
+            AddIngotRecipe(recipes, "iron_ingot", "ore_tier_2", "Tinh chế Quặng Tier 2 thành Phôi Sắt");
             foreach (var material in list.Where(x => x.Family == MaterialFamily.Ore || x.Family == MaterialFamily.ClothLeather || x.Family == MaterialFamily.Gem))
             {
                 var blankId = new ProductId($"blank_{MaterialId.FamilyKey(material.Family)}_tier_{material.Tier}");
@@ -168,6 +173,11 @@ namespace Game.Domain.Materials
         private static void AddConsumableRecipe(List<Recipe> recipes, string producer, string product, string name, MaterialFamily family)
             => recipes.Add(new Recipe(new RecipeId($"{producer}_{product}"), name, new ProducerId(producer),
                 new[] { new RecipeInput(MaterialId.For(family, 1), 1) },
+                new[] { new RecipeOutput(new ProductId(product), 1) }));
+
+        private static void AddIngotRecipe(List<Recipe> recipes, string product, string inputMaterialId, string name)
+            => recipes.Add(new Recipe(new RecipeId("refinery_" + product), name, new ProducerId("refinery"),
+                new[] { new RecipeInput(new MaterialId(inputMaterialId), 1) },
                 new[] { new RecipeOutput(new ProductId(product), 1) }));
 
         private static void AddProductInputRecipe(List<Recipe> recipes, string producer, string product, string name, ProductId input)
